@@ -13,4 +13,4 @@
 
 ## Who do I talk to?
 
-* [Devin Bobadilla](mosesbobadilla@gmail.com)(Author of binilla)
+* Devin Bobadilla (Author of binilla) mosesbobadilla@gmail.com

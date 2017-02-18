@@ -37,7 +37,7 @@ setup(
     platforms=["POSIX", "Windows"],
     keywords="binilla, binary, data structure",
     install_requires=['supyr_struct'],
-    requires=[],
+    requires=['supyr_struct'],
     provides=['binilla'],
     classifiers=[
         "Development Status :: 4 - Beta",

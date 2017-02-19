@@ -12,13 +12,16 @@ release_date = "2017.02.15"
 version = (0, 9, 1)
 
 try:
-    long_desc = open(join(curr_dir, "readme.md")).read()
+    try:
+        long_desc = open(join(curr_dir, "readme.rst")).read()
+    except Exception:
+        long_desc = open(join(curr_dir, "readme.md")).read()
 except Exception:
-    long_desc = ''
+    long_desc = 'Could not read long description from readme.'
 
 setup(
     name='binilla',
-    description='',
+    description='A universal binary structure editor built on supyr_struct.',
     long_description=long_desc,
     version='0.9.1',
     url='http://bitbucket.org/moses_of_egypt/binilla',

@@ -21,7 +21,7 @@ setup(
     description='',
     long_description=long_desc,
     version='0.9.1',
-    url='http://bitbucket.org/wcfw/binilla',
+    url='http://bitbucket.org/moses_of_egypt/binilla',
     author='Devin Bobadilla',
     author_email='MosesBobadilla@gmail.com',
     license='MIT',

@@ -1060,8 +1060,17 @@ class Binilla(tk.Tk, BinillaWidget):
                     self.terminal_out.edit_log = False
             except Exception:
                 show = s_c.MOST_SHOW
-            self.selected_tag.pprint(printout=True, show=show,
-                                     precision=precision, indent=indent)
+
+            tag_str = self.selected_tag.pprint(
+                show=show, precision=precision, indent=indent)
+
+            # print the string line by line
+            for line in tag_str.split('\n'):
+                try:
+                    print(line)
+                except:
+                    print(' '*(len(line)-len(line.lstrip(' ')))+s_c.UNPRINTABLE)
+                self.io_text.update()
 
             try: self.terminal_out.edit_log = bool(header.flags.log_output)
             except Exception: pass

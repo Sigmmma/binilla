@@ -11,6 +11,23 @@
 ![binilla test1.png](https://bitbucket.org/repo/4xyAzp/images/1451182705-binilla%20test1.png)
 ![binilla test2.PNG](https://bitbucket.org/repo/4xyAzp/images/2229544774-binilla%20test2.PNG)
 
+## Installing
+
+First install any version of Python 3(The newest version is recommended).
+
+There are two ways to install binilla from this point:
+
+*    Open a command prompt and execute ```pip install binilla ```
+
+or
+
+*    Extract a copy of the repository into a directory titled "binilla ".
+*    Move the file "setup.py" into the directory containing "binilla ".
+*    Open a command prompt, navigate to the directory containing setup.py, and execute:```python setup.py install```
+*    During install, python should try to download and install supyr_struct. If it fails to, you must install that as well.
+
+Once the install finishes, binilla should be able to be run by opening a python interpreter and executing:```from binilla import run```
+
 ## Who do I talk to?
 
 * Devin Bobadilla (Author of binilla) mosesbobadilla@gmail.com

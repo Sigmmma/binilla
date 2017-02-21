@@ -8,8 +8,8 @@ except ImportError:
 curr_dir = dirname(__file__)
 
 #               YYYY.MM.DD
-release_date = "2017.02.15"
-version = (0, 9, 1)
+release_date = "2017.02.20"
+version = (0, 9, 3)
 
 try:
     try:
@@ -23,7 +23,7 @@ setup(
     name='binilla',
     description='A universal binary structure editor built on supyr_struct.',
     long_description=long_desc,
-    version='0.9.1',
+    version='%s.%s.%s' % version,
     url='http://bitbucket.org/moses_of_egypt/binilla',
     author='Devin Bobadilla',
     author_email='MosesBobadilla@gmail.com',
@@ -32,7 +32,7 @@ setup(
         'binilla',
         ],
     package_data={
-        '': ['*.txt', '*.md', '*.rst'],
+        '': ['*.txt', '*.md', '*.rst', '*.pyw'],
         'binilla': [
             'styles/*.*',
             ]

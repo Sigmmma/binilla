@@ -70,7 +70,6 @@ class FieldWidget(widgets.BinillaWidget):
     f_widget_parent = None
 
     # a mapping of id to FieldWidget for each child FieldWidget of this object.
-    # this is actully just the "children" attribute of this objects content.
     f_widgets = None
 
     # a list of the id's of the widgets that are parented
@@ -399,7 +398,7 @@ class FieldWidget(widgets.BinillaWidget):
                     if widget is not None:
                         try:
                             f_widgets = widget.f_widgets
-                            widget = f_widgets[str(widget.f_widget_ids_map[i])]
+                            widget = f_widgets[widget.f_widget_ids_map[i]]
                         except Exception:
                             widget = None
                             pass
@@ -493,6 +492,14 @@ class FieldWidget(widgets.BinillaWidget):
         '''Resupplies the nodes to the widgets which display them.'''
         raise NotImplementedError("This method must be overloaded")
 
+    def build_f_widget_cache(self):
+        f_widgets = self.f_widgets = {}
+        try:
+            for w in self.content.children.values():
+                f_widgets[id(w)] = w
+        except Exception:
+            print(format_exc())
+
     def set_edited(self, new_value=True):
         self.edited = bool(new_value)
         try:
@@ -504,7 +511,7 @@ class FieldWidget(widgets.BinillaWidget):
             # Tell all children that there are no longer unsaved edits
             f_widgets = self.f_widgets
             for f_wid in self.f_widget_ids:
-                w = f_widgets.get(str(f_wid))
+                w = f_widgets.get(f_wid)
                 if w.edited:
                     w.set_edited(False)
         except Exception:
@@ -522,7 +529,7 @@ class FieldWidget(widgets.BinillaWidget):
             # Tell all children that there are no longer unsaved edits
             f_widgets = self.f_widgets
             for f_wid in self.f_widget_ids:
-                w = f_widgets.get(str(f_wid))
+                w = f_widgets.get(f_wid)
                 if w.needs_flushing:
                     w.set_needs_flushing(False)
         except Exception:
@@ -699,14 +706,14 @@ class ContainerFrame(tk.Frame, FieldWidget):
         del self.f_widget_ids_map
         del self.f_widget_ids_map_inv
 
-        self.f_widgets = self.content.children
         f_widget_ids = self.f_widget_ids
         f_widget_ids_map = self.f_widget_ids_map = {}
         f_widget_ids_map_inv = self.f_widget_ids_map_inv = {}
 
         # destroy all the child widgets of the content
-        for c in list(self.f_widgets.values()):
-            c.destroy()
+        if isinstance(self.f_widgets, dict):
+            for c in list(self.f_widgets.values()):
+                c.destroy()
 
         node = self.node
         desc = node.desc
@@ -808,6 +815,8 @@ class ContainerFrame(tk.Frame, FieldWidget):
             f_widget_ids_map[i] = wid
             f_widget_ids_map_inv[wid] = i
 
+        self.build_f_widget_cache()
+
         # now that the field widgets are created, position them
         if self.show.get():
             self.pose_fields()
@@ -828,7 +837,7 @@ class ContainerFrame(tk.Frame, FieldWidget):
         try:
             node = self.node
             desc = self.desc
-            f_widgets = self.f_widgets = self.content.children
+            f_widgets = self.f_widgets
 
             field_indices = range(len(node))
             # if the node has a steptree node, include its index in the indices
@@ -847,7 +856,7 @@ class ContainerFrame(tk.Frame, FieldWidget):
                 if hasattr(sub_node, 'desc'):
                     sub_desc = sub_node.desc
 
-                w = f_widgets.get(str(f_widget_ids_map.get(i)))
+                w = f_widgets.get(f_widget_ids_map.get(i))
 
                 # if neither would be visible, dont worry about checking it
                 if not(sub_desc.get('VISIBLE',1) or all_visible) and w is None:
@@ -859,7 +868,7 @@ class ContainerFrame(tk.Frame, FieldWidget):
                     return
 
             for wid in self.f_widget_ids:
-                w = f_widgets[str(wid)]
+                w = f_widgets[wid]
 
                 w.parent, w.node = node, node[w.attr_index]
                 w.reload()
@@ -881,7 +890,7 @@ class ContainerFrame(tk.Frame, FieldWidget):
 
         side = 'left' if orient == 'h' else 'top'
         for wid in f_widget_ids:
-            w = f_widgets[str(wid)]
+            w = f_widgets[wid]
             w.pack(fill='x', side=side, anchor='nw',
                    padx=w.pack_padx, pady=w.pack_pady)
 
@@ -1111,7 +1120,7 @@ class ArrayFrame(ContainerFrame):
     def export_node(self):
         try:
             # pass call to the export_node method of the array entry's widget
-            w = self.f_widgets[str(self.f_widget_ids[0])]
+            w = self.f_widgets[self.f_widget_ids[0]]
         except Exception:
             return
         w.export_node()
@@ -1119,7 +1128,7 @@ class ArrayFrame(ContainerFrame):
     def import_node(self):
         try:
             # pass call to the import_node method of the array entry's widget
-            w = self.f_widgets[str(self.f_widget_ids[0])]
+            w = self.f_widgets[self.f_widget_ids[0]]
         except Exception:
             return
         w.import_node()
@@ -1511,14 +1520,14 @@ class ArrayFrame(ContainerFrame):
         del self.f_widget_ids_map
         del self.f_widget_ids_map_inv
 
-        self.f_widgets = self.content.children
         f_widget_ids = self.f_widget_ids
         f_widget_ids_map = self.f_widget_ids_map = {}
         f_widget_ids_map_inv = self.f_widget_ids_map_inv = {}
 
         # destroy all the child widgets of the content
-        for c in list(self.f_widgets.values()):
-            c.destroy()
+        if isinstance(self.f_widgets, dict):
+            for c in list(self.f_widgets.values()):
+                c.destroy()
 
         self.display_comment(self.content)
 
@@ -1547,6 +1556,7 @@ class ArrayFrame(ContainerFrame):
             self.sel_index = -1
             self.sel_menu.max_index = -1
             self.sel_menu.disable()
+            self.build_f_widget_cache()
             if self.show.get():
                 self.pose_fields()
             return
@@ -1579,6 +1589,9 @@ class ArrayFrame(ContainerFrame):
 
             self.populated = True
 
+        self.build_f_widget_cache()
+
+        if self.populated:
             self.reload()
 
         # now that the field widgets are created, position them
@@ -1639,7 +1652,7 @@ class ArrayFrame(ContainerFrame):
                 sub_desc = sub_node.desc
 
             for wid in self.f_widget_ids:
-                w = self.f_widgets[str(wid)]
+                w = self.f_widgets[wid]
 
                 # if the descriptors are different, gotta repopulate!
                 if w.desc is not sub_desc:
@@ -1677,7 +1690,7 @@ class ArrayFrame(ContainerFrame):
         # there should only be one wid in here, but for
         # the sake of consistancy we'll loop over them.
         for wid in self.f_widget_ids:
-            w = f_widgets[str(wid)]
+            w = f_widgets[wid]
 
             # by adding a fixed amount of padding, we fix a problem
             # with difficult to predict padding based on nesting
@@ -1917,7 +1930,7 @@ class RawdataFrame(DataFrame):
         if w_parent is not None:
             try:
                 w = w_parent.f_widgets[
-                    str(w_parent.f_widget_ids_map[attr_index])]
+                    w_parent.f_widget_ids_map[attr_index]]
                 if w.desc is not edit_state.desc:
                     return
 
@@ -2184,7 +2197,7 @@ class EntryFrame(DataFrame):
         if w_parent is not None:
             try:
                 w = w_parent.f_widgets[
-                    str(w_parent.f_widget_ids_map[attr_index])]
+                    w_parent.f_widget_ids_map[attr_index]]
                 if w.desc is not edit_state.desc:
                     return
 
@@ -2285,15 +2298,18 @@ class EntryFrame(DataFrame):
 
         max_width = self.max_string_entry_width
 
-        # if the size is not fixed using an int, dont rely on it
-        if not isinstance(desc.get('SIZE', f_type.size), int):
-            node_size = self.def_string_entry_width
+        if f_type.is_oe_size:
+            return max_width
+        else:
+            # if the size is not fixed using an int, dont rely on it
+            if not isinstance(desc.get('SIZE', f_type.size), int):
+                node_size = self.def_string_entry_width
 
-        value_width = max(abs(value_max), abs(value_min), node_size)
-        entry_width = max(self.min_entry_width,
-                          min(value_width, max_width))
-        if isinstance(node, str) and isinstance(f_type.size, int):
-            entry_width = (entry_width - 1 + f_type.size)//f_type.size
+            value_width = max(abs(value_max), abs(value_min), node_size)
+            entry_width = max(self.min_entry_width,
+                              min(value_width, max_width))
+            if isinstance(node, str) and isinstance(f_type.size, int):
+                entry_width = (entry_width - 1 + f_type.size)//f_type.size
         return entry_width
 
     def populate(self):
@@ -2638,7 +2654,7 @@ class TextFrame(DataFrame):
         if w_parent is not None:
             try:
                 w = w_parent.f_widgets[
-                    str(w_parent.f_widget_ids_map[attr_index])]
+                    w_parent.f_widget_ids_map[attr_index]]
                 if w.desc is not edit_state.desc:
                     return
 
@@ -2912,7 +2928,6 @@ class UnionFrame(ContainerFrame):
             del self.f_widget_ids_map
             del self.f_widget_ids_map_inv
 
-            self.f_widgets = self.content.children
             f_widget_ids = self.f_widget_ids
             f_widget_ids_map = self.f_widget_ids_map = {}
             f_widget_ids_map_inv = self.f_widget_ids_map_inv = {}
@@ -2983,6 +2998,8 @@ class UnionFrame(ContainerFrame):
                 f_widget_ids_map['u_node'] = wid
                 f_widget_ids_map_inv[wid] = 'u_node'
 
+            self.build_f_widget_cache()
+
             # now that the field widgets are created, position them
             if self.show.get():
                 self.pose_fields()
@@ -2998,7 +3015,7 @@ class UnionFrame(ContainerFrame):
     def pose_fields(self):
         f_widgets = self.f_widgets
         for wid in self.f_widget_ids:
-            w = f_widgets[str(wid)]
+            w = f_widgets[wid]
 
             # by adding a fixed amount of padding, we fix a problem
             # with difficult to predict padding based on nesting
@@ -3075,14 +3092,14 @@ class StreamAdapterFrame(ContainerFrame):
             del self.f_widget_ids_map
             del self.f_widget_ids_map_inv
 
-            self.f_widgets = self.content.children
             f_widget_ids = self.f_widget_ids
             f_widget_ids_map = self.f_widget_ids_map = {}
             f_widget_ids_map_inv = self.f_widget_ids_map_inv = {}
 
             # destroy all the child widgets of the content
-            for c in list(self.f_widgets.values()):
-                c.destroy()
+            if isinstance(self.f_widgets, dict):
+                for c in list(self.f_widgets.values()):
+                    c.destroy()
 
             node = self.node
             desc = self.desc
@@ -3113,6 +3130,8 @@ class StreamAdapterFrame(ContainerFrame):
             f_widget_ids.append(wid)
             f_widget_ids_map['data'] = wid
             f_widget_ids_map_inv[wid] = 'data'
+
+            self.build_f_widget_cache()
 
             # now that the field widgets are created, position them
             if self.show.get():
@@ -3345,7 +3364,7 @@ class DynamicEnumFrame(EnumFrame):
         if w_parent is not None:
             try:
                 w = w_parent.f_widgets[
-                    str(w_parent.f_widget_ids_map[attr_index])]
+                    w_parent.f_widget_ids_map[attr_index]]
                 if w.desc is not state.desc:
                     return
 

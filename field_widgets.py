@@ -2582,7 +2582,8 @@ class TextFrame(DataFrame):
 
         self.data_text = tk.Text(
             self.content, bd=self.entry_depth, wrap=tk.NONE,
-            height=self.textbox_height, maxundo=self.max_undos, undo=1,
+            height=self.textbox_height, width=self.textbox_width,
+            maxundo=self.max_undos, undo=True,
             bg=self.entry_normal_color, fg=self.text_normal_color,
             selectbackground=self.entry_highlighted_color,
             selectforeground=self.text_highlighted_color,)
@@ -2614,7 +2615,7 @@ class TextFrame(DataFrame):
             self.title_label.pack(fill="x")
         self.hsb.pack(side="bottom", fill='x', expand=True)
         self.data_text.pack(side="left", fill="x")
-        self.vsb.pack(side="left",  fill='y')
+        self.vsb.pack(side="right",  fill='y')
         self.content.pack(fill="both", expand=True)
 
         self.build_replace_map()

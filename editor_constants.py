@@ -15,7 +15,7 @@ SCROLL_MENU_WIDTH = 35
 ENUM_MENU_WIDTH = 10
 
 TEXTBOX_HEIGHT = 10
-TEXTBOX_WIDTH = 50
+TEXTBOX_WIDTH = 80
 
 # The number of pixels wide and tall a BoolFrame is at a minimum
 BOOL_FRAME_MIN_WIDTH = 160

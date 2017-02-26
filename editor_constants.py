@@ -1,5 +1,3 @@
-from supyr_struct.defs.constants import *
-
 # padding to use when packing a widget being oriented vertically
 VERTICAL_PADX = (20, 0)
 VERTICAL_PADY = (0, 5)

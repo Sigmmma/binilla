@@ -54,6 +54,9 @@ class EditManager(object):
     # returned, and when redoing, edit_states[edit_index] should be.
     _edit_index = 0
 
+    def __init__(self, max_states=100):
+        self._edit_states = deque(maxlen=max_states)
+
     @property
     def edit_index(self):
         return self._edit_index
@@ -61,9 +64,6 @@ class EditManager(object):
     @property
     def maxlen(self):
         return self._edit_states.maxlen
-
-    def __init__(self, max_states=100):
-        self._edit_states = deque(maxlen=max_states)
 
     def undo(self):
         i = self._edit_index

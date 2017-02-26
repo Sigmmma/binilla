@@ -84,8 +84,6 @@ class Handler():
     default_import_rootpath = "supyr_struct"
     default_defs_path = "supyr_struct.defs"
 
-    sys_path_index = -1
-
     tagsdir = "%s%stags%s" % (
         dirname(os.path.abspath(os.curdir)), PATHDIV, PATHDIV)
 
@@ -217,7 +215,7 @@ class Handler():
             # a whole module was provided
             tagdefs = tagdefs.get()
         else:
-            # a whole module was provided
+            # a whole module was provided without a get function
             raise AttributeError(
                 "The provided module does not have a 'get' " +
                 "method to get the TagDef class or instance.")
@@ -439,7 +437,6 @@ class Handler():
             return
 
         # get the filepath or import path to the tag definitions module
-        is_folderpath = kwargs.get('is_folderpath')
         self.defs_path = kwargs.get("defs_path", self.defs_path)
         self.import_rootpath = kwargs.get("import_rootpath",
                                           self.import_rootpath)
@@ -448,47 +445,24 @@ class Handler():
         if not self.defs_path:
             return
 
-        # NEED TO IMPORT ALL MODULES IN THE PATH OF mod_rootpath
-        # BEFORE I CAN IMPORT THE THINGS INSIDE IT.
+        # cut off the trailing '.' if it exists
+        if self.defs_path.endswith('.'):
+            self.defs_path = self.defs_path[:-1]
 
-        if is_folderpath:
-            self.defs_filepath = self.sanitize_path(self.defs_path)
-            self.import_rootpath = self.sanitize_path(self.import_rootpath)
-            self.defs_path = ''
+        # import the root definitions module to get its absolute path
+        defs_module = import_module(self.defs_path)
 
-            mod_rootpath = dirname(dirname(self.import_rootpath))
-            mod_base = (self.defs_filepath.split(mod_rootpath, 1)[-1]
-                        .replace('/', '.').replace('\\', '.')
-                        [int(mod_base.startswith('.')):])
-
-            import_rootname = mod_base.split('.', 1)[0]
-            root_module = SourceFileLoader(import_rootname,
-                                           self.import_rootpath).load_module()
-            if self.import_rootpath:
-                if self.sys_path_index < 0:
-                    sys.path.insert(self.sys_path_index, self.import_rootpath)
-                    self.sys_path_index = len(sys.path)
-                else:
-                    sys.path[self.sys_path_index] = self.import_rootpath
-        else:
-            # cut off the trailing '.' if it exists
-            if self.defs_path.endswith('.'):
-                self.defs_path = self.defs_path[:-1]
-
-            # import the root definitions module to get its absolute path
-            defs_module = import_module(self.defs_path)
-
-            # try to get the absolute folder path of the defs module
-            try:
-                # Try to get the filepath of the module
-                self.defs_filepath = split(defs_module.__file__)[0]
-            except Exception:
-                # If the module doesnt have an __init__.py in the folder
-                # then an exception will occur trying to get '__file__'
-                # in the above code. This method must be used(which I
-                # think looks kinda hacky)
-                self.defs_filepath = tuple(defs_module.__path__)[0]
-            self.defs_filepath = self.sanitize_path(self.defs_filepath)
+        # try to get the absolute folder path of the defs module
+        try:
+            # Try to get the filepath of the module
+            self.defs_filepath = split(defs_module.__file__)[0]
+        except Exception:
+            # If the module doesnt have an __init__.py in the folder
+            # then an exception will occur trying to get '__file__'
+            # in the above code. This method must be used(which I
+            # think looks kinda hacky)
+            self.defs_filepath = tuple(defs_module.__path__)[0]
+        self.defs_filepath = self.sanitize_path(self.defs_filepath)
 
         # Log the location of every python file in the defs root
         # search for possibly valid definitions in the defs folder
@@ -507,19 +481,7 @@ class Handler():
         for mod_name in imp_paths:
             # try to import the Definition module
             try:
-                if is_folderpath:
-                    f_path = imp_paths[mod_name]
-                    # remove the defs_filepath from the modules
-                    # filepath, replace all the path dividers with dots,
-                    # and remove the python file extension from the path
-                    mod_name = splitext(f_path.split(self.defs_filepath)[1].
-                                        replace(PATHDIV, '.'))[0]
-                    mod_name = mod_base + mod_name
-
-                    def_module = SourceFileLoader(mod_name, f_path).\
-                                 load_module()
-                else:
-                    def_module = import_module(self.defs_path + mod_name)
+                def_module = import_module(self.defs_path + mod_name)
             except Exception:
                 def_module = None
                 if self.debug >= 1:

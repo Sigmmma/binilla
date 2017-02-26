@@ -23,11 +23,11 @@ COMMENT = "COMMENT"  # A comment box will be displayed above the widget
 #                      with this as the content. Formatting will be done
 #                      manually, meaning insert /n returns where needed
 SIDETIP = "SIDETIP"  # A label to the right of the widget to display
-#                        a small tip and is usually a couple characters.
-#                        Mainly used for displaying units(grams for example).
+#                      a small tip and is usually a couple characters.
+#                      Mainly used for displaying units(grams for example).
 
-MAX = "MAX"  # Max integer/float value, array length, string length, etc
-MIN = "MIN"  # Min integer/float value, array length, string length, etc
+MAX = "MAX"  # Max integer/float value, array length, bytes count, etc
+MIN = "MIN"  # Min integer/float value, array length, bytes count, etc
 ALLOW_MAX = "ALLOW_MAX"  # Whether the value is allowed to be set to the max
 ALLOW_MIN = "ALLOW_MIN"  # Whether the value is allowed to be set to the min
 UNIT_SCALE = "UNIT_SCALE"  # Node values are multiplied by this before

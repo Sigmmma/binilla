@@ -8,7 +8,7 @@ from copy import deepcopy
 from datetime import datetime
 from io import StringIO
 from time import time, sleep
-from os.path import basename, dirname, exists
+from os.path import basename, dirname, exists, isfile
 from tkinter.font import Font
 from tkinter.constants import *
 from tkinter.filedialog import askopenfilenames, askopenfilename,\
@@ -123,10 +123,11 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
-    version = '0.9.1'
+    version = '0.9.8'
     log_filename = 'binilla.log'
     debug = 0
-    untitled_num = 0  # when creating a new, untitled tag, this is its name
+    untitled_num = 0  # when creating a new, untitled tag, this integer is used
+    #                   in its name like so: 'untitled%s' % self.untitled_num
     max_undos = 1000
 
     '''Config properties'''
@@ -286,9 +287,9 @@ class Binilla(tk.Tk, BinillaWidget):
         #add the commands to the file_menu
         fm_ac = self.file_menu.add_command
         fm_ac(label="New",        command=self.new_tag)
-        fm_ac(label="Open",       command=self.load_tags)
         self.file_menu.add_cascade(label="Recent tags     ",
                                    menu=self.recent_tags_menu)
+        fm_ac(label="Open",       command=self.load_tags)
         fm_ac(label="Open as...", command=self.load_tag_as)
         fm_ac(label="Close", command=self.close_selected_window)
         self.file_menu.add_separator()
@@ -302,11 +303,11 @@ class Binilla(tk.Tk, BinillaWidget):
         '''
         UNCOMMENT THESE WHEN THE DEFINITION LOADING ACTUALLY WORKS
         '''
-        #self.settings_menu.add_command(
-        #    label="Load definitions", command=self.select_defs)
-        #self.settings_menu.add_command(
-        #    label="Show definitions", command=self.show_defs)
-        #self.settings_menu.add_separator()
+        self.settings_menu.add_command(
+            label="Load definitions", command=self.select_defs)
+        self.settings_menu.add_command(
+            label="Show definitions", command=self.show_defs)
+        self.settings_menu.add_separator()
         self.settings_menu.add_command(
             label="Edit config", command=self.show_config_file)
         self.settings_menu.add_separator()
@@ -840,16 +841,15 @@ class Binilla(tk.Tk, BinillaWidget):
             style_file.serialize(temp=False, backup=False)
 
     def toggle_sync(self):
-        flags = self.config_file.data.header.flags
-        self.sync_window_movement = not self.sync_window_movement
-        flags.sync_window_movement = self.sync_window_movement
+        self.config_file.data.header.flags.sync_window_movement = (
+            self.sync_window_movement) = not self.sync_window_movement
 
     def get_tag(self, def_id, filepath):
         '''
         Returns the tag from the handler under the given def_id and filepath.
         '''
-        filepath = self.handler.sanitize_path(filepath)
-        return self.handler.tags.get(def_id, {}).get(filepath)
+        return self.handler.tags.get(def_id, {}).get(
+            self.handler.sanitize_path(filepath))
 
     def get_tag_window_by_tag(self, tag):
         return self.tag_windows[self.tag_id_to_window_id[id(tag)]]
@@ -1236,21 +1236,38 @@ class Binilla(tk.Tk, BinillaWidget):
     def select_defs(self):
         '''Prompts the user to specify where to load the tag defs from.
         Reloads the tag definitions from the folder specified.'''
-        #### INCOMPLETE ####
-        defs_root = askdirectory(initialdir=self.last_defs_dir,
-                                 title="Select the tag definitions folder")
-        if defs_root != "":
+        defs_dir = askdirectory(initialdir=self.last_defs_dir,
+                                title="Select the tag definitions folder")
+        if defs_dir != "":
             print('Loading selected definitions...')
             self.update_idletasks()
+            if not defs_dir.endswith(s_c.PATHDIV):
+                defs_dir += s_c.PATHDIV
+            defs_dir = self.handler.sanitize_path(dirname(defs_dir))
+
+            # try and find the module_root
+            mod_root = defs_dir
+            parent_dir = mod_root
+            while isfile(parent_dir + s_c.PATHDIV + "__init__.py"):
+                mod_root = parent_dir
+                parent_dir = dirname(parent_dir)
+
+            # if the module_root isnt in sys.path, we need to add it so
+            # the importer can resolve the import path for the definitions
+            mod_root = self.handler.sanitize_path(mod_root)
+            if mod_root not in sys.path:
+                sys.path.insert(-1, mod_root)
+
+            import_path = defs_dir.split(dirname(mod_root) + s_c.PATHDIV)[-1]\
+                          .replace(s_c.PATHDIV, ".")
+            print("    Module path:  %s\n    Import path:  %s" % (
+                mod_root, import_path))
             try:
-                defs_root = self.handler.sanitize_path(defs_root)
-                defs_path = defs_root.split(self.curr_dir + s_c.PATHDIV)[-1]
-                defs_path = defs_path.replace(s_c.PATHDIV, '.')
-                self.handler.reload_defs(defs_path=defs_path)
-                self.last_defs_dir = defs_root
-                print('Selected definitions loaded')
+                self.handler.reload_defs(defs_path=import_path)
+                self.last_defs_dir = defs_dir
+                print('Selected definitions loaded\n')
             except Exception:
-                raise IOError("Could not load tag definitions.")
+                raise IOError("Could not load tag definitions\n.")
 
     def show_config_file(self, e=None):
         if self.config_window is not None:

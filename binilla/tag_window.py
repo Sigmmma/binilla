@@ -377,6 +377,9 @@ class TagWindow(tk.Toplevel, BinillaWidget):
                                        show_frame=True, tag_window=self)
         self.field_widget.pack(expand=True, fill='both')
 
+    def reload(self, e=None):
+        self.field_widget.reload()
+
     def select_window(self, e):
         '''Makes this windows tag the selected tag in self.app_root'''
         self.app_root.selected_tag = self.tag
@@ -512,7 +515,7 @@ class ConfigWindow(TagWindow):
         tag = self.tag
         self.tag = None
         try:
-            self.save()
+            self.app_root.save_config()
         except Exception:
             pass
         try:

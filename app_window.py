@@ -123,7 +123,7 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
-    version = '0.9.8'
+    version = '0.9.9'
     log_filename = 'binilla.log'
     debug = 0
     untitled_num = 0  # when creating a new, untitled tag, this integer is used
@@ -697,6 +697,9 @@ class Binilla(tk.Tk, BinillaWidget):
 
         # load the config file
         self.config_file = self.config_def.build(filepath=filepath)
+        if self.config_file.data.header.version != self.config_version:
+            raise ValueError(
+                "Config version is not what this application is expecting.")
         app_window = self.config_file.data.app_window
 
         self.app_width = app_window.app_width

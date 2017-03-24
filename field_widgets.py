@@ -224,8 +224,8 @@ class FieldWidget(widgets.BinillaWidget):
     @property
     def max_undos(self):
         try:
-            return self.tag_window.app_root.\
-                    config_file.data.header.max_undos
+            return bool(self.tag_window.app_root.config_file
+                        .data.header.max_undos)
         except Exception:
             pass
         return 0
@@ -253,7 +253,6 @@ class FieldWidget(widgets.BinillaWidget):
         '''The export extension of this FieldWidget.'''
         desc = self.desc
         try:
-            # try to get the extension of the 
             if self.parent is None:
                 tag_ext = self.node.get_root().ext
             else:
@@ -271,6 +270,14 @@ class FieldWidget(widgets.BinillaWidget):
     def field_min(self):
         desc = self.desc
         return desc.get('MIN', desc['TYPE'].min)
+
+    @property
+    def unit_scale(self):
+        desc = self.desc
+        unit_scale = desc.get('UNIT_SCALE')
+        if hasattr(unit_scale, '__call__'):
+            unit_scale = unit_scale(f_widget=self)
+        return unit_scale
 
     @property
     def gui_name(self):
@@ -2222,7 +2229,7 @@ class EntryFrame(DataFrame):
         try:
             self._flushing = True
             node = self.node
-            unit_scale = self.desc.get('UNIT_SCALE')
+            unit_scale = self.unit_scale
             curr_val = self.entry_string.get()
             try:
                 new_node = self.sanitize_input()
@@ -2330,7 +2337,7 @@ class EntryFrame(DataFrame):
     def reload(self):
         try:
             node = self.node
-            unit_scale = self.desc.get('UNIT_SCALE')
+            unit_scale = self.unit_scale
 
             if unit_scale is not None and isinstance(node, (int, float)):
                 node *= unit_scale
@@ -2362,7 +2369,7 @@ class NumberEntryFrame(EntryFrame):
         node_cls = desc.get('NODE_CLS', field_type.node_cls)
         new_node = node_cls(self.entry_string.get())
 
-        unit_scale = desc.get('UNIT_SCALE')
+        unit_scale = self.unit_scale
         desc_size = desc.get('SIZE')
 
         if unit_scale is None:
@@ -2422,7 +2429,7 @@ class NumberEntryFrame(EntryFrame):
         desc = self.desc
         node = self.node
         f_type = desc['TYPE']
-        unit_scale = desc.get('UNIT_SCALE')
+        unit_scale = self.unit_scale
 
         if unit_scale is not None and isinstance(node, (int, float)):
             node *= unit_scale

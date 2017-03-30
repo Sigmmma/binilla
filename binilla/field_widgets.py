@@ -2375,7 +2375,7 @@ class NumberEntryFrame(EntryFrame):
         if unit_scale is None:
             unit_scale = 1
         elif isinstance(new_node, int):
-            new_node = new_node // unit_scale
+            new_node = int(new_node/unit_scale)
         else:
             new_node /= unit_scale
 

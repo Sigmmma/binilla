@@ -48,6 +48,8 @@ tag_window_flag_tooltips = (
     ("Whether to resize tag windows to fit their contents when something\n" +
      "happens to the contents(mouse scrolling, a widget is changed, etc)."),
     "Whether to set tag window dimensions to the default ones when opening a tag.",
+    ("Whether to enable scrolling through a widget menu that\n" +
+     "isn't currently selected, but is underneath the mouse."),
     ("Whether to display a checkbox for each available bit in a boolean, even\n" +
      "if that bit doesnt represent anything. Used for debugging and testing.")
     )
@@ -357,8 +359,9 @@ config_header = Struct("header",
         {NAME: "dont_shrink_window", TOOLTIP: tag_window_flag_tooltips[11]},
         {NAME: "auto_resize_window", TOOLTIP: tag_window_flag_tooltips[12]},
         {NAME: "use_default_window_dimensions", TOOLTIP: tag_window_flag_tooltips[13]},
+        {NAME: "scroll_unselected_widgets", TOOLTIP: tag_window_flag_tooltips[14]},
 
-        {NAME: "show_all_bools", TOOLTIP: tag_window_flag_tooltips[14]},
+        {NAME: "show_all_bools", TOOLTIP: tag_window_flag_tooltips[-1]},
         DEFAULT=sum([1<<i for i in (2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)])
         ),
 

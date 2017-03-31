@@ -214,26 +214,34 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         if rc_h != rf.winfo_reqheight(): rc.itemconfigure(rf_id, height=rc_h)
 
     def mousewheel_scroll_x(self, e):
-        under_mouse = self.winfo_containing(e.x_root, e.y_root)
-        #focus = self.focus_get()
-        #if hasattr(focus, 'can_scroll') and focus.can_scroll:
-        #    return
-        if hasattr(under_mouse, 'can_scroll') and under_mouse.can_scroll:
-            return
-
-        if self.can_scroll and self.winfo_containing(e.x_root, e.y_root):
+        if self.should_scroll(e):
             self.root_canvas.xview_scroll(e.delta//60, "units")
 
     def mousewheel_scroll_y(self, e):
-        under_mouse = self.winfo_containing(e.x_root, e.y_root)
-        #focus = self.focus_get()
-        #if hasattr(focus, 'can_scroll') and focus.can_scroll:
-        #    return
-        if hasattr(under_mouse, 'can_scroll') and under_mouse.can_scroll:
-            return
-
-        if self.can_scroll and self.winfo_containing(e.x_root, e.y_root):
+        if self.should_scroll(e):
             self.root_canvas.yview_scroll(e.delta//-120, "units")
+
+    def should_scroll(self, e):
+        '''
+        Returns True if, when given a tkinter event, this TagWindow should
+        have its scrolling method follow through when it is invoked.
+        Returns False otherwise.
+        '''
+        if not self.can_scroll:
+            return False
+
+        try:
+            hover = self.winfo_containing(e.x_root, e.y_root)
+            if not hover.can_scroll:
+                return True
+
+            if (not isinstance(hover, FieldWidget)
+                and hasattr(hover, 'f_widget_parent')):
+                hover = hover.f_widget_parent
+            return not hover.should_scroll(e)
+        except AttributeError:
+            pass
+        return True
 
     def bind_hotkeys(self, new_hotkeys=None):
         '''

@@ -37,7 +37,6 @@ def fix_kwargs(**kw):
     that use keys found in WIDGET_KWARGS are removed.'''
     return {s:kw[s] for s in kw if s not in e_c.WIDGET_KWARGS}
 
-
 # These classes are used for laying out the visual structure
 # of many sub-widgets, and effectively the whole window.
 class FieldWidget(widgets.BinillaWidget):
@@ -103,6 +102,9 @@ class FieldWidget(widgets.BinillaWidget):
     # whether or not this widget can use the scrollwheel when selected.
     # setting this to True prevents the TagWindow from scrolling when
     # using the mousewheel if this widget is the one currently in focus
+    can_scroll = False
+
+    # same as the above, but for this widgets children
     children_can_scroll = False
 
     # whether or not to disable using this widget and its children
@@ -2567,6 +2569,7 @@ class TextFrame(DataFrame):
     fit on one line as well as ints and floats.'''
 
     children_can_scroll = True
+    can_scroll = False
     _flushing = False
 
     replace_map = None
@@ -2609,6 +2612,9 @@ class TextFrame(DataFrame):
         self.hsb.can_scroll = self.children_can_scroll
         self.vsb.can_scroll = self.children_can_scroll
         self.data_text.can_scroll = self.children_can_scroll
+        self.hsb.f_widget_parent = self
+        self.vsb.f_widget_parent = self
+        self.data_text.f_widget_parent = self
 
         self.data_text.bind('<FocusOut>', self.flush)
         self.data_text.bind('<Return>', self.flush)
@@ -3457,6 +3463,7 @@ class DynamicEnumFrame(EnumFrame):
 
 class BoolFrame(DataFrame):
     children_can_scroll = True
+    can_scroll = False
     checkvars = None  # used to know which IntVars to set when undo/redoing
 
     def __init__(self, *args, **kwargs):
@@ -3575,12 +3582,14 @@ class BoolFrame(DataFrame):
             check_btn = tk.Checkbutton(
                 self.check_frame, variable=check_var, padx=0, pady=0,
                 text=name, anchor='nw', justify='left', borderwidth=0,
-                command=lambda i=bit, v=check_var: self.set_bool_to(i, v),
 
                 disabledforeground=self.text_disabled_color,
                 bg=self.entry_normal_color, fg=self.text_normal_color,
                 activebackground=self.entry_highlighted_color,
                 activeforeground=self.text_highlighted_color,)
+
+            check_btn.config(command=lambda b=check_btn, i=bit, v=check_var:
+                             self._check_bool(b, i, v))
 
             check_btn.pack(anchor='nw', fill='x', expand=True)
             check_btn.bind('<MouseWheel>', self.mousewheel_scroll_y)
@@ -3589,6 +3598,10 @@ class BoolFrame(DataFrame):
         self.pose_fields()
 
     reload = populate
+
+    def _check_bool(self, check_btn, bit, check_var):
+        check_btn.focus_set()
+        self.set_bool_to(bit, check_var)
 
     def set_bool_to(self, bit, new_val_var):
         self.set_edited()
@@ -3602,7 +3615,7 @@ class BoolFrame(DataFrame):
         self.check_canvas.pack(side='left', fill='both')
         self.update()
 
-        width = self.check_frame.winfo_reqwidth()
+        width  = self.check_frame.winfo_reqwidth()
         height = self.check_frame.winfo_reqheight()
 
         self.check_canvas.config(scrollregion="0 0 %s %s" % (width, height))
@@ -3620,8 +3633,13 @@ class BoolFrame(DataFrame):
         self.check_canvas.can_scroll = self.children_can_scroll
         self.check_frame.can_scroll = self.children_can_scroll
         self.scrollbar_y.can_scroll = self.children_can_scroll
+
+        self.check_canvas.f_widget_parent = self
+        self.check_frame.f_widget_parent = self
+        self.scrollbar_y.f_widget_parent = self
         for w in self.check_frame.children.values():
             w.can_scroll = self.children_can_scroll
+            w.f_widget_parent = self
 
         width = min(self.bool_frame_max_width, width)
         height = min(self.bool_frame_max_height, height)
@@ -3630,7 +3648,8 @@ class BoolFrame(DataFrame):
         self.check_canvas.config(width=width, height=height)
 
     def mousewheel_scroll_y(self, e):
-        self.check_canvas.yview_scroll(e.delta//-120, "units")
+        if self.should_scroll(e):
+            self.check_canvas.yview_scroll(e.delta//-120, "units")
 
 
 class BoolSingleFrame(DataFrame):
@@ -3689,6 +3708,7 @@ class BoolSingleFrame(DataFrame):
         try:
             desc = self.desc
             self.set_edited()
+            self.checkbutton.focus_set()
             self.edit_create(undo_node=bool(self.parent[self.attr_index]))
             self.node = self.parent[self.attr_index] = self.checked.get()
         except Exception:

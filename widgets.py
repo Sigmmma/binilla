@@ -8,6 +8,8 @@ from traceback import format_exc
 from . import mtTkinter as tk
 from . import editor_constants as e_c
 
+field_widgets = None  # linked to through __init__.py
+
 win_10_pad = 2
 
 
@@ -77,6 +79,41 @@ class BinillaWidget():
     scroll_menu_max_height = e_c.SCROLL_MENU_MAX_HEIGHT
 
     tooltip_string = None
+    f_widget_parent = None
+
+    def should_scroll(self, e):
+        '''
+        Returns True if, when given a tkinter event, this widget should
+        have its scrolling method follow through when it is invoked.
+        Returns False otherwise.
+        '''
+        hover = self.winfo_containing(e.x_root, e.y_root)
+
+        if not(hasattr(hover, 'can_scroll') and hover.can_scroll):
+            return False
+
+        try:
+            focus = self.focus_get()
+            widget = self
+            flags = self.f_widget_parent.tag_window.app_root.\
+                    config_file.data.header.tag_window_flags
+            fw = field_widgets.FieldWidget
+            if not isinstance(self, fw) and hasattr(self, 'f_widget_parent'):
+                widget = self.f_widget_parent
+            if not isinstance(hover, fw) and hasattr(hover, 'f_widget_parent'):
+                hover = hover.f_widget_parent
+            if not isinstance(focus, fw) and hasattr(focus, 'f_widget_parent'):
+                focus = focus.f_widget_parent
+
+            if ((focus is not hover and not flags.scroll_unselected_widgets) or
+                hover is not widget):
+                return False
+            elif focus is not widget and hover is not widget:
+                # we are not selecting or hovering over this scrollable widget
+                return False
+        except AttributeError:
+            pass
+        return True
 
 
 class ScrollMenu(tk.Frame, BinillaWidget):
@@ -86,7 +123,6 @@ class ScrollMenu(tk.Frame, BinillaWidget):
     '''
     disabled = False
     sel_index = None
-    f_widget_parent = None
     option_box = None
     max_height = None
     max_index = 0
@@ -152,6 +188,7 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         for w in (self.sel_label, self.button_frame, self.arrow_button,
                   self.option_frame, self.option_bar, self.option_box):
             w.can_scroll = self.can_scroll
+            w.f_widget_parent = self.f_widget_parent
 
         # make bindings so arrow keys can be used to navigate the menu
         self.button_frame.bind('<Up>', self.decrement_sel)
@@ -178,7 +215,8 @@ class ScrollMenu(tk.Frame, BinillaWidget):
             self.disable()
 
     def _mousewheel_scroll(self, e):
-        if self.option_box_visible or self.disabled:
+        if not self.should_scroll(e) or (self.option_box_visible or
+                                         self.disabled):
             return
         elif e.delta > 0:
             self.decrement_sel()

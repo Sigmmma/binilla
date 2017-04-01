@@ -123,7 +123,7 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
-    version = '0.9.11'
+    version = '0.9.12'
     log_filename = 'binilla.log'
     debug = 0
     untitled_num = 0  # when creating a new, untitled tag, this integer is used
@@ -662,10 +662,14 @@ class Binilla(tk.Tk, BinillaWidget):
         __osa__ = object.__setattr__
         __tsa__ = type.__setattr__
 
-        self.recent_tagpaths = paths = []
+        if self._initialized:
+            self.bind_hotkeys()
+        else:
+            # only load the recent tagpaths when loading binilla
+            self.recent_tagpaths = paths = []
 
-        for tagpath in recent_tags:
-            paths.append(tagpath.path)
+            for tagpath in recent_tags:
+                paths.append(tagpath.path)
 
         for s in app_window.NAME_MAP.keys():
             try: __osa__(self, s, app_window[s])
@@ -918,11 +922,12 @@ class Binilla(tk.Tk, BinillaWidget):
 
             if path:
                 recent = self.recent_tagpaths
-                while path in recent:
-                    recent.pop(recent.index(path))
+                for i in range(len(recent)-1, -1, -1):
+                    if recent[i] == path:
+                        recent.pop(i)
 
-                while len(recent) >= self.recent_tag_max:
-                    recent.pop(0)
+                if len(recent) > self.recent_tag_max:
+                    del asdf[0: len(recent) - self.recent_tag_max]
                 recent.append(new_tag.filepath)
             else:
                 # if the path is blank(new tag), give it a unique name
@@ -1389,9 +1394,10 @@ class Binilla(tk.Tk, BinillaWidget):
             hotkeys = self.curr_hotkeys
         if isinstance(hotkeys, dict):
             hotkeys = hotkeys.keys()
+
         for key in tuple(hotkeys):
             try:
-                self.unbind(key)
+                self.unbind_all(key)
             except Exception:
                 pass
 

@@ -2238,25 +2238,27 @@ class EntryFrame(DataFrame):
             except Exception:
                 # Couldnt cast the string to the node class. This is fine this
                 # kind of thing happens when entering data. Just dont flush it
-                try: self.entry_string.set(str(node))
+                try: self.entry_string.set(curr_val)
                 except Exception: pass
                 self._flushing = False
                 self.set_needs_flushing(False)
                 return
 
-            # dont need to flush anything since the nodes are the same
-            if node != new_node:
-                if unit_scale is None or not isinstance(new_node, (int, float)):
-                    str_node = str(new_node)
-                else:
-                    str_node = str(new_node * unit_scale)
+            if unit_scale and isinstance(new_node, (int, float)):
+                str_node = str(new_node * unit_scale)
+            else:
+                str_node = str(new_node)
 
+            # dont need to flush anything if the nodes are the same
+            if node != new_node:
                 # make an edit state
                 self.edit_create(undo_node=node, redo_node=new_node)
 
                 self.last_flushed_val = str_node
                 self.parent[self.attr_index] = self.node = new_node
-                self.entry_string.set(str_node)
+
+            # value may have been clipped, so set the entry string anyway
+            self.entry_string.set(str_node)
 
             self._flushing = False
             self.set_needs_flushing(False)
@@ -2279,7 +2281,6 @@ class EntryFrame(DataFrame):
 
         if isinstance(field_max, int) and node_size > field_max:
             if self.enforce_max:
-                changed = True
                 while node_size > field_max:
                     new_node = new_node[:-1]
                     node_size = sizecalc(new_node)
@@ -2369,7 +2370,8 @@ class NumberEntryFrame(EntryFrame):
         field_max, field_min = self.field_max, self.field_min
         field_type = desc.get('TYPE')
         node_cls = desc.get('NODE_CLS', field_type.node_cls)
-        new_node = node_cls(self.entry_string.get())
+        # need to cast to float first to avoid a ValueError
+        new_node = node_cls(float(self.entry_string.get()))
 
         unit_scale = self.unit_scale
         desc_size = desc.get('SIZE')
@@ -2392,14 +2394,12 @@ class NumberEntryFrame(EntryFrame):
         if field_max is not None and new_node >= field_max:
             if self.enforce_max:
                 new_node = field_max
-                changed = True
                 if not desc.get('ALLOW_MAX', True):
                     raise ValueError("Enter a value below %s" %
                                      (field_max * unit_scale))
         elif field_min is not None and new_node <= field_min:
             if self.enforce_min:
                 new_node = field_min
-                changed = True
                 if not desc.get('ALLOW_MIN', True):
                     raise ValueError("Enter a value above %s" %
                                      (field_min * unit_scale))

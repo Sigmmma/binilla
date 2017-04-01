@@ -123,7 +123,7 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
-    version = '0.9.12'
+    version = '0.9.13'
     log_filename = 'binilla.log'
     debug = 0
     untitled_num = 0  # when creating a new, untitled tag, this integer is used
@@ -926,9 +926,9 @@ class Binilla(tk.Tk, BinillaWidget):
                     if recent[i] == path:
                         recent.pop(i)
 
-                if len(recent) > self.recent_tag_max:
-                    del asdf[0: len(recent) - self.recent_tag_max]
                 recent.append(new_tag.filepath)
+                if len(recent) > self.recent_tag_max:
+                    del recent[0: len(recent) - self.recent_tag_max]
             else:
                 # if the path is blank(new tag), give it a unique name
                 tags_coll = self.handler.tags[new_tag.def_id]
@@ -1130,9 +1130,9 @@ class Binilla(tk.Tk, BinillaWidget):
             path = tag.filepath
             if path in recent:
                 recent.pop(recent.index(path))
-            while len(recent) >= self.recent_tag_max:
-                recent.pop(0)
             recent.append(path)
+            if len(recent) > self.recent_tag_max:
+                del recent[0: len(recent) - self.recent_tag_max]
 
         return tag
 

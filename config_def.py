@@ -48,8 +48,8 @@ tag_window_flag_tooltips = (
     ("Whether to resize tag windows to fit their contents when something\n" +
      "happens to the contents(mouse scrolling, a widget is changed, etc)."),
     "Whether to set tag window dimensions to the default ones when opening a tag.",
-    ("Whether to enable scrolling through a widget menu that\n" +
-     "isn't currently selected, but is underneath the mouse."),
+    ("Whether to enable scrolling on widgets that aren't\n" +
+     "currently selected, but are underneath the mouse."),
     ("Whether to display a checkbox for each available bit in a boolean, even\n" +
      "if that bit doesnt represent anything. Used for debugging and testing.")
     )

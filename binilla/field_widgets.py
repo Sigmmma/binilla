@@ -2446,7 +2446,8 @@ class NumberEntryFrame(EntryFrame):
         if isinstance(node, float):
             # floats are hard to choose a reasonable entry width for
             max_width = self.max_float_entry_width
-            value_width = int(ceil(node_size * 5/2))
+            value_width = max(int(ceil(node_size * 5/2)),
+                              self.def_float_entry_width)
             node = round(node, node_size*2 - 2)
         else:
             max_width = self.max_int_entry_width

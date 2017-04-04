@@ -123,7 +123,7 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
-    version = '0.9.13'
+    version = '0.9.14'
     log_filename = 'binilla.log'
     debug = 0
     untitled_num = 0  # when creating a new, untitled tag, this integer is used
@@ -503,19 +503,35 @@ class Binilla(tk.Tk, BinillaWidget):
             self.save_config()
         except Exception:
             print(format_exc())
-        for w in tuple(self.tag_windows.values()):
-            not_destroyed = bool(w.destroy())
-            if not_destroyed:
-                return
 
-        sys.stdout = self.orig_stdout
+        windows = ()
+        try: windows += tuple(self.tag_windows.values())
+        except Exception: print(format_exc())
+        try: windows += tuple(self.children.values())
+        except Exception: print(format_exc())
+
+        for w in windows:
+            try:
+                not_destroyed = bool(w.destroy())
+                if not_destroyed:
+                    return
+            except Exception:
+                print(format_exc())
+
         try:
+            sys.stdout = self.orig_stdout
             self.log_file.close()
         except Exception:
             pass
+
         try: self.destroy()  # wont close if a listener is open without this
         except Exception: pass
-        raise SystemExit(0)
+
+        # I really didn't want to have to call this, but for some
+        # reason the program wants to hang and not exit nicely.
+        # I've decided to use os._exit until I can figure out the cause.
+        os._exit(0)
+        #sys.exit(0)
 
     def force_big_endian(self, e=None):
         FieldType.force_big()

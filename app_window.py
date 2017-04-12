@@ -1276,13 +1276,15 @@ class Binilla(tk.Tk, BinillaWidget):
                 mod_root = parent_dir
                 parent_dir = dirname(parent_dir)
 
+            mod_root = dirname(parent_dir)
+
             # if the module_root isnt in sys.path, we need to add it so
             # the importer can resolve the import path for the definitions
             mod_root = self.handler.sanitize_path(mod_root)
             if mod_root not in sys.path:
-                sys.path.insert(-1, mod_root)
+                sys.path.insert(0, mod_root)
 
-            import_path = defs_dir.split(dirname(mod_root) + s_c.PATHDIV)[-1]\
+            import_path = defs_dir.split(mod_root + s_c.PATHDIV)[-1]\
                           .replace(s_c.PATHDIV, ".")
             print("    Module path:  %s\n    Import path:  %s" % (
                 mod_root, import_path))

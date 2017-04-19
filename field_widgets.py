@@ -2694,8 +2694,8 @@ class TextFrame(DataFrame):
         endian = 'big' if desc['TYPE'].endian == '>' else 'little'
 
         self.replace_map = {}
-        # this is the header what the first 16
-        # characters will be replaced with.
+        # this is the header of what the first
+        # 16 characters will be replaced with.
         hex_head = '\\0x0'
 
         # add a null and return character to the end of it so it can
@@ -2726,7 +2726,8 @@ class TextFrame(DataFrame):
         try:
             self._flushing = True
             desc = self.desc
-            node_cls = desc.get('NODE_CLS', desc['TYPE'].node_cls)
+            f_type = desc['TYPE']
+            node_cls = desc.get('NODE_CLS', f_type.node_cls)
             new_node = self.data_text.get(1.0, tk.END)
 
             # NEED TO DO THIS SORTED cause the /x00 we inserted will be janked
@@ -2735,6 +2736,18 @@ class TextFrame(DataFrame):
 
             new_node = node_cls(new_node)
             if self.node != new_node:
+                field_max = self.field_max
+                if field_max is None:
+                    field_max = desc.get('SIZE')
+
+                if isinstance(field_max, int):
+                    field_size = f_type.sizecalc(new_node)
+                    if field_size > field_max:
+                        raise ValueError(
+                            ("Max size for the '%s' text field is %s bytes, " +
+                             "however %s bytes of data were entered.") % (
+                                 self.gui_name, field_max, field_size))
+
                 # make an edit state
                 self.edit_create(undo_node=self.node, redo_node=new_node)
                 self.parent[self.attr_index] = self.node = new_node

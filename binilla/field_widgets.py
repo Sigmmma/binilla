@@ -2270,20 +2270,21 @@ class EntryFrame(DataFrame):
 
     def sanitize_input(self):
         desc = self.desc
-        field_max = self.field_max
         node_cls = desc.get('NODE_CLS', desc['TYPE'].node_cls)
         new_node = node_cls(self.entry_string.get())
 
-        sizecalc = desc['TYPE'].sizecalc
-        node_size = sizecalc(new_node)
-        if field_max is None:
-            field_max = desc.get('SIZE')
+        if self.enforce_max:
+            field_max = self.field_max
+            sizecalc = desc['TYPE'].sizecalc
+            node_size = sizecalc(new_node)
+            if field_max is None:
+                field_max = desc.get('SIZE')
 
-        if isinstance(field_max, int) and node_size > field_max:
-            if self.enforce_max:
-                while node_size > field_max:
-                    new_node = new_node[:-1]
-                    node_size = sizecalc(new_node)
+            if isinstance(field_max, int) and node_size > field_max:
+                if self.enforce_max:
+                    while node_size > field_max:
+                        new_node = new_node[:-1]
+                        node_size = sizecalc(new_node)
 
         return new_node
 
@@ -2740,7 +2741,7 @@ class TextFrame(DataFrame):
                 if field_max is None:
                     field_max = desc.get('SIZE')
 
-                if isinstance(field_max, int):
+                if self.enforce_max and isinstance(field_max, int):
                     field_size = f_type.sizecalc(new_node)
                     if field_size > field_max:
                         raise ValueError(

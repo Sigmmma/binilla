@@ -95,8 +95,13 @@ class BinillaWidget():
         try:
             focus = self.focus_get()
             widget = self
-            flags = self.f_widget_parent.tag_window.app_root.\
-                    config_file.data.header.tag_window_flags
+            try:
+                scroll_unselect = self.f_widget_parent.tag_window.app_root.\
+                                  config_file.data.header.tag_window_flags.\
+                                  scroll_unselected_widgets
+            except AttributeError:
+                scroll_unselect = True
+            
             fw = field_widgets.FieldWidget
             if not isinstance(self, fw) and hasattr(self, 'f_widget_parent'):
                 widget = self.f_widget_parent
@@ -105,8 +110,7 @@ class BinillaWidget():
             if not isinstance(focus, fw) and hasattr(focus, 'f_widget_parent'):
                 focus = focus.f_widget_parent
 
-            if ((focus is not hover and not flags.scroll_unselected_widgets) or
-                hover is not widget):
+            if not((focus is hover or scroll_unselect) and hover is widget):
                 return False
             elif focus is not widget and hover is not widget:
                 # we are not selecting or hovering over this scrollable widget

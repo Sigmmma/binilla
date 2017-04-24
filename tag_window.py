@@ -65,7 +65,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
     app_root = None  # The Tk widget controlling this Toplevel. This Tk
     #                  should also have certain methods, like delete_tag
     field_widget = None  # The single FieldWidget held in this window
-    widget_picker = def_widget_picker  # Rhe WidgetPicker to use for selecting
+    widget_picker = def_widget_picker  # The WidgetPicker to use for selecting
     #                                    the widget to build when populating
     # The tag handler that built the tag this window is displaying
     handler = None
@@ -454,7 +454,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             self._applying_edit_state = False
             raise
 
-    def edit_add_state(self, edit_state):
+    def edit_state_add(self, edit_state):
         if self.edit_manager is None: return
         # make this a separate check to make it more likely to hold
         if self._applying_edit_state: return

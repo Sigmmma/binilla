@@ -329,10 +329,12 @@ class FieldWidget(widgets.BinillaWidget):
             self.comment_frame = tk.Frame(
                 master, relief='sunken', bd=self.comment_depth,
                 bg=self.comment_bg_color)
+            try: comment_font = self.tag_window.app_root.comment_font
+            except AttributeError: comment_font = None
+
             self.comment = tk.Label(
                 self.comment_frame, text=comment, anchor='nw',
-                justify='left', font=self.tag_window.app_root.comment_font,
-                bg=self.comment_bg_color)
+                justify='left', font=comment_font, bg=self.comment_bg_color)
             self.comment.pack(side='left', fill='both', expand=True)
             self.comment_frame.pack(fill='both', expand=True)
 
@@ -357,10 +359,10 @@ class FieldWidget(widgets.BinillaWidget):
                 pass
             except Exception:
                 print(format_exc())
-        self.tag_window.edit_add_state(EditState(**kwargs))
+        self.edit_state_add(EditState(**kwargs))
 
-    def edit_add_state(self):
-        try: self.tag_window.edit_add_state()
+    def edit_state_add(self, edit_state):
+        try: self.tag_window.edit_state_add(edit_state)
         except AttributeError: pass
 
     def edit_clear(self):
@@ -404,13 +406,15 @@ class FieldWidget(widgets.BinillaWidget):
                         break
                     node = new_node
 
-                    if widget is not None:
-                        try:
-                            f_widgets = widget.f_widgets
-                            widget = f_widgets[widget.f_widget_ids_map[i]]
-                        except Exception:
-                            widget = None
-                            pass
+                    if widget is None:
+                        continue
+
+                    try:
+                        f_widgets = widget.f_widgets
+                        widget = f_widgets[widget.f_widget_ids_map[i]]
+                    except Exception:
+                        widget = None
+                        pass
             except AttributeError:
                 pass
             except Exception:
@@ -599,7 +603,8 @@ class ContainerFrame(tk.Frame, FieldWidget):
                 bd=self.button_depth,
                 )
 
-            title_font = self.tag_window.app_root.container_title_font
+            try: title_font = self.tag_window.app_root.container_title_font
+            except AttributeError: title_font = None
             self.title = tk.Frame(self, relief='raised', bd=self.frame_depth,
                                   bg=self.frame_bg_color)
 
@@ -1025,7 +1030,8 @@ class ArrayFrame(ContainerFrame):
         FieldWidget.__init__(self, *args, **kwargs)
         tk.Frame.__init__(self, *args, **fix_kwargs(**kwargs))
 
-        title_font = self.tag_window.app_root.container_title_font
+        try: title_font = self.tag_window.app_root.container_title_font
+        except AttributeError: title_font = None
         try:
             def_show = not self.tag_window.app_root.config_file.data.\
                        header.tag_window_flags.blocks_start_hidden
@@ -2837,7 +2843,9 @@ class UnionFrame(ContainerFrame):
             bd=self.button_depth,
             )
 
-        title_font = self.tag_window.app_root.container_title_font
+        try: title_font = self.tag_window.app_root.container_title_font
+        except AttributeError: title_font = None
+
         self.title = tk.Frame(self, relief='raised', bd=self.frame_depth,
                               bg=self.frame_bg_color)
         self.show_btn = ttk.Checkbutton(
@@ -3085,7 +3093,8 @@ class StreamAdapterFrame(ContainerFrame):
             bd=self.button_depth,
             )
 
-        title_font = self.tag_window.app_root.container_title_font
+        try: title_font = self.tag_window.app_root.container_title_font
+        except AttributeError: title_font = None
         self.title = tk.Frame(self, relief='raised', bd=self.frame_depth,
                               bg=self.frame_bg_color)
         self.content = tk.Frame(self, relief="sunken", bd=self.frame_depth,
@@ -3586,6 +3595,10 @@ class BoolFrame(DataFrame):
                 opt.setdefault('GUI_NAME', defname)
 
             bit_opt_map[bit] = opt
+
+        state = tk.NORMAL
+        if self.disabled:
+            state = tk.DISABLED
         
         for bit in sorted(bit_opt_map):
             opt = bit_opt_map[bit]
@@ -3598,7 +3611,7 @@ class BoolFrame(DataFrame):
                 self.check_frame, variable=check_var, padx=0, pady=0,
                 text=name, anchor='nw', justify='left', borderwidth=0,
 
-                disabledforeground=self.text_disabled_color,
+                disabledforeground=self.text_disabled_color, state=state,
                 bg=self.entry_normal_color, fg=self.text_normal_color,
                 activebackground=self.entry_highlighted_color,
                 activeforeground=self.text_highlighted_color,)

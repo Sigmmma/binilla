@@ -123,9 +123,10 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
-    version = '0.9.14'
+    version = '0.9.17'
     log_filename = 'binilla.log'
     debug = 0
+    debug_mode = False
     untitled_num = 0  # when creating a new, untitled tag, this integer is used
     #                   in its name like so: 'untitled%s' % self.untitled_num
     max_undos = 1000
@@ -138,6 +139,7 @@ class Binilla(tk.Tk, BinillaWidget):
     config_window = None
     # the tag that holds all the config settings for this application
     config_file = None
+    log_file = None
 
     '''Window properties'''
     # When tags are opened they are tiled, first vertically, then horizontally.
@@ -277,12 +279,12 @@ class Binilla(tk.Tk, BinillaWidget):
         #self.main_menu.add_command(label="Help")
         #self.main_menu.add_command(label="About")
         try:
-            debug_mode = self.config_file.data.header.flags.debug_mode
+            self.debug_mode = bool(self.config_file.data.header.flags.debug_mode)
         except Exception:
-            debug_mode = True
-        finally:
-            if debug_mode:
-                self.main_menu.add_cascade(label="Debug", menu=self.debug_menu)
+            self.debug_mode = True
+
+        if self.debug_mode:
+            self.main_menu.add_cascade(label="Debug", menu=self.debug_menu)
 
         #add the commands to the file_menu
         fm_ac = self.file_menu.add_command
@@ -338,7 +340,6 @@ class Binilla(tk.Tk, BinillaWidget):
         self.orig_stdout = sys.stdout
 
         flags = self.config_file.data.header.flags
-        log_file = None
         if flags.log_output:
             curr_dir = self.curr_dir
             if not curr_dir.endswith(s_c.PATHDIV):
@@ -708,6 +709,11 @@ class Binilla(tk.Tk, BinillaWidget):
 
         self.log_filename = basename(dir_paths.debug_log_path.path)
 
+        try:
+            self.debug_mode = bool(header.flags.debug_mode)
+        except Exception:
+            self.debug_mode = True
+
         self.apply_style(style_file=self.config_file)
 
     def load_config(self, filepath=None):
@@ -750,7 +756,7 @@ class Binilla(tk.Tk, BinillaWidget):
         if style_file is None:
             if filepath is None:
                 filepath = askopenfilename(
-                    initialdir=self.styles_dir,
+                    initialdir=self.styles_dir, parent=self,
                     title="Select style to load",
                     filetypes=(("binilla_style", "*.sty"), ('All', '*')))
 
@@ -849,7 +855,7 @@ class Binilla(tk.Tk, BinillaWidget):
         # create the style file from scratch
         filepath = asksaveasfilename(
             initialdir=self.styles_dir, defaultextension='.sty',
-            title="Save style as...",
+            title="Save style as...", parent=self,
             filetypes=(("binilla style", "*.sty"), ('All', '*')))
 
         if filepath:
@@ -892,7 +898,7 @@ class Binilla(tk.Tk, BinillaWidget):
             for id in sorted(defs.keys()):
                 filetypes.append((id, defs[id].ext))
             filepaths = askopenfilenames(initialdir=self.last_load_dir,
-                                         filetypes=filetypes,
+                                         filetypes=filetypes, parent=self,
                                          title="Select the tag to load")
             if not filepaths:
                 return
@@ -979,7 +985,7 @@ class Binilla(tk.Tk, BinillaWidget):
         for def_id in sorted(defs.keys()):
             filetypes.append((def_id, defs[def_id].ext))
         fp = askopenfilename(initialdir=self.last_load_dir,
-                             filetypes=filetypes,
+                             filetypes=filetypes, parent=self,
                              title="Select the tag to load")
 
         if not fp:
@@ -1260,7 +1266,7 @@ class Binilla(tk.Tk, BinillaWidget):
     def select_defs(self):
         '''Prompts the user to specify where to load the tag defs from.
         Reloads the tag definitions from the folder specified.'''
-        defs_dir = askdirectory(initialdir=self.last_defs_dir,
+        defs_dir = askdirectory(initialdir=self.last_defs_dir, parent=self,
                                 title="Select the tag definitions folder")
         if defs_dir != "":
             print('Loading selected definitions...')

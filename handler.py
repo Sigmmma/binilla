@@ -252,7 +252,7 @@ class Handler():
 
         # if it could find a TagDef, then use it
         if tagdef:
-            new_tag = tagdef.build(filepath=filepath,  rawdata=rawdata,
+            new_tag = tagdef.build(filepath=filepath, rawdata=rawdata,
                                    definition=tagdef, int_test=int_test,
                                    allow_corrupt=allow_corrupt)
             new_tag.handler = self
@@ -306,6 +306,12 @@ class Handler():
 
     def get_def(self, def_id):
         return self.defs.get(def_id)
+
+    def get_tag(self, filepath, def_id):
+        tag_coll = self.tags.get(def_id, ())
+        if tag_coll.get(filepath) is not None:
+            return tag_coll[filepath]
+        return self.load_tag(filepath, def_id)
 
     def get_unique_filename(self, filepath, dest, src=(), rename_tries=0):
         '''
@@ -635,10 +641,13 @@ class Handler():
     def load_tag(self, filepath, def_id=None, **kwargs):
         allow = kwargs.get('allow_corrupt', self.allow_corrupt)
 
+        if filepath:
+            filepath = join(self.tagsdir, filepath)
         new_tag = self.build_tag(filepath=filepath, def_id=def_id,
                                  allow_corrupt=allow)
-        self.tags[new_tag.def_id][new_tag.filepath] = new_tag
-        return new_tag
+        if new_tag:
+            self.tags[new_tag.def_id][filepath] = new_tag
+            return new_tag
 
     def load_tags(self, paths=None, **kwargs):
         '''

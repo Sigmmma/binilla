@@ -3595,10 +3595,6 @@ class BoolFrame(DataFrame):
                 opt.setdefault('GUI_NAME', defname)
 
             bit_opt_map[bit] = opt
-
-        state = tk.NORMAL
-        if self.disabled:
-            state = tk.DISABLED
         
         for bit in sorted(bit_opt_map):
             opt = bit_opt_map[bit]
@@ -3606,6 +3602,10 @@ class BoolFrame(DataFrame):
             check_var = tk.IntVar(self.check_frame)
             check_var.set(bool(data & (1 << bit)))
             checkvars[bit] = check_var
+
+            state = tk.DISABLED
+            if opt.get("EDITABLE", not self.disabled):
+                state = tk.NORMAL
 
             check_btn = tk.Checkbutton(
                 self.check_frame, variable=check_var, padx=0, pady=0,

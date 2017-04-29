@@ -123,7 +123,7 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
-    version = '0.9.17'
+    version = '0.9.18'
     log_filename = 'binilla.log'
     debug = 0
     debug_mode = False
@@ -474,11 +474,16 @@ class Binilla(tk.Tk, BinillaWidget):
             print(format_exc())
 
     def delete_tag(self, tag, destroy_window=True):
+
         try:
             tid = id(tag)
             def_id = tag.def_id
             path = tag.filepath
             tid_to_wid = self.tag_id_to_window_id
+
+            if tag is not self.config_file:
+                # remove the tag from the handler's tag library
+                tag.handler.delete_tag(tag=tag)
 
             if tid in tid_to_wid:
                 wid = tid_to_wid[tid]
@@ -517,7 +522,7 @@ class Binilla(tk.Tk, BinillaWidget):
                 if not_destroyed:
                     return
             except Exception:
-                print(format_exc())
+                pass
 
         try:
             sys.stdout = self.orig_stdout
@@ -877,8 +882,7 @@ class Binilla(tk.Tk, BinillaWidget):
         '''
         Returns the tag from the handler under the given def_id and filepath.
         '''
-        return self.handler.tags.get(def_id, {}).get(
-            self.handler.sanitize_path(filepath))
+        return self.handler.tags.get(def_id, {}).get(sanitize_path(filepath))
 
     def get_tag_window_by_tag(self, tag):
         return self.tag_windows[self.tag_id_to_window_id[id(tag)]]
@@ -918,29 +922,36 @@ class Binilla(tk.Tk, BinillaWidget):
         if not tagsdir.endswith(s_c.PATHDIV):
             tagsdir += s_c.PATHDIV
 
-        sani = self.handler.sanitize_path
+        sani = sanitize_path
 
         for path in filepaths:
             path = sani(path)
 
             if self.get_is_tag_loaded(path):
-                print('%s is already loaded' % path)
-                continue
-            elif path and not exists(path):
-                print('%s does not exist' % path)
-                continue
+                # the tag is somehow still loaded.
+                # need to see if there is still a window
+                new_tag = self.get_tag(self.handler.get_def_id(path), path)
+                try:
+                    w = self.get_tag_window_by_tag(new_tag)
+                except Exception:
+                    w = None
+                if w:
+                    print('%s is already loaded' % path)
+                    continue
 
-            #try to load the new tags
-            try:
-                handler_flags = self.config_file.data.header.handler_flags
-                new_tag = self.handler.load_tag(
-                    path, def_id, allow_corrupt=handler_flags.allow_corrupt)
-                self.handler.tags
-            except Exception:
-                if self.handler.debug:
-                    print(format_exc())
-                print("Could not load tag '%s'" % path)
-                continue
+                # there isn't a window, so continue like normal
+            else:
+                # try to load the new tags
+                try:
+                    handler_flags = self.config_file.data.header.handler_flags
+                    new_tag = self.handler.load_tag(
+                        path, def_id, allow_corrupt=handler_flags.allow_corrupt)
+                    self.handler.tags
+                except Exception:
+                    if self.handler.debug:
+                        print(format_exc())
+                    print("Could not load tag '%s'" % path)
+                    continue
 
             if path:
                 recent = self.recent_tagpaths
@@ -1273,7 +1284,7 @@ class Binilla(tk.Tk, BinillaWidget):
             self.update_idletasks()
             if not defs_dir.endswith(s_c.PATHDIV):
                 defs_dir += s_c.PATHDIV
-            defs_dir = self.handler.sanitize_path(dirname(defs_dir))
+            defs_dir = sanitize_path(dirname(defs_dir))
 
             # try and find the module_root
             mod_root = defs_dir
@@ -1286,7 +1297,7 @@ class Binilla(tk.Tk, BinillaWidget):
 
             # if the module_root isnt in sys.path, we need to add it so
             # the importer can resolve the import path for the definitions
-            mod_root = self.handler.sanitize_path(mod_root)
+            mod_root = sanitize_path(mod_root)
             if mod_root not in sys.path:
                 sys.path.insert(0, mod_root)
 

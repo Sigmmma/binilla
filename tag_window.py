@@ -304,13 +304,9 @@ class TagWindow(tk.Toplevel, BinillaWidget):
 
             self.tag = None
 
-            # remove the tag from the handler's tag library
-            if hasattr(self.handler, 'delete_tag'):
-                self.handler.delete_tag(tag=tag)
-
             # remove the tag and tag_window from the app_root
-            if hasattr(self.app_root, 'delete_tag'):
-                self.app_root.delete_tag(tag, False)
+            try: self.app_root.delete_tag(tag, 0)
+            except Exception: print(format_exc())
 
         except Exception:
             print(format_exc())

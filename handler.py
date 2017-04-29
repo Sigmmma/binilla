@@ -80,6 +80,15 @@ class Handler():
     Read this classes __init__.__doc__ for descriptions of these properties.
     '''
 
+    # whether or not the case of the path that a tag is keyed by matters.
+    # If False, all paths will be converted to lowercase
+    # when being stored, retrieved, and deleted
+    case_sensitive = True
+    # whether or not the path that a tag is keyed by is relative
+    # to self.tagsdir, where os.path.join(self.tagsdir, path)
+    # can be used to obtain the absolute path to the tag.
+    tagsdir_relative = False
+
     log_filename = 'log.log'
     default_import_rootpath = "supyr_struct"
     default_defs_path = "supyr_struct.defs"
@@ -185,17 +194,25 @@ class Handler():
         self.defs_filepath = kwargs.pop("defs_filepath", self.defs_filepath)
         self.defs_path = kwargs.pop("defs_path", self.defs_path)
 
-        self.tagsdir = self.sanitize_path(kwargs.pop("tagsdir", self.tagsdir))
+        self.tagsdir = sanitize_path(kwargs.pop("tagsdir", self.tagsdir))
         self.tags = kwargs.pop("tags", self.tags)
 
         # make sure there is an ending folder slash on the tags directory
         if len(self.tagsdir) and not self.tagsdir.endswith(PATHDIV):
             self.tagsdir += PATHDIV
 
-        self.reload_defs(**kwargs)
+        if kwargs.get("reload_defs", True):
+            self.reload_defs(**kwargs)
+        elif kwargs.get("defs"):
+            defs = kwargs["defs"]
+            if isinstance(defs, dict):
+                defs = defs.values()
+            for tagdef in defs:
+                self.add_def(tagdef)
 
         # make slots in self.tags for the types we want to load
-        self.reset_tags(self.defs.keys())
+        if kwargs.get("reset_tags", True):
+            self.reset_tags(self.defs.keys())
 
     def add_def(self, tagdefs):
         '''docstring'''
@@ -209,8 +226,7 @@ class Handler():
             # no idea what was provided, but we dont care. ERROR!
             raise TypeError("Incorrect type for the provided 'tagdef'.\n" +
                             "Expected %s, %s, or %s, but got %s" %
-                            (type(TagDef.descriptor),
-                             type, ModuleType, type(tagdefs)))
+                            (type(TagDef), type, ModuleType, type(tagdefs)))
         elif hasattr(tagdefs, "get"):
             # a whole module was provided
             tagdefs = tagdefs.get()
@@ -219,6 +235,10 @@ class Handler():
             raise AttributeError(
                 "The provided module does not have a 'get' " +
                 "method to get the TagDef class or instance.")
+
+        ###########################################
+        # FIX THIS SO YOU CAN PROVIDE ITERABLES OF TAGDEFS
+        ###########################################
 
         if not hasattr(tagdefs, '__iter__'):
             tagdefs = (tagdefs,)
@@ -231,9 +251,13 @@ class Handler():
         return tagdef
 
     def build_tag(self, **kwargs):
-        '''builds and returns a tag object'''
+        '''
+        Builds and returns a tag object.
+        This method assumes any provided filepath is NOT relative to
+        this handlers tagsdir, but rather is an absolute filepath.
+        '''
         def_id = kwargs.get("def_id", None)
-        filepath = self.sanitize_path(kwargs.get("filepath", ''))
+        filepath = sanitize_path(kwargs.get("filepath", ''))
         rawdata = kwargs.get("rawdata", None)
         int_test = kwargs.get("int_test", False)
         allow_corrupt = kwargs.get("allow_corrupt", self.allow_corrupt)
@@ -284,18 +308,25 @@ class Handler():
     def delete_tag(self, *, tag=None, def_id=None, filepath=''):
         if tag is not None:
             def_id = tag.def_id
-            filepath = tag.filepath
+            if self.tagsdir_relative:
+                filepath = relpath(tag.filepath, self.tagsdir)
+            else:
+                filepath = tag.filepath
 
-        filepath = self.sanitize_path(filepath)
+        if not self.case_sensitive:
+            filepath = filepath.lower()
+
+        filepath = sanitize_path(filepath)
 
         if filepath in self.tags.get(def_id, ()):
             del self.tags[def_id][filepath]
 
     def get_def_id(self, filepath):
-        if not filepath.startswith('.') and '.' in filepath:
-            ext = splitext(filepath)[-1].lower()
-        else:
+        if filepath.startswith('.') or '.' not in filepath:
+            # an extension was provided rather than a filepath
             ext = filepath.lower()
+        else:
+            ext = splitext(filepath)[-1].lower()
 
         if ext not in self.id_ext_map.values():
             return
@@ -307,11 +338,17 @@ class Handler():
     def get_def(self, def_id):
         return self.defs.get(def_id)
 
-    def get_tag(self, filepath, def_id):
+    def get_tag(self, filepath, def_id, load_unloaded=False):
         tag_coll = self.tags.get(def_id, ())
+        if not self.case_sensitive:
+            filepath = filepath.lower()
+
         if tag_coll.get(filepath) is not None:
             return tag_coll[filepath]
-        return self.load_tag(filepath, def_id)
+        elif load_unloaded:
+            return self.load_tag(filepath, def_id)
+        else:
+            raise KeyError("Could not locate the specified tag.")
 
     def get_unique_filename(self, filepath, dest, src=(), rename_tries=0):
         '''
@@ -332,7 +369,7 @@ class Handler():
         src and dest are iterables which contain the filepaths to
         check against to see if the generated filename is unique.
         '''
-        splitpath, ext = splitext(self.sanitize_path(filepath))
+        splitpath, ext = splitext(sanitize_path(filepath))
         newpath = splitpath
 
         # this is the max number of attempts to os.rename a tag
@@ -468,7 +505,7 @@ class Handler():
             # in the above code. This method must be used(which I
             # think looks kinda hacky)
             self.defs_filepath = tuple(defs_module.__path__)[0]
-        self.defs_filepath = self.sanitize_path(self.defs_filepath)
+        self.defs_filepath = sanitize_path(self.defs_filepath)
 
         # Log the location of every python file in the defs root
         # search for possibly valid definitions in the defs folder
@@ -476,6 +513,7 @@ class Handler():
             for module_path in files:
                 base, ext = splitext(module_path)
 
+                # do NOT use relpath here
                 fpath = root.split(self.defs_filepath)[-1]
 
                 # make sure the file name ends with .py and isnt already loaded
@@ -605,10 +643,13 @@ class Handler():
         get_def_id = self.get_def_id
         tags_get = self.tags.get
         check = self.check_extension
-
+        
         for root, directories, files in os.walk(searchdir):
             for filename in files:
-                filepath = self.sanitize_path(join(root, filename))
+                filepath = sanitize_path(join(root, filename))
+                if not self.case_sensitive:
+                    filepath = filepath.lower()
+
                 def_id = get_def_id(filepath)
                 tag_coll = tags_get(def_id)
                 self.current_tag = filepath
@@ -618,19 +659,21 @@ class Handler():
                 # the files extension matches the one for that def_id.
                 if (tag_coll is not None and (not check or
                     splitext(filename.lower())[-1] == id_ext_get(def_id))):
+                    if self.tagsdir_relative:
+                        filepath = relpath(filepath, tagsdir)
 
                     # if def_id is valid, create a new mapping in tags
                     # using its filepath (minus the tagsdir) as the key
-                    relpath, ext = splitext(filepath.split(tagsdir)[-1])
+                    rel_filepath, ext = splitext(filepath)
 
                     # make the extension lower case so it is always
                     # possible to find the file in self.tags
                     # regardless of the case of the file extension.
-                    relpath += ext.lower()
+                    rel_filepath += ext.lower()
 
                     # Make sure the tag isn't already loaded
-                    if relpath not in tag_coll:
-                        tag_coll[relpath] = None
+                    if rel_filepath not in tag_coll:
+                        tag_coll[rel_filepath] = None
                         self.tags_indexed += 1
 
         # recount how many tags are loaded/indexed
@@ -639,11 +682,22 @@ class Handler():
         return self.tags_indexed
 
     def load_tag(self, filepath, def_id=None, **kwargs):
+        '''
+        Builds a tag object, adds it to the tag collection, and returns it.
+        Unlike build_tag(), this filepath may or may not be relative
+        to self.tagsdir. This is determined by self.tagsdir_relative
+        '''
         allow = kwargs.get('allow_corrupt', self.allow_corrupt)
 
-        if filepath:
-            filepath = join(self.tagsdir, filepath)
-        new_tag = self.build_tag(filepath=filepath, def_id=def_id,
+        abs_filepath = filepath
+        if abs_filepath and self.tagsdir_relative:
+            abs_filepath = join(self.tagsdir, abs_filepath)
+
+        if not self.case_sensitive:
+            filepath = filepath.lower()
+            abs_filepath = abs_filepath.lower()
+
+        new_tag = self.build_tag(filepath=abs_filepath, def_id=def_id,
                                  allow_corrupt=allow)
         if new_tag:
             self.tags[new_tag.def_id][filepath] = new_tag
@@ -697,6 +751,8 @@ class Handler():
 
             # loop over each filepath and create an entry for it in paths_coll
             for filepath in paths:
+                if not self.case_sensitive:
+                    filepath = filepath.lower()
                 # make sure each supplied filepath is relative to self.tagsdir
                 filepath = relpath(filepath, tagsdir)
                 def_id = get_def_id(join(tagsdir, filepath))
@@ -718,7 +774,6 @@ class Handler():
 
             # Loop through each filepath in coll in sorted order
             for filepath in sorted(paths_coll[def_id]):
-
                 # only load the tag if it isnt already loaded
                 if tag_coll.get(filepath) is not None:
                     continue
@@ -883,6 +938,3 @@ class Handler():
                     these_statuses[filepath] = False
 
         return(statuses, exceptions)
-
-    def sanitize_path(self, path):
-        return path.replace('\\', '/').replace('/', PATHDIV)

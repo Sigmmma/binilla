@@ -3,6 +3,9 @@ from supyr_struct.field_types import *
 from .field_widgets import *
 from .constants import *
 
+def get():
+    return (config_def, style_def)
+
 pad_str = "Padding applied to the %s of widgets oriented %sally"
 
 flag_tooltips = (

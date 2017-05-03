@@ -250,6 +250,36 @@ class Handler():
 
         return tagdef
 
+    def add_tag(self, tag, filepath=None):
+        '''
+        Adds the provided tag to this handlers tag collection.
+        filepath is expected to be a relative filepath if
+        self.tagsdir_relative == True
+        If it isnt provided, then tag.filepath is expected to be
+        an absolute filepath. If self.tagsdir_relative = True,
+        tag.filepath is relative expected to be relative to self.tagsdir,
+        where is_in_dir(tag.filepath, self.tagsdir) == True
+        '''
+        def_id = tag.def_id
+        tag_coll = self.tags.get(def_id, {})
+
+        abs_filepath = tag.filepath
+        if abs_filepath:
+            if not filepath and self.tagsdir_relative:
+                filepath = relpath(abs_filepath, self.tagsdir)
+        elif filepath:
+            abs_filepath = join(self.tagsdir, filepath)
+        else:
+            raise ValueError("No filepath provided to index tag under")
+
+        if not self.case_sensitive:
+            filepath = filepath.lower()
+            abs_filepath = abs_filepath.lower()
+
+        tag.filepath = abs_filepath
+        tag_coll[filepath] = tag
+        self.tags[def_id] = tag_coll
+
     def build_tag(self, **kwargs):
         '''
         Builds and returns a tag object.
@@ -308,16 +338,19 @@ class Handler():
     def delete_tag(self, *, tag=None, def_id=None, filepath=''):
         if tag is not None:
             def_id = tag.def_id
-            if self.tagsdir_relative:
+            if filepath:
+                pass
+            elif self.tagsdir_relative:
                 filepath = relpath(tag.filepath, self.tagsdir)
             else:
                 filepath = tag.filepath
+        elif def_id is None:
+            def_id = self.get_def_id(filepath)
 
         if not self.case_sensitive:
             filepath = filepath.lower()
 
         filepath = sanitize_path(filepath)
-
         if filepath in self.tags.get(def_id, ()):
             del self.tags[def_id][filepath]
 
@@ -339,6 +372,10 @@ class Handler():
         return self.defs.get(def_id)
 
     def get_tag(self, filepath, def_id, load_unloaded=False):
+        '''
+        filepath is expected to be a relative filepath if
+        self.tagsdir_relative == True
+        '''
         tag_coll = self.tags.get(def_id, ())
         if not self.case_sensitive:
             filepath = filepath.lower()
@@ -687,7 +724,7 @@ class Handler():
         Unlike build_tag(), this filepath may or may not be relative
         to self.tagsdir. This is determined by self.tagsdir_relative
         '''
-        allow = kwargs.get('allow_corrupt', self.allow_corrupt)
+        kwargs.setdefault('allow_corrupt', self.allow_corrupt)
 
         abs_filepath = filepath
         if abs_filepath and self.tagsdir_relative:
@@ -697,8 +734,7 @@ class Handler():
             filepath = filepath.lower()
             abs_filepath = abs_filepath.lower()
 
-        new_tag = self.build_tag(filepath=abs_filepath, def_id=def_id,
-                                 allow_corrupt=allow)
+        new_tag = self.build_tag(filepath=abs_filepath, def_id=def_id, **kwargs)
         if new_tag:
             self.tags[new_tag.def_id][filepath] = new_tag
             return new_tag

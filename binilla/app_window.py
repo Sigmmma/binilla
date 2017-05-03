@@ -8,11 +8,12 @@ from copy import deepcopy
 from datetime import datetime
 from io import StringIO
 from time import time, sleep
-from os.path import basename, dirname, exists, isfile
+from os.path import basename, dirname, exists, join, isfile, relpath
 from tkinter.font import Font
 from tkinter.constants import *
 from tkinter.filedialog import askopenfilenames, askopenfilename,\
      askdirectory, asksaveasfilename
+from tkinter import messagebox
 from traceback import format_exc
 
 # load the binilla constants so they are injected before any defs are loaded
@@ -123,7 +124,7 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
-    version = '0.9.18'
+    version = '0.9.19'
     log_filename = 'binilla.log'
     debug = 0
     debug_mode = False
@@ -369,6 +370,71 @@ class Binilla(tk.Tk, BinillaWidget):
             pass
         self._initialized = True
 
+    def add_to_recent(self, filepath):
+        recent = self.recent_tagpaths
+        recent.append(filepath)
+        for i in range(len(recent)-1, -1, -1):
+            if recent[i] == filepath:
+                recent.pop(i)
+        if len(recent) > self.recent_tag_max:
+            del recent[0: len(recent) - self.recent_tag_max]
+        recent.append(filepath)
+
+    def add_tag(self, tag, new_filepath=''):
+        '''
+        new_filepath is expected to be a relative filepath if
+        self.handler.tagsdir_relative == True
+        '''
+        filepath = tag.filepath
+        handler = self.handler
+        tags_dir = handler.tagsdir
+        tagsdir_rel = handler.tagsdir_relative
+        add_to_recent = True
+
+        abs_filepath = tag.filepath
+        abs_new_filepath = new_filepath
+        if tagsdir_rel:
+            abs_filepath = join(tags_dir, abs_filepath)
+            abs_new_filepath = join(tags_dir, abs_new_filepath)
+
+        try:
+            existing_tag = handler.get_tag(tag.rel_filepath, tag.def_id)
+        except Exception:
+            existing_tag = None
+
+        if not existing_tag:
+            # tag doesnt already exist.
+            # we dont need to remove it from anything.
+            pass
+        elif existing_tag is tag:
+            # remove the tag from the handler under its current filepath
+            self.delete_tag(tag, False, False)
+        else:
+            print('%s is already loaded' % abs_filepath)
+            return False
+
+        if not filepath:
+            # the path is blank(new tag), give it a unique name
+            new_filepath = 'untitled%s%s' % (self.untitled_num, tag.ext)
+            abs_new_filepath = join(tags_dir, new_filepath)
+            self.untitled_num += 1
+            add_to_recent = False
+
+        if abs_new_filepath:
+            tag.filepath = abs_new_filepath
+
+        if add_to_recent:
+            self.add_to_recent(tag.filepath)
+
+        tag.tags_dir = tags_dir
+        if tagsdir_rel:
+            tag.rel_filepath = new_filepath
+
+        # index the tag under its new filepath
+        handler.add_tag(tag, new_filepath)
+
+        return True
+
     def make_io_text(self, master=None):
         if master is None:
             master = self.root_frame
@@ -473,26 +539,34 @@ class Binilla(tk.Tk, BinillaWidget):
         except Exception:
             print(format_exc())
 
-    def delete_tag(self, tag, destroy_window=True):
-
+    def delete_tag(self, tag, destroy_window=True, forget_window=True):
         try:
-            tid = id(tag)
-            def_id = tag.def_id
-            path = tag.filepath
-            tid_to_wid = self.tag_id_to_window_id
+            if tag is self.config_file:
+                pass
+            elif hasattr(tag, "rel_filepath"):
+                # remove the tag from the handlers tag library.
+                # We need to delete it by the relative filepath
+                # rather than having it detect it using the tag
+                # because the handlers tagsdir may have changed
+                # from what it was when the tag was created, so
+                # it wont be able to determine the rel_filepath
+                tag.handler.delete_tag(filepath=tag.rel_filepath)
+            else:
+                tag.handler.delete_tag(filepath=tag.filepath)
 
-            if tag is not self.config_file:
-                # remove the tag from the handler's tag library
-                tag.handler.delete_tag(tag=tag)
+            if destroy_window or forget_window:
+                tid = id(tag)
+                def_id = tag.def_id
+                tid_to_wid = self.tag_id_to_window_id
 
-            if tid in tid_to_wid:
-                wid = tid_to_wid[tid]
-                t_window = self.tag_windows[wid]
-                del tid_to_wid[tid]
-                del self.tag_windows[wid]
+                if tid in tid_to_wid:
+                    wid = tid_to_wid[tid]
+                    t_window = self.tag_windows[wid]
+                    del tid_to_wid[tid]
+                    del self.tag_windows[wid]
 
-                if destroy_window:
-                    t_window.destroy()
+                    if destroy_window:
+                        t_window.destroy()
 
             if self.selected_tag is tag:
                 self.selected_tag = None
@@ -878,11 +952,17 @@ class Binilla(tk.Tk, BinillaWidget):
         self.config_file.data.header.flags.sync_window_movement = (
             self.sync_window_movement) = not self.sync_window_movement
 
-    def get_tag(self, def_id, filepath):
+    def get_tag(self, filepath, def_id=None):
         '''
         Returns the tag from the handler under the given def_id and filepath.
+        filepath is expected to be relative to self.tags_dir
         '''
-        return self.handler.tags.get(def_id, {}).get(sanitize_path(filepath))
+        if def_id is None:
+            def_id = self.handler.get_def_id(filepath)
+        try:
+            return self.handler.get_tag(sanitize_path(filepath), def_id)
+        except Exception:
+            pass
 
     def get_tag_window_by_tag(self, tag):
         return self.tag_windows[self.tag_id_to_window_id[id(tag)]]
@@ -890,7 +970,7 @@ class Binilla(tk.Tk, BinillaWidget):
     def get_is_tag_loaded(self, filepath, def_id=None):
         if def_id is None:
             def_id = self.handler.get_def_id(filepath)
-        return bool(self.get_tag(def_id, filepath))
+        return bool(self.get_tag(filepath, def_id))
 
     def load_tags(self, filepaths=None, def_id=None):
         '''Prompts the user for a tag(s) to load and loads it.'''
@@ -918,19 +998,17 @@ class Binilla(tk.Tk, BinillaWidget):
         w = None
 
         windows = []
-        tagsdir = self.handler.tagsdir
-        if not tagsdir.endswith(s_c.PATHDIV):
-            tagsdir += s_c.PATHDIV
-
-        sani = sanitize_path
+        handler = self.handler
+        handler_flags = self.config_file.data.header.handler_flags
+        tags_dir = join(handler.tagsdir, "")
 
         for path in filepaths:
-            path = sani(path)
+            path = abs_path = sanitize_path(path)
 
             if self.get_is_tag_loaded(path):
                 # the tag is somehow still loaded.
                 # need to see if there is still a window
-                new_tag = self.get_tag(self.handler.get_def_id(path), path)
+                new_tag = self.get_tag(path, handler.get_def_id(path))
                 try:
                     w = self.get_tag_window_by_tag(new_tag)
                 except Exception:
@@ -943,37 +1021,18 @@ class Binilla(tk.Tk, BinillaWidget):
             else:
                 # try to load the new tags
                 try:
-                    handler_flags = self.config_file.data.header.handler_flags
-                    new_tag = self.handler.load_tag(
-                        path, def_id, allow_corrupt=handler_flags.allow_corrupt)
-                    self.handler.tags
+                    if handler.tagsdir_relative:
+                        abs_path = join(tags_dir, abs_path)
+                    new_tag = handler.build_tag(
+                        filepath=abs_path, def_id=def_id,
+                        allow_corrupt=handler_flags.allow_corrupt)
                 except Exception:
-                    if self.handler.debug:
+                    if handler.debug:
                         print(format_exc())
                     print("Could not load tag '%s'" % path)
                     continue
 
-            if path:
-                recent = self.recent_tagpaths
-                for i in range(len(recent)-1, -1, -1):
-                    if recent[i] == path:
-                        recent.pop(i)
-
-                recent.append(new_tag.filepath)
-                if len(recent) > self.recent_tag_max:
-                    del recent[0: len(recent) - self.recent_tag_max]
-            else:
-                # if the path is blank(new tag), give it a unique name
-                tags_coll = self.handler.tags[new_tag.def_id]
-                # remove the tag from the handlers tag collection
-                tags_coll.pop(new_tag.filepath, None)
-
-                ext = str(new_tag.ext)
-                new_tag.filepath = '%suntitled%s%s' % (
-                    tagsdir, self.untitled_num, ext)
-                # re-index the tag under its new filepath
-                tags_coll[new_tag.filepath] = new_tag
-                self.untitled_num += 1
+            self.add_tag(new_tag, path)
 
             try:
                 #build the window
@@ -1159,13 +1218,8 @@ class Binilla(tk.Tk, BinillaWidget):
                 print(format_exc())
                 raise IOError("Could not save tag.")
 
-            recent = self.recent_tagpaths
             path = tag.filepath
-            if path in recent:
-                recent.pop(recent.index(path))
-            recent.append(path)
-            if len(recent) > self.recent_tag_max:
-                del recent[0: len(recent) - self.recent_tag_max]
+            self.add_to_recent(path)
 
         return tag
 
@@ -1180,9 +1234,6 @@ class Binilla(tk.Tk, BinillaWidget):
         if not hasattr(tag, "serialize"):
             return
 
-        # make sure to flush any changes made using widgets to the tag
-        w = self.get_tag_window_by_tag(tag)
-
         if filepath is None:
             ext = tag.ext
             filepath = asksaveasfilename(
@@ -1193,33 +1244,22 @@ class Binilla(tk.Tk, BinillaWidget):
         if not filepath:
             return
 
-        try:
-            tags_coll = self.handler.tags[tag.def_id]
-            if self.get_is_tag_loaded(filepath):
-                print('%s is already loaded' % filepath)
-                return
-            # and re-index the tag under its new filepath
-            tags_coll[filepath] = tag
+        # make sure to flush any changes made using widgets to the tag
+        w = self.get_tag_window_by_tag(tag)
 
-            origfilepath = tag.filepath
-            tag.filepath = filepath
+        try:
             self.last_load_dir = dirname(filepath)
+            if tag.handler.tagsdir_relative:
+                filepath = relpath(filepath, tags_dir)
+
+            self.add_tag(tag, filepath)
 
             w.save(temp=False)
-
-            recent = self.recent_tagpaths
-            if filepath in recent:
-                recent.pop(recent.index(filepath))
-            while len(recent) >= self.recent_tag_max:
-                recent.pop(0)
-            recent.append(filepath)
         except Exception:
             print(format_exc())
             raise IOError("Could not save tag.")
 
         try:
-            # remove it from the handlers tag collection under the old name
-            tags_coll.pop(origfilepath, None)
             self.get_tag_window_by_tag(tag).update_title()
         except Exception:
             # this isnt really a big deal
@@ -1470,8 +1510,7 @@ class Binilla(tk.Tk, BinillaWidget):
             dir_paths.extend(len(dir_paths.NAME_MAP) - len(dir_paths))
 
         for path in self.recent_tagpaths:
-            recent_tags.append()
-            recent_tags[-1].path = path
+            self.add_to_recent(path)
 
         for s in ('recent_tag_max', 'max_undos'):
             try: header[s] = __oga__(self, s)

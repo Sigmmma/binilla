@@ -124,7 +124,7 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
-    version = '0.9.19'
+    version = '0.9.20'
     log_filename = 'binilla.log'
     debug = 0
     debug_mode = False
@@ -1021,7 +1021,7 @@ class Binilla(tk.Tk, BinillaWidget):
             else:
                 # try to load the new tags
                 try:
-                    if handler.tagsdir_relative:
+                    if handler.tagsdir_relative and abs_path:
                         abs_path = join(tags_dir, abs_path)
                     new_tag = handler.build_tag(
                         filepath=abs_path, def_id=def_id,

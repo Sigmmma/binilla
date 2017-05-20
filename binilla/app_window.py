@@ -124,7 +124,7 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
-    version = '0.9.20'
+    version = '0.9.21'
     log_filename = 'binilla.log'
     debug = 0
     debug_mode = False
@@ -346,9 +346,9 @@ class Binilla(tk.Tk, BinillaWidget):
             if not curr_dir.endswith(s_c.PATHDIV):
                 curr_dir += s_c.PATHDIV
 
-            self.log_file = open(curr_dir + self.log_filename, 'a+')
-
             try:
+                self.log_file = open(curr_dir + self.log_filename, 'a+')
+
                 # write a timestamp to the file
                 time = datetime.now().strftime("%Y-%m-%d  %H:%M:%S")
                 self.log_file.write("\n%s%s%s\n" %
@@ -578,9 +578,15 @@ class Binilla(tk.Tk, BinillaWidget):
     def exit(self, e=None):
         '''Exits the program.'''
         try:
+            sys.stdout = self.orig_stdout
+            if self.log_file:
+                self.log_file.close()
+        except Exception:
+            print(format_exc())
+
+        try:
             self.record_open_tags()
             self.update_config()
-            self.save_config()
         except Exception:
             print(format_exc())
 
@@ -598,14 +604,13 @@ class Binilla(tk.Tk, BinillaWidget):
             except Exception:
                 pass
 
-        try:
-            sys.stdout = self.orig_stdout
-            self.log_file.close()
-        except Exception:
-            pass
-
         try: self.destroy()  # wont close if a listener is open without this
         except Exception: pass
+
+        try:
+            self.save_config()
+        except Exception:
+            print(format_exc())
 
         # I really didn't want to have to call this, but for some
         # reason the program wants to hang and not exit nicely.
@@ -946,7 +951,7 @@ class Binilla(tk.Tk, BinillaWidget):
             style_file.data.colors.extend(len(color_names))
 
             self.update_style(style_file)
-            style_file.serialize(temp=False, backup=False)
+            style_file.serialize(temp=0, backup=0, calc_pointers=0)
 
     def toggle_sync(self):
         self.config_file.data.header.flags.sync_window_movement = (
@@ -1189,7 +1194,7 @@ class Binilla(tk.Tk, BinillaWidget):
                 print(format_exc())
 
     def save_config(self, e=None):
-        self.config_file.serialize(temp=False, backup=False)
+        self.config_file.serialize(temp=0, backup=0, calc_pointers=0)
         self.apply_config()
 
     def save_tag(self, tag=None):
@@ -1510,7 +1515,8 @@ class Binilla(tk.Tk, BinillaWidget):
             dir_paths.extend(len(dir_paths.NAME_MAP) - len(dir_paths))
 
         for path in self.recent_tagpaths:
-            self.add_to_recent(path)
+            recent_tags.append()
+            recent_tags[-1].path = path
 
         for s in ('recent_tag_max', 'max_undos'):
             try: header[s] = __oga__(self, s)

@@ -857,10 +857,10 @@ class Handler():
         '''
 
         if def_ids is None:
-            def_ids = self.tags
+            def_ids = self.defs
 
         if isinstance(def_ids, dict):
-            def_ids = tuple(def_ids)
+            def_ids = tuple(def_ids.keys())
         elif isinstance(def_ids, str):
             def_ids = (def_ids,)
         elif not hasattr(def_ids, '__iter__'):
@@ -870,6 +870,11 @@ class Handler():
             # create a dict to hold all tags of one type.
             # tags are indexed by their filepath
             self.tags[def_id] = {}
+
+        for def_id in tuple(self.tags.keys()):
+            # remove any tag collections without a corrosponding definition
+            if def_id not in self.defs:
+                self.tags.pop(def_id, None)
 
         # recount how many tags are loaded/indexed
         self.tally_tags()

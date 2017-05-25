@@ -124,7 +124,7 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
-    version = '0.9.22'
+    version = '0.9.23'
     log_filename = 'binilla.log'
     debug = 0
     debug_mode = False
@@ -596,6 +596,13 @@ class Binilla(tk.Tk, BinillaWidget):
         try: windows += tuple(self.children.values())
         except Exception: print(format_exc())
 
+        try:
+            # need to save before destroying the
+            # windows or bindings wont be saved
+            self.save_config()
+        except Exception:
+            print(format_exc())
+
         for w in windows:
             try:
                 not_destroyed = bool(w.destroy())
@@ -606,11 +613,6 @@ class Binilla(tk.Tk, BinillaWidget):
 
         try: self.destroy()  # wont close if a listener is open without this
         except Exception: pass
-
-        try:
-            self.save_config()
-        except Exception:
-            print(format_exc())
 
         # I really didn't want to have to call this, but for some
         # reason the program wants to hang and not exit nicely.

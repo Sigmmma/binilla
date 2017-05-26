@@ -124,7 +124,7 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
-    version = '0.9.23'
+    version = '0.9.24'
     log_filename = 'binilla.log'
     debug = 0
     debug_mode = False
@@ -1011,6 +1011,7 @@ class Binilla(tk.Tk, BinillaWidget):
 
         for path in filepaths:
             path = abs_path = sanitize_path(path)
+            is_new_tag = not bool(abs_path)
 
             if self.get_is_tag_loaded(path):
                 # the tag is somehow still loaded.
@@ -1028,7 +1029,7 @@ class Binilla(tk.Tk, BinillaWidget):
             else:
                 # try to load the new tags
                 try:
-                    if handler.tagsdir_relative and abs_path:
+                    if handler.tagsdir_relative and not is_new_tag:
                         abs_path = join(tags_dir, abs_path)
                     new_tag = handler.build_tag(
                         filepath=abs_path, def_id=def_id,
@@ -1043,7 +1044,8 @@ class Binilla(tk.Tk, BinillaWidget):
 
             try:
                 #build the window
-                w = self.make_tag_window(new_tag, focus=False)
+                w = self.make_tag_window(new_tag, focus=False,
+                                         is_new_tag=is_new_tag)
                 windows.append(w)
             except Exception:
                 print(format_exc())
@@ -1084,7 +1086,8 @@ class Binilla(tk.Tk, BinillaWidget):
             h = window.winfo_reqheight()
         window.geometry('%sx%s+%s+%s' % (w, h, x + x_base, y + y_base))
 
-    def make_tag_window(self, tag, focus=True, window_cls=None):
+    def make_tag_window(self, tag, *, focus=True, window_cls=None,
+                        is_new_tag=False):
         '''
         Creates and returns a TagWindow instance for the supplied
         tag and sets the current focus to the new TagWindow.
@@ -1093,7 +1096,8 @@ class Binilla(tk.Tk, BinillaWidget):
             self.curr_step_y = self.curr_step_x = 0
         if window_cls is None:
             window_cls = self.def_tag_window_cls
-        window = window_cls(self, tag, app_root=self, handler=self.handler)
+        window = window_cls(self, tag, app_root=self, handler=self.handler,
+                            is_new_tag=is_new_tag)
 
         # reposition the window
         if self.curr_step_y > self.max_step_y:
@@ -1110,7 +1114,8 @@ class Binilla(tk.Tk, BinillaWidget):
         try:
             use_default_size = self.config_file.data.header.tag_window_flags.\
                                use_default_window_dimensions
-        except Exception: use_default_size = False
+        except Exception:
+            use_default_size = False
 
         if use_default_size:
             window.geometry("%sx%s" % (

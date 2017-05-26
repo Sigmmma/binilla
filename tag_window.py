@@ -80,12 +80,18 @@ class TagWindow(tk.Toplevel, BinillaWidget):
     # The config flags governing the way the window works
     flags = None
 
+    # Whether or not the Tag this window is editing was created
+    # from scratch, i.e. it isn't actually being read from anything.
+    is_new_tag = False
+
     # Determines whether this TagWindow is currently trying to undo or redo
     # This exists to prevent trying to apply multiple undos or redos at once
     _applying_edit_state = False
 
     def __init__(self, master, tag=None, *args, **kwargs):
         self.tag = tag
+        self.is_new_tag = kwargs.pop("is_new_tag", self.is_new_tag)
+
         if 'tag_def' in kwargs:
             self.tag_def = kwargs.pop('tag_def')
         elif self.tag is not None:

@@ -75,9 +75,9 @@ class FieldWidget(widgets.BinillaWidget):
     # to this widget, in the order that they were created
     f_widget_ids = None
 
+    # the mapping is {attr_index: widget_id}
     # a mapping that maps each field widget's id to the attr_index
     # it is under in its parent, which is this widgets node.
-    # the mapping is {attr_index: widget_id}
     f_widget_ids_map = None
 
     # an inverse mapping of f_widget_ids_map
@@ -715,7 +715,7 @@ class ContainerFrame(tk.Frame, FieldWidget):
                                bg=self.default_bg_color)
 
         self.content = content
-        # clear the  list
+        # clear the f_widget_ids list
         del self.f_widget_ids[:]
         del self.f_widget_ids_map
         del self.f_widget_ids_map_inv
@@ -982,14 +982,49 @@ class ColorPickerFrame(ContainerFrame):
 
     def get_color(self):
         try:
-            node = self.node
-            if issubclass(self.color_type, float):
-                int_color = (int(node.r*255), int(node.g*255), int(node.b*255))
-            else:
-                int_color = (node.r, node.g, node.b)
+            int_color = (self.red, self.green, self.blue)
             return (int_color, '#%02x%02x%02x' % int_color)
         except Exception:
             return ((0, 0, 0), '#000000')
+
+    @property
+    def alpha(self):
+        if not hasattr(self.node, "a"):
+            return self.color_type()
+        return int(self.node.a*255) if\
+               issubclass(self.color_type, float) else self.node.a
+
+    @alpha.setter
+    def alpha(self, new_val):
+        if hasattr(self.node, "a"):
+            self.node.a = new_val
+
+    @property
+    def red(self):
+        return int(self.node.r*255) if\
+               issubclass(self.color_type, float) else self.node.r
+
+    @red.setter
+    def red(self, new_val):
+        self.node.r = new_val
+
+    @property
+    def green(self):
+        return int(self.node.g*255) if\
+               issubclass(self.color_type, float) else self.node.g
+
+    @green.setter
+    def green(self, new_val):
+        self.node.g = new_val
+
+    @property
+    def blue(self):
+        return int(self.node.b*255) if\
+               issubclass(self.color_type, float) else self.node.b
+
+    @blue.setter
+    def blue(self, new_val):
+        self.node.b = new_val
 
     def select_color(self):
         color, hex_color = askcolor(self.get_color()[1], parent=self)
@@ -1004,11 +1039,14 @@ class ColorPickerFrame(ContainerFrame):
             color[1] /= 255
             color[2] /= 255
 
-        node = self.node
-        self.edit_create(attr_index='rgb',
-                         redo_node=dict(r=color[0], g=color[1], b=color[2]),
-                         undo_node=dict(r=node.r,   g=node.g,   b=node.b))
-        node.r, node.g, node.b = color[0], color[1], color[2]
+        alpha = self.alpha
+        self.edit_create(
+            attr_index='argb',
+            redo_node=dict(a=alpha, r=color[0], g=color[1],   b=color[2]),
+            undo_node=dict(a=alpha, r=self.red, g=self.green, b=self.blue))
+
+        self.red, self.green, self.blue, self.alpha = (
+            color[0], color[1], color[2], alpha)
 
         self.set_edited()
         self.reload()
@@ -2162,8 +2200,6 @@ class EntryFrame(DataFrame):
                       bg=self.default_bg_color)
         DataFrame.__init__(self, *args, **kwargs)
 
-        size = self.parent.get_size(self.attr_index)
-
         # make the widgets
         self.entry_string = tk.StringVar(self)
         self.content = tk.Frame(self, relief='flat', bd=0,
@@ -2261,7 +2297,9 @@ class EntryFrame(DataFrame):
                 self.edit_create(undo_node=node, redo_node=new_node)
 
                 self.last_flushed_val = str_node
-                self.parent[self.attr_index] = self.node = new_node
+                self.node = new_node
+                if self.parent is not None:
+                    self.parent[self.attr_index] = new_node
 
             # value may have been clipped, so set the entry string anyway
             self.entry_string.set(str_node)
@@ -2305,8 +2343,10 @@ class EntryFrame(DataFrame):
         node = self.node
         f_type = desc['TYPE']
 
+        node_size = 0
         parent = self.parent
-        node_size = parent.get_size(self.attr_index)
+        if parent is not None:
+            node_size = parent.get_size(self.attr_index)
 
         value_max = desc.get('MAX', f_type.max)
         value_min = desc.get('MIN', f_type.min)
@@ -2439,13 +2479,15 @@ class NumberEntryFrame(EntryFrame):
         node = self.node
         f_type = desc['TYPE']
         unit_scale = self.unit_scale
+        node_size = 0
 
         if unit_scale is not None and isinstance(node, (int, float)):
             node *= unit_scale
 
         parent = self.parent
-        node_size = parent.get_size(self.attr_index)
         fixed_size = isinstance(desc.get('SIZE', f_type.size), int)
+        if self.parent is not None:
+            node_size = parent.get_size(self.attr_index)
 
         value_max = desc.get('MAX', f_type.max)
         value_min = desc.get('MIN', f_type.min)

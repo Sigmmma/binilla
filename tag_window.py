@@ -294,13 +294,15 @@ class TagWindow(tk.Toplevel, BinillaWidget):
                         path = tag.filepath
                     except Exception:
                         path = "This tag"
+
+                    try: self.app_root.select_tag_window(self)
+                    except Exception: pass
+
                     ans = messagebox.askyesnocancel(
                         "Unsaved changes", ("%s contains unsaved changes!\n" +
                         "Do you want to save changes before closing?") % path,
                         icon='warning', parent=self)
 
-                    try: self.app_root.select_tag_window(self)
-                    except Exception: pass
                     if ans is None:
                         return True
                     elif ans is True:
@@ -310,9 +312,10 @@ class TagWindow(tk.Toplevel, BinillaWidget):
 
             self.tag = None
 
-            # remove the tag and tag_window from the app_root
-            try: self.app_root.delete_tag(tag, 0)
-            except Exception: print(format_exc())
+            if tag is not None:
+                # remove the tag and tag_window from the app_root
+                try: self.app_root.delete_tag(tag, 0)
+                except Exception: print(format_exc())
 
         except Exception:
             print(format_exc())

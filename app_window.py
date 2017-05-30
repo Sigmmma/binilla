@@ -1096,8 +1096,9 @@ class Binilla(tk.Tk, BinillaWidget):
             self.curr_step_y = self.curr_step_x = 0
         if window_cls is None:
             window_cls = self.def_tag_window_cls
-        window = window_cls(self, tag, app_root=self, handler=self.handler,
-                            is_new_tag=is_new_tag)
+        window = window_cls(
+            self, tag, app_root=self, handler=self.handler,
+            is_new_tag=is_new_tag, widget_picker=self.widget_picker)
 
         # reposition the window
         if self.curr_step_y > self.max_step_y:

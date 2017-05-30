@@ -308,7 +308,7 @@ class FieldWidget(widgets.BinillaWidget):
     @property
     def widget_picker(self):
         try:
-            return self.tag_window.app_root.widget_picker
+            return self.tag_window.widget_picker
         except AttributeError:
             return widget_picker.def_widget_picker
 

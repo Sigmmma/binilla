@@ -106,8 +106,11 @@ class TagWindow(tk.Toplevel, BinillaWidget):
 
         try:
             max_undos = self.app_root.max_undos
+            xscroll_inc = self.app_root.scroll_increment_x
+            yscroll_inc = self.app_root.scroll_increment_y
         except AttributeError:
             max_undos = 100
+            xscroll_inc = yscroll_inc = 20
         try:
             self.flags = self.app_root.config_file.data.header.tag_window_flags
         except AttributeError:
@@ -131,10 +134,8 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             self, orient='horizontal', command=rc.xview)
         self.root_vsb = tk.Scrollbar(
             self, orient='vertical', command=rc.yview)
-        rc.config(xscrollcommand=self.root_hsb.set,
-                  yscrollcommand=self.root_vsb.set,
-                  xscrollincrement=self.app_root.scroll_increment_x,
-                  yscrollincrement=self.app_root.scroll_increment_y)
+        rc.config(xscrollcommand=self.root_hsb.set, yscrollincrement=yscroll_inc,
+                  yscrollcommand=self.root_vsb.set, xscrollincrement=xscroll_inc)
         self.root_frame_id = rc.create_window((0, 0), window=rf, anchor='nw')
 
         # make it so if this window is selected it changes the
@@ -281,7 +282,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
 
     def destroy(self):
         '''
-        Handles destroying this Toplevel and removing the tag from app_root.
+        Handles destroying this Toplevel and removing the tag from app_root
         '''
         try:
             tag = self.tag

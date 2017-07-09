@@ -20,6 +20,7 @@ from traceback import format_exc
 from . import constants as s_c
 s_c.inject()
 from supyr_struct.field_types import FieldType
+from supyr_struct.defs.util import *
 
 from . import editor_constants as e_c
 from .tag_window import *
@@ -124,7 +125,7 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
-    version = '0.9.25'
+    version = '0.9.27'
     log_filename = 'binilla.log'
     debug = 0
     debug_mode = False

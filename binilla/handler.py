@@ -29,6 +29,7 @@ from supyr_struct.defs.tag_def import TagDef
 
 # make sure the new constants are injected and used
 from .constants import *
+from supyr_struct.defs.util import *
 
 
 ###################################################

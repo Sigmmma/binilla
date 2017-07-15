@@ -991,7 +991,7 @@ class ColorPickerFrame(ContainerFrame):
     def alpha(self):
         if not hasattr(self.node, "a"):
             return self.color_type()
-        return int(self.node.a*255) if\
+        return min(255, int(self.node.a*255)) if\
                issubclass(self.color_type, float) else self.node.a
 
     @alpha.setter
@@ -1001,7 +1001,7 @@ class ColorPickerFrame(ContainerFrame):
 
     @property
     def red(self):
-        return int(self.node.r*255) if\
+        return min(255, int(self.node.r*255)) if\
                issubclass(self.color_type, float) else self.node.r
 
     @red.setter
@@ -1010,7 +1010,7 @@ class ColorPickerFrame(ContainerFrame):
 
     @property
     def green(self):
-        return int(self.node.g*255) if\
+        return min(255, int(self.node.g*255)) if\
                issubclass(self.color_type, float) else self.node.g
 
     @green.setter
@@ -1019,7 +1019,7 @@ class ColorPickerFrame(ContainerFrame):
 
     @property
     def blue(self):
-        return int(self.node.b*255) if\
+        return min(255, int(self.node.b*255)) if\
                issubclass(self.color_type, float) else self.node.b
 
     @blue.setter

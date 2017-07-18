@@ -377,7 +377,7 @@ class Handler():
         filepath is expected to be a relative filepath if
         self.tagsdir_relative == True
         '''
-        tag_coll = self.tags.get(def_id, ())
+        tag_coll = self.tags.get(def_id, {})
         if not self.case_sensitive:
             filepath = filepath.lower()
 

@@ -375,6 +375,7 @@ config_header = Struct("header",
         "show_type",
         "show_size",
         "show_offset",
+        "show_parent_id",
         "show_node_id",
         "show_node_cls",
         "show_endian",
@@ -389,7 +390,7 @@ config_header = Struct("header",
 
         ("show_all", 1<<31),
         DEFAULT=sum([1<<i for i in (
-            0, 1, 2, 3, 4, 5, 9, 10, 11, 12, 14, 15)]),
+            0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 15, 16)]),
         TOOLTIP="Flags governing what is shown when a tag is printed."
         ),
 

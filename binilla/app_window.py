@@ -2,7 +2,7 @@ import gc
 import os
 import re
 import sys
-from . import thread_safe_tkinter as tk
+from . import threadsafe_tkinter as tk
 
 from copy import deepcopy
 from datetime import datetime
@@ -612,14 +612,10 @@ class Binilla(tk.Tk, BinillaWidget):
             except Exception:
                 pass
 
+        self.tk.unhook()
+
         try: self.destroy()  # wont close if a listener is open without this
         except Exception: pass
-
-        # I really didn't want to have to call this, but for some
-        # reason the program wants to hang and not exit nicely.
-        # I've decided to use os._exit until I can figure out the cause.
-        os._exit(0)
-        #sys.exit(0)
 
     def force_big_endian(self, e=None):
         FieldType.force_big()

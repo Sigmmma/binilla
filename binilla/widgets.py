@@ -5,7 +5,7 @@ This module contains various widgets which the FieldWidget classes utilize.
 from time import time
 from traceback import format_exc
 
-from . import thread_safe_tkinter as tk
+from . import threadsafe_tkinter as tk
 from . import editor_constants as e_c
 
 field_widgets = None  # linked to through __init__.py

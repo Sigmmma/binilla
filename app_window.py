@@ -2,7 +2,7 @@ import gc
 import os
 import re
 import sys
-from . import mtTkinter as tk
+from . import thread_safe_tkinter as tk
 
 from copy import deepcopy
 from datetime import datetime

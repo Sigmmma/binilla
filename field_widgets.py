@@ -1,4 +1,4 @@
-from . import thread_safe_tkinter as tk
+from . import threadsafe_tkinter as tk
 import tkinter.ttk as ttk
 
 from copy import deepcopy

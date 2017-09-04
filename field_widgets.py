@@ -642,9 +642,9 @@ class ContainerFrame(tk.Frame, FieldWidget):
         try:
             total = 0
             node = self.node
-            entries = range(desc.get('ENTRIES', 0))
+            entries = tuple(range(desc.get('ENTRIES', 0)))
             if hasattr(node, 'STEPTREE'):
-                entries = tuple(entries) + ('STEPTREE',)
+                entries += ('STEPTREE',)
 
             if self.all_visible:
                 return len(entries)
@@ -779,7 +779,7 @@ class ContainerFrame(tk.Frame, FieldWidget):
             if hasattr(s_node, 'desc'):
                 s_desc = s_node.desc
             if visible_count <= 1:
-                if not s_desc.get('VISIBLE', 1):
+                if not (s_desc.get('VISIBLE', 1) or all_visible):
                     # only make the title not shown if the only
                     # visible widget will not be the subtree
                     kwargs['show_title'] = False
@@ -3196,7 +3196,7 @@ class StreamAdapterFrame(ContainerFrame):
 
             widget_cls = self.widget_picker.get_widget(data_desc)
             kwargs = dict(node=data, parent=node, show_title=False,
-                          tag_window=self.tag_window, attr_index='SUB_STRUCT',
+                          tag_window=self.tag_window, attr_index='data',
                           disabled=self.disabled, f_widget_parent=self,
                           desc=data_desc, show_frame=self.show.get(),
                           dont_padx_fields=True)

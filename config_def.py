@@ -394,8 +394,8 @@ config_header = Struct("header",
         TOOLTIP="Flags governing what is shown when a tag is printed."
         ),
 
-    Timestamp("data_created", EDITABLE=False),
-    Timestamp("data_modified", EDITABLE=False),
+    Timestamp("date_created", EDITABLE=False),
+    Timestamp("date_modified", EDITABLE=False),
 
     UInt16("recent_tag_max", DEFAULT=20,
         TOOLTIP="Max number of files in the 'recent' menu."),

@@ -29,9 +29,8 @@ from .widget_picker import *
 from .widgets import BinillaWidget, ToolTipHandler
 from .handler import Handler
 
-this_curr_dir = os.path.abspath(os.curdir)
-
-default_config_path = dirname(__file__) + '%sbinilla.cfg' % s_c.PATHDIV
+this_curr_dir = dirname(__file__)
+default_config_path = this_curr_dir + '%sbinilla.cfg' % s_c.PATHDIV
 
 default_hotkeys = {
     '<Control-w>': 'close_selected_window',
@@ -114,7 +113,7 @@ class Binilla(tk.Tk, BinillaWidget):
 
     '''Directories'''
     curr_dir = this_curr_dir
-    styles_dir = dirname(__file__) + s_c.PATHDIV + "styles"
+    styles_dir = join(curr_dir, "styles")
     last_load_dir = curr_dir
     last_defs_dir = curr_dir
     last_imp_dir  = curr_dir
@@ -125,7 +124,7 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
-    version = '0.9.31'
+    version = '0.9.30'
     log_filename = 'binilla.log'
     debug = 0
     debug_mode = False
@@ -1547,7 +1546,7 @@ class Binilla(tk.Tk, BinillaWidget):
         widget_depths = widgets.depths
         colors = style_data.colors
 
-        header.parse(attr_index='data_modified')
+        header.parse(attr_index='date_modified')
 
         __oga__ = object.__getattribute__
         __tga__ = type.__getattribute__

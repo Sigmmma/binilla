@@ -1,3 +1,4 @@
+from os.path import splitext
 from . import threadsafe_tkinter as tk
 import tkinter.ttk as ttk
 
@@ -431,15 +432,19 @@ class FieldWidget(widgets.BinillaWidget):
         except AttributeError:
             initialdir = None
 
-        ext = self.field_ext
+        def_ext = self.field_ext
 
         filepath = asksaveasfilename(
-            initialdir=initialdir, defaultextension=ext,
-            filetypes=[(self.name, "*" + ext), ('All', '*')],
-            title="Export '%s' to..." % self.name, parent=self)
+            initialdir=initialdir, title="Export '%s' to..." % self.name,
+            parent=self, filetypes=[(self.name, '*' + def_ext),
+                                    ('All', '*')])
 
         if not filepath:
             return
+
+        filepath, ext = splitext(filepath)
+        if not ext: ext = def_ext
+        filepath += ext
 
         try:
             if hasattr(self.node, 'serialize'):

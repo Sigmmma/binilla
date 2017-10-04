@@ -33,6 +33,20 @@ __all__ = (
     )
 
 
+FLOAT_PREC  = 23*log(2, 10)
+DOUBLE_PREC = 52*log(2, 10)
+
+
+def float_to_str(f, max_sig_figs=FLOAT_PREC):
+    sig_figs = -1
+    if abs(f) > 0:
+        sig_figs = int(round(max_sig_figs - log(abs(f), 10)))
+
+    if sig_figs < 0:
+        return str(f).split(".")[0]
+    return (("%" + (".%sf" % sig_figs)) % f).rstrip("0").rstrip(".")
+
+
 def fix_kwargs(**kw):
     '''Returns a dict where all items in the provided keyword arguments
     that use keys found in WIDGET_KWARGS are removed.'''
@@ -2281,7 +2295,7 @@ class EntryFrame(DataFrame):
             unit_scale = self.unit_scale
             curr_val = self.entry_string.get()
             try:
-                new_node = self.sanitize_input()
+                new_node = self.parse_input()
             except Exception:
                 # Couldnt cast the string to the node class. This is fine this
                 # kind of thing happens when entering data. Just dont flush it
@@ -2291,8 +2305,23 @@ class EntryFrame(DataFrame):
                 self.set_needs_flushing(False)
                 return
 
-            if unit_scale and isinstance(new_node, (int, float)):
-                str_node = str(new_node * unit_scale)
+            if isinstance(node, float):
+                # find the precision of the float
+                field_type = self.desc.get('TYPE')
+                prec = DOUBLE_PREC
+                if 'f' in field_type.enc:
+                    prec = FLOAT_PREC
+                elif hasattr(field_type, "mantissa_len"):
+                    prec = field_type.mantissa_len
+
+                str_node = new_node
+                if unit_scale:
+                    prec -= ceil(log(abs(unit_scale), 10))
+                    str_node = new_node * unit_scale
+
+                str_node = float_to_str(str_node, prec)
+            elif unit_scale and isinstance(new_node, int):
+                str_node = str(int(new_node * unit_scale))
             else:
                 str_node = str(new_node)
 
@@ -2317,7 +2346,7 @@ class EntryFrame(DataFrame):
             self.set_needs_flushing(False)
             raise
 
-    def sanitize_input(self):
+    def parse_input(self):
         desc = self.desc
         node_cls = desc.get('NODE_CLS', desc['TYPE'].node_cls)
         new_node = node_cls(self.entry_string.get())
@@ -2403,6 +2432,19 @@ class EntryFrame(DataFrame):
             self.data_entry.config(state=tk.NORMAL)
             self.data_entry.config(width=self.entry_width)
             self.data_entry.delete(0, tk.END)
+            if isinstance(node, float):
+                # find the precision of the float
+                field_type = self.desc.get('TYPE')
+                prec = DOUBLE_PREC
+                if 'f' in field_type.enc:
+                    prec = FLOAT_PREC
+                elif hasattr(field_type, "mantissa_len"):
+                    prec = field_type.mantissa_len
+
+                if unit_scale:
+                    prec -= ceil(log(abs(unit_scale), 10))
+                node = float(float_to_str(node, prec))
+
             self.last_flushed_val = str(node)
             self.data_entry.insert(0, self.last_flushed_val)
             self.needs_flushing = False
@@ -2417,13 +2459,15 @@ class EntryFrame(DataFrame):
 
 class NumberEntryFrame(EntryFrame):
 
-    def sanitize_input(self):
+    def parse_input(self):
         desc = self.desc
         field_max, field_min = self.field_max, self.field_min
         field_type = desc.get('TYPE')
         node_cls = desc.get('NODE_CLS', field_type.node_cls)
-        # need to cast to float first to avoid a ValueError
-        new_node = node_cls(float(self.entry_string.get()))
+        try:
+            new_node = node_cls(self.entry_string.get())
+        except ValueError:
+            raise
 
         unit_scale = self.unit_scale
         desc_size = desc.get('SIZE')
@@ -2455,21 +2499,6 @@ class NumberEntryFrame(EntryFrame):
                 if not desc.get('ALLOW_MIN', True):
                     raise ValueError("Enter a value above %s" %
                                      (field_min * unit_scale))
-
-        if isinstance(new_node, float):
-            # find the precision of the float
-            if 'f' in field_type.enc:
-                prec = 6
-            elif 'd' in field_type.enc:
-                prec = 15
-            else:
-                prec = self.parent.get_size(self.attr_index)*2 - 2
-
-            # subtract the precision used on the left side of the decimal
-            if new_node: # make sure its not zero
-                prec -= int(log(abs(new_node), 10) + 1)
-
-            new_node = round(new_node, prec)
 
         return new_node
 

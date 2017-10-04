@@ -185,15 +185,15 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         '''
         Updates the size of the canvas when the window is resized.
         '''
-        rf = self.root_frame; rc = self.root_canvas
-        rf_w, rf_h = (rf.winfo_reqwidth(), rf.winfo_reqheight())
+        rf,   rc   = self.root_frame, self.root_canvas
+        rf_w, rf_h = rf.winfo_reqwidth(), rf.winfo_reqheight()
         rc.config(scrollregion="0 0 %s %s" % (rf_w, rf_h))
         if rf_w != rc.winfo_reqwidth():  rc.config(width=rf_w)
         if rf_h != rc.winfo_reqheight(): rc.config(height=rf_h)
 
         # account for the size of the scrollbars when resizing the window
         new_window_height = rf_h + self.root_hsb.winfo_reqheight() + 2
-        new_window_width = rf_w + self.root_vsb.winfo_reqwidth() + 2
+        new_window_width  = rf_w + self.root_vsb.winfo_reqwidth()  + 2
 
         if self.flags is not None:
             cap_size = self.flags.cap_window_size
@@ -214,9 +214,9 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         '''
         Update the size of the frame and scrollbars when the canvas is resized.
         '''
-        rf = self.root_frame; rc = self.root_canvas
         rf_id = self.root_frame_id
-        rc_w, rc_h = (rc.winfo_reqwidth(), rc.winfo_reqheight())
+        rf,   rc   = self.root_frame, self.root_canvas
+        rc_w, rc_h = rc.winfo_reqwidth(), rc.winfo_reqheight()
         if rc_w != rf.winfo_reqwidth():  rc.itemconfigure(rf_id, width=rc_w)
         if rc_h != rf.winfo_reqheight(): rc.itemconfigure(rf_id, height=rc_h)
 

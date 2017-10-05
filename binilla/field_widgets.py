@@ -52,6 +52,7 @@ def fix_kwargs(**kw):
     that use keys found in WIDGET_KWARGS are removed.'''
     return {s:kw[s] for s in kw if s not in e_c.WIDGET_KWARGS}
 
+
 # These classes are used for laying out the visual structure
 # of many sub-widgets, and effectively the whole window.
 class FieldWidget(widgets.BinillaWidget):
@@ -83,14 +84,15 @@ class FieldWidget(widgets.BinillaWidget):
     # it means that this is the root of the FieldWidget tree.
     f_widget_parent = None
 
-    # a mapping of id to FieldWidget for each child FieldWidget of this object.
+    # a mapping of {id(f_widget): f_widget} for each child
+    # FieldWidget of this object.
     f_widgets = None
 
     # a list of the id's of the widgets that are parented
     # to this widget, in the order that they were created
     f_widget_ids = None
 
-    # the mapping is {attr_index: widget_id}
+    # the mapping is {attr_index: id(f_widget)}
     # a mapping that maps each field widget's id to the attr_index
     # it is under in its parent, which is this widgets node.
     f_widget_ids_map = None
@@ -553,12 +555,12 @@ class FieldWidget(widgets.BinillaWidget):
         self.needs_flushing = new_value
         try:
             if self.needs_flushing:
-                # Tell all parents that there is are unsaved edits
+                # Tell all parents that there are unflushed edits
                 if not self.f_widget_parent.needs_flushing:
                     self.f_widget_parent.set_needs_flushing()
                 return
 
-            # Tell all children that there are no longer unsaved edits
+            # Tell all children that there are no longer unflushed edits
             f_widgets = self.f_widgets
             for f_wid in self.f_widget_ids:
                 w = f_widgets.get(f_wid)
@@ -684,17 +686,15 @@ class ContainerFrame(tk.Frame, FieldWidget):
         state = edit_state
 
         attr_indices = state.attr_index
-        undo_nodes = state.undo_node
-        redo_nodes = state.redo_node
+        if undo:
+            nodes = state.undo_node
+        else:
+            nodes = state.redo_node
 
         w, node = FieldWidget.get_widget_and_node(nodepath=state.nodepath,
                                                   tag_window=state.tag_window)
-        if undo:
-            for i in attr_indices:
-                node[i] = undo_nodes[i]
-        else:
-            for i in attr_indices:
-                node[i] = redo_nodes[i]
+        for i in attr_indices:
+            node[i] = nodes[i]
 
         if w is not None:
             try:
@@ -781,9 +781,8 @@ class ContainerFrame(tk.Frame, FieldWidget):
         if hasattr(node, 'STEPTREE'):
             field_indices = tuple(field_indices) + ('STEPTREE',)
 
-        kwargs = dict(parent=node, tag_window=tag_window,
-                      disabled=self.disabled, f_widget_parent=self,
-                      vert_oriented=vertical)
+        kwargs = dict(parent=node, tag_window=tag_window, f_widget_parent=self,
+                      disabled=self.disabled, vert_oriented=vertical)
 
         all_visible = self.all_visible
         visible_count = self.visible_field_count
@@ -817,9 +816,6 @@ class ContainerFrame(tk.Frame, FieldWidget):
         if self.dont_padx_fields:
             kwargs['pack_padx'] = 0
 
-        if field_indices:
-            last_index = field_indices[-1]
-
         # loop over each field and make its widget
         for i in field_indices:
             sub_node = node[i]
@@ -832,7 +828,7 @@ class ContainerFrame(tk.Frame, FieldWidget):
                 continue
 
             widget_cls = picker.get_widget(sub_desc)
-            if i == last_index and vertical:
+            if i == field_indices[-1] and vertical:
                 kwargs.update(pack_pady=0)
 
             try:
@@ -858,9 +854,8 @@ class ContainerFrame(tk.Frame, FieldWidget):
         '''Flushes values from the widgets to the nodes they are displaying.'''
         try:
             for w in self.f_widgets.values():
-                if w is None or not hasattr(w, 'flush'):
-                    continue
-                w.flush()
+                if hasattr(w, 'flush'):
+                    w.flush()
             self.set_needs_flushing(False)
         except Exception:
             print(format_exc())
@@ -892,7 +887,7 @@ class ContainerFrame(tk.Frame, FieldWidget):
                 w = f_widgets.get(f_widget_ids_map.get(i))
 
                 # if neither would be visible, dont worry about checking it
-                if not(sub_desc.get('VISIBLE',1) or all_visible) and w is None:
+                if not(sub_desc.get('VISIBLE', 1) or all_visible) and w is None:
                     continue
 
                 # if the descriptors are different, gotta repopulate!
@@ -1972,7 +1967,6 @@ class RawdataFrame(DataFrame):
 
     @property
     def field_ext(self):
-        '''The export extension of this FieldWidget.'''
         desc = self.desc
         parent_name = tag_ext = ''
         try:
@@ -2649,8 +2643,6 @@ class HexEntryFrame(EntryFrame):
 
 class TextFrame(DataFrame):
     '''Used for strings that likely will not fit on one line.'''
-    '''Used for ints, floats, and strings that
-    fit on one line as well as ints and floats.'''
 
     children_can_scroll = True
     can_scroll = False

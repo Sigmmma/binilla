@@ -2299,14 +2299,16 @@ class EntryFrame(DataFrame):
                 self.set_needs_flushing(False)
                 return
 
-            if isinstance(node, float):
+            if isinstance(new_node, float):
                 # find the precision of the float
                 field_type = self.desc.get('TYPE')
-                prec = DOUBLE_PREC
-                if 'f' in field_type.enc:
+                prec = 0
+                if   'f' in field_type.enc:
                     prec = FLOAT_PREC
+                elif 'd' in field_type.enc:
+                    prec = DOUBLE_PREC
                 elif hasattr(field_type, "mantissa_len"):
-                    prec = field_type.mantissa_len
+                    prec = field_type.mantissa_len*log(2, 10)
 
                 str_node = new_node
                 if unit_scale:
@@ -2314,8 +2316,9 @@ class EntryFrame(DataFrame):
                     str_node = new_node * unit_scale
 
                 str_node = float_to_str(str_node, prec)
-            elif unit_scale and isinstance(new_node, int):
-                str_node = str(int(new_node * unit_scale))
+            elif unit_scale and isinstance(node, int):
+                str_node = float_to_str(float(new_node * unit_scale),
+                                        -1*ceil(log(abs(unit_scale), 10)))
             else:
                 str_node = str(new_node)
 
@@ -2429,17 +2432,23 @@ class EntryFrame(DataFrame):
             if isinstance(node, float):
                 # find the precision of the float
                 field_type = self.desc.get('TYPE')
-                prec = DOUBLE_PREC
-                if 'f' in field_type.enc:
+                prec = 0
+                if   'f' in field_type.enc:
                     prec = FLOAT_PREC
+                elif 'd' in field_type.enc:
+                    prec = DOUBLE_PREC
                 elif hasattr(field_type, "mantissa_len"):
-                    prec = field_type.mantissa_len
+                    prec = field_type.mantissa_len*log(2, 10)
 
                 if unit_scale:
                     prec -= ceil(log(abs(unit_scale), 10))
-                node = float(float_to_str(node, prec))
+                self.last_flushed_val = float_to_str(node, prec)
+            elif unit_scale and isinstance(self.node, int):
+                self.last_flushed_val = float_to_str(
+                    float(node), -1*ceil(log(abs(unit_scale), 10)))
+            else:
+                self.last_flushed_val = str(node)
 
-            self.last_flushed_val = str(node)
             self.data_entry.insert(0, self.last_flushed_val)
             self.needs_flushing = False
         except Exception:
@@ -2456,22 +2465,20 @@ class NumberEntryFrame(EntryFrame):
     def parse_input(self):
         desc = self.desc
         field_max, field_min = self.field_max, self.field_min
+        unit_scale = self.unit_scale
+        desc_size  = desc.get('SIZE')
         field_type = desc.get('TYPE')
         node_cls = desc.get('NODE_CLS', field_type.node_cls)
-        try:
-            new_node = node_cls(self.entry_string.get())
-        except ValueError:
-            raise
 
-        unit_scale = self.unit_scale
-        desc_size = desc.get('SIZE')
-
+        new_node = self.entry_string.get()
         if unit_scale is None:
             unit_scale = 1
-        elif isinstance(new_node, int):
-            new_node = int(new_node/unit_scale)
+            new_node = node_cls(new_node)
         else:
-            new_node /= unit_scale
+            new_node = float(new_node) / unit_scale
+            if issubclass(node_cls, int):
+                # going to int, so decimals dont matter. do rounding
+                new_node = node_cls(round(new_node))
 
         if isinstance(new_node, float):
             pass

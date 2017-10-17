@@ -1,7 +1,9 @@
 '''
 This module contains various widgets which the FieldWidget classes utilize.
 '''
-
+import os
+import tempfile
+import random
 from time import time
 from traceback import format_exc
 
@@ -11,6 +13,18 @@ from . import editor_constants as e_c
 field_widgets = None  # linked to through __init__.py
 
 win_10_pad = 2
+
+
+def import_arbytmap(force=False):
+    # dont import it if an import was already attempted
+    if "arbytmap" not in globals() or force:
+        try:
+            global arbytmap
+            import arbytmap
+        except ImportError:
+            arbytmap = None
+
+    return bool(arbytmap)
 
 
 class BinillaWidget():
@@ -83,9 +97,8 @@ class BinillaWidget():
 
     def should_scroll(self, e):
         '''
-        Returns True if, when given a tkinter event, this widget should
-        have its scrolling method follow through when it is invoked.
-        Returns False otherwise.
+        Returns True if the widget should have its scrolling method
+        follow through when it is invoked. Returns False otherwise.
         '''
         hover = self.winfo_containing(e.x_root, e.y_root)
 
@@ -367,7 +380,6 @@ class ScrollMenu(tk.Frame, BinillaWidget):
                                       fg=self.text_highlighted_color)
 
     def show_menu(self):
-        options = self.f_widget_parent.options
         if not (self.max_index + 1):
             return
 
@@ -375,6 +387,7 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         option_cnt = self.max_index + 1
 
         if not self.options_sane:
+            options = self.f_widget_parent.options
             END = tk.END
             self.option_box.delete(0, END)
             insert = self.option_box.insert
@@ -462,8 +475,8 @@ class ToolTipHandler(BinillaWidget):
 
     curr_tip_text = ''
 
-    # run the check 30 times a second
-    schedule_rate = int(1000/30)
+    # run the check 15 times a second
+    schedule_rate = int(1000/15)
     last_mouse_x = 0
     last_mouse_y = 0
 
@@ -556,3 +569,354 @@ class ToolTipHandler(BinillaWidget):
         except Exception: pass
         self.tip_window = None
         self.focus_widget = None
+
+
+class PhotoImageHandler():
+    # this class utilizes the arbytmap module, but will only
+    # import it once an instance of this class is created
+    temp_path = ""
+    _arby = None
+    _images = None  # loaded and cached PhotoImages
+
+    def __init__(self, tex_block=None, tex_info=None, temp_path=""):
+        if not import_arbytmap():
+            raise ValueError(
+                "Arbytmap is not loaded. Cannot generate PhotoImages.")
+        self._arby = arbytmap.Arbytmap()
+        self._images = {}
+        self.temp_path = temp_path
+
+        if tex_block and tex_info:
+            self.load_texture(tex_block, tex_info)
+
+    def load_texture(self, tex_block, tex_info):
+        self._arby.load_new_texture(texture_block=tex_block,
+                                    texture_info=tex_info)
+
+    def set_single_channel_mode(self, channel):
+        assert channel in (None, -1, 0, 1, 2, 3)
+        # FINISH THIS
+
+    def load_images(self, mip_levels="all", sub_bitmap_indexes="all"):
+        if not self.temp_path:
+            raise ValueError("Cannot create PhotoImages without a specified "
+                             "temporary filepath to save their PNG's to.")
+
+        if not bitmap_indexes and not mip_levels:
+            return {}
+
+        if sub_bitmap_indexes == "all":
+            sub_bitmap_indexes = range(self.max_sub_bitmap + 1)
+        elif isinstance(sub_bitmap_indexes, int):
+            sub_bitmap_indexes = (sub_bitmap_indexes, )
+
+        if mip_levels == "all":
+            mip_levels = range(self.max_mipmap + 1)
+        elif isinstance(mip_levels, int):
+            mip_levels = (mip_levels, )
+
+        new_images = {}
+        image_list = self._arby.make_photoimages(self.temp_path,
+            bitmap_indexes=sub_bitmap_indexes, mip_levels=mip_levels)
+
+        for i in range(0, len(image_list), len(mip_levels)):
+            b = sub_bitmap_indexes[i]
+
+            for m in mip_levels:
+                key = (b, self.mip_width(m),
+                       self.mip_height(m), self.mip_depth(m))
+                new_images[key] = new_images[(b, m)] = image_list[i + m]
+
+        return new_images
+
+    def get_images(self, mip_levels="all", sub_bitmap_indexes="all"):
+        if sub_bitmap_indexes == "all":
+            sub_bitmap_indexes = range(self.max_sub_bitmap + 1)
+        elif isinstance(sub_bitmap_indexes, int):
+            sub_bitmap_indexes = (sub_bitmap_indexes, )
+
+        if mip_levels == "all":
+            mip_levels = range(self.max_mipmap + 1)
+        elif isinstance(mip_levels, int):
+            mip_levels = (mip_levels, )
+
+        bitmap_indexes = list(bitmap_indexes)
+        mip_levels     = list(mip_levels)
+        req_images     = {}
+
+        for i in range(len(sub_bitmap_indexes) - 1, -1, -1*len(mip_levels)):
+            b = sub_bitmap_indexes[i]
+            key = None
+
+            for m in mip_levels:
+                key = (b, self.mip_width(m),
+                       self.mip_height(m), self.mip_depth(m))
+                req_images[key] = req_images[(b, m)] = self._images.get(key)
+
+            if req_images.get(key):
+                bitmap_indexes.pop(i)
+
+        if bitmap_indexes:
+            for k, v in self.load_images(mip_levels,
+                                         sub_bitmap_indexes).items():
+                req_images[k] = v
+
+        return req_images
+
+    @property
+    def tex_typ(self): return self._arby.texture_type
+    @property
+    def tex_fmt(self): return self._arby.format
+    @property
+    def max_sub_bitmap(self): return self._arby.sub_bitmap_count - 1
+    @property
+    def max_mipmap(self): return self._arby.mipmap_count
+
+    def mip_width(self, mip_level):
+        return max(self._arby.width // (1<<mip_level), 1)
+
+    def mip_height(self, mip_level):
+        return max(self._arby.width // (1<<mip_level), 1)
+
+    def mip_depth(self, mip_level):
+        return max(self._arby.width // (1<<mip_level), 1)
+
+
+class BitmapDisplayFrame(BinillaWidget, tk.Frame):
+    app_root = None
+
+    bitmap_index  = None
+    mipmap_index  = None
+    channel_index = None  # 0 == RGB or I, 1 == A, 2 == R, 3 == G, 4 == B
+    depth_index   = None
+    prev_depth_index   = None
+    cube_display_index = None
+
+    depth_canvas = None
+    depth_canvas_id = None
+    depth_canvas_image_id = None
+
+    cubemap_horizontal_mapping = (
+        (-1,  2),
+        ( 1,  4,  0,  5),
+        (-1,  3),
+        )
+
+    cubemap_vertical_mapping = (
+        (-1,  2),
+        ( 4,  0,  5),
+        (-1,  3),
+        (-1,  1),
+        )
+
+    cubemap_strip_mapping = (
+        (0, 1, 2, 3, 4, 5),
+        )
+
+    _image_handlers = ()
+    image_canvas_ids = ()  # does NOT include the depth_canvas_id
+    texture_names = ()
+    textures = ()  # List of textures ready to be loaded into arbytmap.
+    # Structure is as follows:  [ (tex_block0, tex_info0),
+    #                             (tex_block1, tex_info1),
+    #                             (tex_block2, tex_info2), ... ]
+
+    temp_root = os.path.join(tempfile.gettempdir(), "arbytmaps")
+    temp_dir = ''
+
+    def __init__(self, master, *args, **kwargs):
+        self.app_root = kwargs.pop('app_root', master)
+        self.temp_root = kwargs.pop('temp_root', self.temp_root)
+        textures = kwargs.pop('textures', ())
+        texture_names = kwargs.pop('texture_names', ())
+        self.image_canvas_ids = []
+        self._image_handlers = []
+
+        try:
+            xscroll_inc = self.app_root.scroll_increment_x
+            yscroll_inc = self.app_root.scroll_increment_y
+        except AttributeError:
+            xscroll_inc = yscroll_inc = 20
+        temp_name = str(int(random.random() * (1<<32)))
+        self.temp_dir = os.path.join(self.temp_root, temp_name)
+
+        kwargs.update(relief='sunken', bd=self.frame_depth,
+                      bg=self.frame_bg_color)
+        tk.Frame.__init__(self, master, *args, **kwargs)
+
+        # create the root_canvas and the root_frame within the canvas
+        self.controls_frame = tk.Frame(self, highlightthickness=0,
+                                       bg=self.default_bg_color)
+        self.image_root_frame = tk.Frame(self, highlightthickness=0,
+                                          bg=self.default_bg_color)
+        self.image_canvas = rc = tk.Canvas(self.image_root_frame,
+                                           highlightthickness=0,
+                                           bg=self.default_bg_color)
+        self.depth_canvas = tk.Canvas(self.image_canvas, highlightthickness=0,
+                                      bg=self.default_bg_color)
+
+        self.bitmap_index  = tk.IntVar(self)
+        self.mipmap_index  = tk.IntVar(self)
+        self.channel_index = tk.IntVar(self)
+        self.depth_index   = tk.IntVar(self)
+        self.cube_display_index = tk.IntVar(self)
+
+        self.set_textures(textures, texture_names)
+
+        self.bind('<Shift-MouseWheel>', self.mousewheel_scroll_x)
+        self.bind('<MouseWheel>',       self.mousewheel_scroll_y)
+        self.hsb = tk.Scrollbar(self, orient="horizontal", command=rc.xview)
+        self.vsb = tk.Scrollbar(self.image_root_frame,
+                                orient="vertical", command=rc.yview)
+        rc.config(xscrollcommand=self.hsb.set, xscrollincrement=xscroll_inc,
+                  yscrollcommand=self.vsb.set, yscrollincrement=yscroll_inc)
+
+        # pack everything
+        # pack in this order so scrollbars aren't shrunk
+        self.hsb.pack(side='bottom', fill='x', anchor='nw')
+        self.controls_frame.pack(side='top', fill='x', anchor='nw')
+        self.image_root_frame.pack(fill='both', anchor='nw', expand=True)
+        self.vsb.pack(fill='y', side='right', anchor='nw')
+        self.image_canvas.pack(fill='both', side='right',
+                               anchor='nw', expand=True)
+
+    @property
+    def active_image_handler(self):
+        pass
+
+    def mousewheel_scroll_x(self, e):
+        if self.should_scroll(e):
+            self.xview_scroll(e.delta//60, "units")
+
+    def mousewheel_scroll_y(self, e):
+        if self.should_scroll(e):
+            self.yview_scroll(e.delta//-120, "units")
+
+    def clear_depth_canvas(self):
+        self.depth_canvas.delete("all")
+        self.prev_depth_index = None
+        self.depth_canvas_image_id = None
+
+    def clear_canvas(self):
+        self.image_canvas.delete("all")
+        self.clear_depth_canvas()
+        self.depth_canvas_id = None
+        self.image_canvas_ids = []
+
+    def hide_depth_canvas(self):
+        if self.depth_canvas_id is not None:
+            self.image_canvas.delete(self.depth_canvas_id)
+            self.depth_canvas_id = None
+
+    def show_depth_canvas(self):
+        self.depth_canvas_id = self.image_canvas.create_window(
+            (0, 0), anchor="nw", window=self.depth_canvas)
+
+    def set_textures(self, textures, names=()):
+        assert hasattr(textures, '__iter__')
+        assert isinstance(names, (list, tuple))
+        names = list(names)
+        names.extend((None, )*(len(textures) - len(names)))
+
+        for tex in textures:
+            assert len(tex) == 2
+            assert len(tex[0]) == len(tex[1])
+            assert isinstance(tex[1], dict)
+
+        self.clear_depth_canvas()
+        del self._image_handlers[:]
+        self.bitmap_index.set(-1)
+        self.mipmap_index.set(0)
+        self.channel_index.set(0)
+        self.depth_index.set(0)
+        self.cube_display_index.set(0)
+
+        self.textures = textures
+        self.texture_names = names
+
+    def display_cubemap(self):
+        self.clear_canvas()
+        self.hide_depth_canvas()
+
+        image_handler = self.active_image_handler()
+        if not image_handler: return
+        images = asdf
+        if not images: return
+        canvas = self.image_canvas
+        w, h = images[0].width(), images[0].height()
+        for image in images:
+            assert image.width() == w
+            assert image.height() == h
+
+        max_column_ct = 0
+        mapping_type = self.cube_display_index.get()
+        if mapping_type == 0:
+            face_mapping = self.cubemap_horizontal_mapping
+        elif mapping_type == 1:
+            face_mapping = self.cubemap_vertical_mapping
+        else:
+            face_mapping = self.cubemap_strip_mapping
+
+        y = 0
+        for line in face_mapping:
+            max_column_ct = max(max_column_ct, len(line))
+            x = 0
+            for face_index in line:
+                if face_index in range(len(images)):
+                    # place the cube face on the canvas
+                    self.image_canvas_ids.append(
+                        canvas.create_image((x, y), anchor="nw",
+                                            image=images[face_index],
+                                            tags=("BITMAP", "CUBE_FACE")))
+                x += w
+            y += h
+
+        canvas.config(scrollregion="0 0 %s %s" % (w*max_column_ct,
+                                                  h*len(face_mapping)))
+
+    def display_2d_bitmap(self):
+        self.clear_canvas()
+        self.hide_depth_canvas()
+
+        image_handler = self.active_image_handler()
+        if not image_handler: return
+        images = asdf
+        if not images: return
+        image = images[0]
+        # place the bitmap on the canvas
+        self.image_canvas_ids.append(
+            self.image_canvas.create_image((0, 0), anchor="nw", image=image,
+                                           tags=("BITMAP", "2D_BITMAP")))
+        self.image_canvas.config(scrollregion="0 0 %s %s" % (image.width(),
+                                                             image.height()))
+
+    def display_3d_bitmap(self):
+        if self.prev_depth_index is None or self.depth_canvas_image_id is None:
+            self.clear_canvas()
+            self.show_depth_canvas()
+
+            image_handler = self.active_image_handler()
+            if not image_handler: return
+            images = asdf
+            if not images: return
+            image = images[0]
+            mip_level = asdf
+            w, h, d = (image_handler.mip_width(mip_level),
+                       image_handler.mip_height(mip_level),
+                       image_handler.mip_depth(mip_level))
+
+            # place the bitmap on the canvas
+            self.depth_canvas.config(scrollregion="0 0 %s %s" % (w, h))
+            self.depth_canvas_image_id = self.depth_canvas.create_image(
+                (0, 0), anchor="nw", image=image, tags=("BITMAP", "3D_BITMAP"))
+            self.image_canvas.item_config(self.depth_canvas_id,
+                                          width=w, height=h)
+
+        z = self.depth_index.get()
+        self.depth_canvas.coords(self.depth_canvas_image_id, (0, -z*d))
+        self.prev_depth_index = z
+
+
+#root = tk.Tk()
+#test = BitmapDisplayFrame(root)
+#test.pack(expand=True, fill="both")

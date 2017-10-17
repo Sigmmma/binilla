@@ -111,6 +111,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         except AttributeError:
             max_undos = 100
             xscroll_inc = yscroll_inc = 20
+
         try:
             self.flags = self.app_root.config_file.data.header.tag_window_flags
         except AttributeError:

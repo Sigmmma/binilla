@@ -1,11 +1,15 @@
 '''
 This module contains various widgets which the FieldWidget classes utilize.
 '''
+import gc
 import os
 import tempfile
 import random
+import weakref
+from math import log
 from time import time
 from traceback import format_exc
+from tkinter.filedialog import asksaveasfilename
 
 from . import threadsafe_tkinter as tk
 from . import editor_constants as e_c
@@ -49,7 +53,9 @@ class BinillaWidget():
     default_bg_color = e_c.DEFAULT_BG_COLOR
     comment_bg_color = e_c.COMMENT_BG_COLOR
     frame_bg_color = e_c.FRAME_BG_COLOR
-    button_color = e_c.BUTTON_COLOR 
+    button_color = e_c.BUTTON_COLOR
+    bitmap_canvas_bg_color = e_c.BITMAP_CANVAS_BG_COLOR
+    bitmap_canvas_outline_color = e_c.BITMAP_CANVAS_OUTLINE_COLOR
 
     text_normal_color = e_c.TEXT_NORMAL_COLOR
     text_disabled_color = e_c.TEXT_DISABLED_COLOR
@@ -92,8 +98,54 @@ class BinillaWidget():
     scroll_menu_max_width = e_c.SCROLL_MENU_MAX_WIDTH
     scroll_menu_max_height = e_c.SCROLL_MENU_MAX_HEIGHT
 
+    can_scroll = False
     tooltip_string = None
     f_widget_parent = None
+
+    read_traces = ()
+    write_traces = ()
+    undefine_traces = ()
+
+    def __init__(self, *args, **kwargs):
+        self.read_traces = {}
+        self.write_traces = {}
+        self.undefine_traces = {}
+
+    def read_trace(self, var, function):
+        cb_name = var.trace("r", function)
+        self.read_traces[cb_name] = var
+
+    def write_trace(self, var, function):
+        cb_name = var.trace("w", function)
+        self.write_traces[cb_name] = var
+
+    def undefine_trace(self, var, function):
+        cb_name = var.trace("u", function)
+        self.undefine_traces[cb_name] = var
+
+    def delete_all_traces(self, modes="rw"):
+        for mode, traces in (("r", self.read_traces),
+                             ("w", self.write_traces),
+                             ("u", self.undefine_traces)):
+            if mode not in modes:
+                continue
+            for cb_name in tuple(traces.keys()):
+                var = traces.pop(cb_name)
+                var.trace_vdelete(mode, cb_name)
+
+    def delete_all_widget_refs(self):
+        '''
+        Deletes all objects in this objects __dict__ which inherit from
+        the tk.Widget class. Use this for cleaning up dangling references
+        to child widgets while inside a widget's destroy method.
+        '''
+        try:
+            widgets = self.__dict__
+        except AttributeError:
+            widgets = {}
+        for k in tuple(widgets.keys()):
+            if isinstance(widgets[k], tk.Widget):
+                del widgets[k]
 
     def should_scroll(self, e):
         '''
@@ -139,11 +191,14 @@ class ScrollMenu(tk.Frame, BinillaWidget):
     selecting an array element or an enumerator option.
     '''
     disabled = False
-    sel_index = None
+    variable = None
+    callback = None
     option_box = None
     max_height = None
-    max_index = 0
+    max_index = -1
 
+    option_cache = None
+    option_getter = None
     options_sane = False
     selecting = False  # prevents multiple selections at once
 
@@ -151,19 +206,24 @@ class ScrollMenu(tk.Frame, BinillaWidget):
     option_box_visible = False
     click_outside_funcid = None
 
-    default_entry_text = None
+    default_text = None
 
     menu_width = BinillaWidget.scroll_menu_width
 
     def __init__(self, *args, **kwargs):
-        self.sel_index = kwargs.pop('sel_index', -1)
+        BinillaWidget.__init__(self)
+        sel_index = kwargs.pop('sel_index', -1)
+
+        options = kwargs.pop('options', None)
+        self.option_getter = kwargs.pop('option_getter', None)
+        self.callback = kwargs.pop('callback', None)
+        self.variable = kwargs.pop('variable', None)
         self.max_index = kwargs.pop('max_index', self.max_index)
         self.max_height = kwargs.pop('max_height', self.max_height)
         self.f_widget_parent = kwargs.pop('f_widget_parent', None)
         self.menu_width = kwargs.pop('menu_width', self.menu_width)
         self.options_sane = kwargs.pop('options_sane', False)
-        self.default_entry_text = kwargs.pop(
-            'default_entry_text', e_c.INVALID_OPTION)
+        self.default_text = kwargs.pop('default_text', e_c.INVALID_OPTION)
         disabled = kwargs.pop('disabled', False)
 
         if self.max_height is None:
@@ -172,6 +232,11 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         kwargs.update(relief='sunken', bd=self.listbox_depth,
                       bg=self.default_bg_color)
         tk.Frame.__init__(self, *args, **kwargs)
+
+        if self.variable is None:
+            self.variable = tk.IntVar(self, sel_index)
+
+        self.write_trace(self.variable, lambda *a: self.update_label())
 
         self.sel_label = tk.Label(
             self, bg=self.enum_normal_color, fg=self.text_normal_color,
@@ -231,6 +296,38 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         if disabled:
             self.disable()
 
+        if options is not None:
+            self.set_options(options)
+
+    @property
+    def sel_index(self):
+        return self.variable.get()
+
+    @sel_index.setter
+    def sel_index(self, new_val):
+        self.variable.set(new_val)
+
+    def get_options(self, opt_index=None):
+        if self.option_getter is not None:
+            return self.option_getter(opt_index)
+        elif self.option_cache is None:
+            self.option_cache = {}
+
+        if opt_index is None:
+            return self.option_cache
+        elif opt_index == "active":
+            opt_index = self.sel_index
+        return self.option_cache.get(opt_index)
+
+    def set_options(self, new_options):
+        if (not isinstance(new_options, dict) and
+                hasattr(new_options, "__iter__")):
+            new_options = {i: new_options[i] for i in range(len(new_options))}
+        self.option_cache = dict(new_options)
+        self.max_index = len(new_options) - 1
+        self.options_sane = False
+        self.update_label()
+
     def _mousewheel_scroll(self, e):
         if not self.should_scroll(e) or (self.option_box_visible or
                                          self.disabled):
@@ -254,14 +351,15 @@ class ScrollMenu(tk.Frame, BinillaWidget):
             return
         sel_index = [int(i) - 1 for i in self.option_box.curselection()]
         if sel_index < 0:
-            new_index = 0
+            new_index = (self.max_index >= 0) - 1
         try:
             self.selecting = True
             self.option_box.select_clear(0, tk.END)
-            self.sel_index = sel_index
             self.option_box.select_set(sel_index)
             self.option_box.see(sel_index)
-            self.f_widget_parent.select_option(sel_index)
+            self.sel_index = sel_index
+            if self.callback is not None:
+                self.callback(sel_index)
             self.selecting = False
         except Exception:
             self.selecting = False
@@ -272,11 +370,12 @@ class ScrollMenu(tk.Frame, BinillaWidget):
             return
         new_index = self.sel_index - 1
         if new_index < 0:
-            new_index = 0
+            new_index = (self.max_index >= 0) - 1
         try:
             self.selecting = True
             self.sel_index = new_index
-            self.f_widget_parent.select_option(new_index)
+            if self.callback is not None:
+                self.callback(new_index)
             self.selecting = False
         except Exception:
             self.selecting = False
@@ -286,6 +385,8 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         if self.click_outside_funcid is not None:
             self.winfo_toplevel().unbind('<Button>', self.click_outside_funcid)
         tk.Frame.destroy(self)
+        self.delete_all_traces()
+        self.delete_all_widget_refs()
 
     def deselect_option_box(self, e=None):
         if self.disabled:
@@ -332,10 +433,11 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         try:
             self.selecting = True
             self.option_box.select_clear(0, tk.END)
-            self.sel_index = sel_index
             self.option_box.select_set(sel_index)
             self.option_box.see(sel_index)
-            self.f_widget_parent.select_option(sel_index)
+            self.sel_index = sel_index
+            if self.callback is not None:
+                self.callback(sel_index)
             self.selecting = False
         except Exception:
             self.selecting = False
@@ -350,7 +452,8 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         try:
             self.selecting = True
             self.sel_index = new_index
-            self.f_widget_parent.select_option(new_index)
+            if self.callback is not None:
+                self.callback(new_index)
             self.selecting = False
         except Exception:
             self.selecting = False
@@ -361,7 +464,8 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         if not sel_index:
             return
         self.sel_index = sel_index[0]
-        self.f_widget_parent.select_option(self.sel_index)
+        if self.callback is not None:
+            self.callback(self.sel_index)
         self.deselect_option_box()
         self.arrow_button.focus_set()
         self.arrow_button.bind('<FocusOut>', self.deselect_option_box)
@@ -387,11 +491,11 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         option_cnt = self.max_index + 1
 
         if not self.options_sane:
-            options = self.f_widget_parent.options
+            options = self.get_options()
             END = tk.END
             self.option_box.delete(0, END)
             insert = self.option_box.insert
-            def_str = '%s' + ('. %s' % self.default_entry_text)
+            def_str = '%s' + ('. %s' % self.default_text)
             for i in range(option_cnt):
                 if i in options:
                     insert(END, options[i])
@@ -453,12 +557,11 @@ class ScrollMenu(tk.Frame, BinillaWidget):
             pass
 
     def update_label(self):
-        if self.sel_index == -1:
-            option = ''
-        else:
-            option = self.f_widget_parent.get_option()
+        option = ''
+        if self.sel_index >= 0:
+            option = self.get_options("active")
             if option is None:
-                option = '%s. %s' % (self.sel_index, self.default_entry_text)
+                option = '%s. %s' % (self.sel_index, self.default_text)
         self.sel_label.config(text=option, anchor="w")
 
 
@@ -484,6 +587,7 @@ class ToolTipHandler(BinillaWidget):
     tip_offset_y = 0
 
     def __init__(self, app_root, *args, **kwargs):
+        BinillaWidget.__init__(self)
         self.app_root = app_root
         self.hover_start = time()
 
@@ -575,34 +679,82 @@ class PhotoImageHandler():
     # this class utilizes the arbytmap module, but will only
     # import it once an instance of this class is created
     temp_path = ""
-    _arby = None
+    arby = None
     _images = None  # loaded and cached PhotoImages
+    channels = ()
+    channel_mapping = None
 
     def __init__(self, tex_block=None, tex_info=None, temp_path=""):
         if not import_arbytmap():
             raise ValueError(
                 "Arbytmap is not loaded. Cannot generate PhotoImages.")
-        self._arby = arbytmap.Arbytmap()
+        self.arby = arbytmap.Arbytmap()
         self._images = {}
+        self.channels = dict(A=False, L=True, R=True, G=True, B=True)
         self.temp_path = temp_path
 
         if tex_block and tex_info:
             self.load_texture(tex_block, tex_info)
 
     def load_texture(self, tex_block, tex_info):
-        self._arby.load_new_texture(texture_block=tex_block,
-                                    texture_info=tex_info)
+        w = max(tex_info.get("width", 1), 1)
+        h = max(tex_info.get("height", 1), 1)
+        d = max(tex_info.get("depth", 1), 1)
+        if ((2**int(log(w, 2)) != w) or
+            (2**int(log(h, 2)) != h) or
+            (2**int(log(d, 2)) != d)):
+            print("Cannot display non-power of 2 textures.")
+            return
+        self.arby.load_new_texture(texture_block=tex_block,
+                                   texture_info=tex_info)
 
-    def set_single_channel_mode(self, channel):
-        assert channel in (None, -1, 0, 1, 2, 3)
-        # FINISH THIS
+    def set_channel_mode(self, mode=-1):
+        # 0 = RGB or L, 1 = A, 2 = ARGB or AL, 3 = R, 4 = G, 5 = B
+        if mode not in range(-1, 6):
+            return
+
+        channels = self.channels
+        channels.update(L=False, R=False, G=False, B=False, A=False)
+        if self.channel_count <= 2:
+            if mode in (0, 2):
+                channels.update(L=True)
+        elif mode == 0: channels.update(R=True, G=True, B=True)
+        elif mode == 2: channels.update(R=True, G=True, B=True)
+        elif mode == 3: channels.update(R=True)
+        elif mode == 4: channels.update(G=True)
+        elif mode == 5: channels.update(B=True)
+
+        if mode in (1, 2):
+            channels.update(A=True)
+
+        if self.channel_count == 1:
+            chan_map = [0]
+            if   "A" in self.tex_format and not channels["A"]: chan_map[0] = -1
+            elif "L" in self.tex_format and not channels["L"]: chan_map[0] = -1
+        elif self.channel_count == 2:
+            chan_map = [0, 1, 1, 1]
+            if not channels["A"]: chan_map[0]  = -1
+            if not channels["L"]: chan_map[1:] = (-1, -1, -1)
+        else:
+            chan_map = [0, 1, 2, 3]
+            if not channels["A"]: chan_map[0] = -1
+            if not channels["R"]: chan_map[1] = -1
+            if not channels["G"]: chan_map[2] = -1
+            if not channels["B"]: chan_map[3] = -1
+            if min(chan_map[1:]) < 0:
+                chan_map[1] = chan_map[2] = chan_map[3] = max(chan_map[1:])
+
+        if len(chan_map) > 1 and max(chan_map[1:]) < 0:
+            chan_map = [-1, 0, 0, 0]
+
+        self.channel_mapping = chan_map
 
     def load_images(self, mip_levels="all", sub_bitmap_indexes="all"):
         if not self.temp_path:
             raise ValueError("Cannot create PhotoImages without a specified "
                              "temporary filepath to save their PNG's to.")
 
-        if not bitmap_indexes and not mip_levels:
+        if not sub_bitmap_indexes and not mip_levels:
             return {}
 
         if sub_bitmap_indexes == "all":
@@ -616,16 +768,28 @@ class PhotoImageHandler():
             mip_levels = (mip_levels, )
 
         new_images = {}
-        image_list = self._arby.make_photoimages(self.temp_path,
-            bitmap_indexes=sub_bitmap_indexes, mip_levels=mip_levels)
+        try:
+            self.arby.swizzle_mode = False
+            image_list = self.arby.make_photoimages(
+                self.temp_path, bitmap_indexes=sub_bitmap_indexes,
+                keep_alpha=self.channels.get("A"), mip_levels="all",
+                channel_mapping=self.channel_mapping)
+        except TypeError:
+            # no texture loaded
+            return {}
 
-        for i in range(0, len(image_list), len(mip_levels)):
-            b = sub_bitmap_indexes[i]
+        c = frozenset((k, v) for k, v in self.channels.items())
+        mip_ct        = self.max_mipmap + 1
+        sub_bitmap_ct = self.max_sub_bitmap + 1
+        for i in range(mip_ct):
+            for j in range(sub_bitmap_ct):
+                b = sub_bitmap_indexes[j]
+                self._images[(b, i, c)] = image_list[i*sub_bitmap_ct + j]
 
-            for m in mip_levels:
-                key = (b, self.mip_width(m),
-                       self.mip_height(m), self.mip_depth(m))
-                new_images[key] = new_images[(b, m)] = image_list[i + m]
+        for i in range(len(mip_levels)):
+            for j in range(sub_bitmap_ct):
+                key = (sub_bitmap_indexes[j], mip_levels[i], c)
+                new_images[key] = self._images[key]
 
         return new_images
 
@@ -640,82 +804,91 @@ class PhotoImageHandler():
         elif isinstance(mip_levels, int):
             mip_levels = (mip_levels, )
 
-        bitmap_indexes = list(bitmap_indexes)
-        mip_levels     = list(mip_levels)
-        req_images     = {}
+        sub_bitmap_indexes = list(sub_bitmap_indexes)
+        mip_levels         = list(mip_levels)
+        req_images         = {}
 
-        for i in range(len(sub_bitmap_indexes) - 1, -1, -1*len(mip_levels)):
+        c = frozenset((k, v) for k, v in self.channels.items())
+        for i in range(len(sub_bitmap_indexes) - 1, -1, -len(mip_levels)):
             b = sub_bitmap_indexes[i]
-            key = None
-
+            exists = 0
             for m in mip_levels:
-                key = (b, self.mip_width(m),
-                       self.mip_height(m), self.mip_depth(m))
-                req_images[key] = req_images[(b, m)] = self._images.get(key)
+                image = self._images.get((b, m, c))
+                req_images[(b, m, c)] = image
+                exists += image is not None
 
-            if req_images.get(key):
-                bitmap_indexes.pop(i)
+            if exists == len(mip_levels):
+                sub_bitmap_indexes.pop(i)
 
-        if bitmap_indexes:
-            for k, v in self.load_images(mip_levels,
-                                         sub_bitmap_indexes).items():
+        if sub_bitmap_indexes:
+            for k, v in self.load_images(
+                    mip_levels, sub_bitmap_indexes).items():
                 req_images[k] = v
 
         return req_images
 
     @property
-    def tex_typ(self): return self._arby.texture_type
+    def tex_type(self): return self.arby.texture_type
     @property
-    def tex_fmt(self): return self._arby.format
+    def tex_format(self): return self.arby.format
     @property
-    def max_sub_bitmap(self): return self._arby.sub_bitmap_count - 1
+    def max_sub_bitmap(self): return self.arby.sub_bitmap_count - 1
     @property
-    def max_mipmap(self): return self._arby.mipmap_count
+    def max_mipmap(self): return self.arby.mipmap_count
+    @property
+    def channel_count(self):
+        fmt = self.arby.format
+        if fmt in arbytmap.THREE_CHANNEL_FORMATS:
+            return 3
+        return arbytmap.CHANNEL_COUNTS[fmt]
 
     def mip_width(self, mip_level):
-        return max(self._arby.width // (1<<mip_level), 1)
+        return max(self.arby.width // (1<<mip_level), 1)
 
     def mip_height(self, mip_level):
-        return max(self._arby.width // (1<<mip_level), 1)
+        return max(self.arby.height // (1<<mip_level), 1)
 
     def mip_depth(self, mip_level):
-        return max(self._arby.width // (1<<mip_level), 1)
+        return max(self.arby.depth // (1<<mip_level), 1)
 
 
 class BitmapDisplayFrame(BinillaWidget, tk.Frame):
-    app_root = None
+    root_frame_id = None
 
-    bitmap_index  = None
-    mipmap_index  = None
-    channel_index = None  # 0 == RGB or I, 1 == A, 2 == R, 3 == G, 4 == B
-    depth_index   = None
-    prev_depth_index   = None
-    cube_display_index = None
+    bitmap_index  = None  # index of the bitmap being displayed
+    mipmap_index  = None  # the mip level to display of that bitmap
+    channel_index = None  # how to display the bitmap:
+    #                       0=RGB or L, 1=A, 2=ARGB or AL, 3=R, 4=G, 5=B
+    depth_index   = None  # since 3d bitmaps must be viewed in 2d slices,
+    #                       this is the depth of the slice to display.
+    cube_display_index = None  # mode to display the cubemap in:
+    #                            0 == horizontal, 1 == vertical,
+    #                            2 == linear strip
 
+    prev_bitmap_index = None
+    prev_mipmap_index = None
+    prev_channel_index = None
+    prev_depth_index = None
+    prev_cube_display_index = None
+    changing_settings = False
+
+    curr_depth = 0
     depth_canvas = None
     depth_canvas_id = None
     depth_canvas_image_id = None
 
-    cubemap_horizontal_mapping = (
+    cubemap_cross_mapping = (
         (-1,  2),
         ( 1,  4,  0,  5),
         (-1,  3),
-        )
-
-    cubemap_vertical_mapping = (
-        (-1,  2),
-        ( 4,  0,  5),
-        (-1,  3),
-        (-1,  1),
         )
 
     cubemap_strip_mapping = (
         (0, 1, 2, 3, 4, 5),
         )
 
-    _image_handlers = ()
+    _image_handlers = None
     image_canvas_ids = ()  # does NOT include the depth_canvas_id
-    texture_names = ()
     textures = ()  # List of textures ready to be loaded into arbytmap.
     # Structure is as follows:  [ (tex_block0, tex_info0),
     #                             (tex_block1, tex_info1),
@@ -725,80 +898,230 @@ class BitmapDisplayFrame(BinillaWidget, tk.Frame):
     temp_dir = ''
 
     def __init__(self, master, *args, **kwargs):
-        self.app_root = kwargs.pop('app_root', master)
+        BinillaWidget.__init__(self)
         self.temp_root = kwargs.pop('temp_root', self.temp_root)
         textures = kwargs.pop('textures', ())
-        texture_names = kwargs.pop('texture_names', ())
         self.image_canvas_ids = []
-        self._image_handlers = []
+        self.textures = []
+        self._image_handlers = {}
 
-        try:
-            xscroll_inc = self.app_root.scroll_increment_x
-            yscroll_inc = self.app_root.scroll_increment_y
-        except AttributeError:
-            xscroll_inc = yscroll_inc = 20
         temp_name = str(int(random.random() * (1<<32)))
         self.temp_dir = os.path.join(self.temp_root, temp_name)
 
-        kwargs.update(relief='sunken', bd=self.frame_depth,
-                      bg=self.frame_bg_color)
+        kwargs.update(relief='flat', bd=self.frame_depth,
+                      bg=self.default_bg_color)
         tk.Frame.__init__(self, master, *args, **kwargs)
-
-        # create the root_canvas and the root_frame within the canvas
-        self.controls_frame = tk.Frame(self, highlightthickness=0,
-                                       bg=self.default_bg_color)
-        self.image_root_frame = tk.Frame(self, highlightthickness=0,
-                                          bg=self.default_bg_color)
-        self.image_canvas = rc = tk.Canvas(self.image_root_frame,
-                                           highlightthickness=0,
-                                           bg=self.default_bg_color)
-        self.depth_canvas = tk.Canvas(self.image_canvas, highlightthickness=0,
-                                      bg=self.default_bg_color)
 
         self.bitmap_index  = tk.IntVar(self)
         self.mipmap_index  = tk.IntVar(self)
-        self.channel_index = tk.IntVar(self)
         self.depth_index   = tk.IntVar(self)
+        self.channel_index = tk.IntVar(self)
         self.cube_display_index = tk.IntVar(self)
+        self.root_canvas = tk.Canvas(self, highlightthickness=0,
+                                     bg=self.default_bg_color)
+        self.root_frame = tk.Frame(self.root_canvas, highlightthickness=0,
+                                   bg=self.default_bg_color)
 
-        self.set_textures(textures, texture_names)
+        # create the root_canvas and the root_frame within the canvas
+        self.controls_frame0 = tk.Frame(self.root_frame, highlightthickness=0,
+                                        bg=self.default_bg_color)
+        self.controls_frame1 = tk.Frame(self.root_frame, highlightthickness=0,
+                                        bg=self.default_bg_color)
+        self.controls_frame2 = tk.Frame(self.root_frame, highlightthickness=0,
+                                        bg=self.default_bg_color)
+        self.image_root_frame = tk.Frame(self.root_frame, highlightthickness=0,
+                                         bg=self.default_bg_color)
+        self.image_canvas = tk.Canvas(self.image_root_frame,
+                                      highlightthickness=0,
+                                      bg=self.bitmap_canvas_bg_color)
+        self.depth_canvas = tk.Canvas(self.image_canvas, highlightthickness=0,
+                                      bg=self.bitmap_canvas_bg_color)
 
-        self.bind('<Shift-MouseWheel>', self.mousewheel_scroll_x)
-        self.bind('<MouseWheel>',       self.mousewheel_scroll_y)
-        self.hsb = tk.Scrollbar(self, orient="horizontal", command=rc.xview)
-        self.vsb = tk.Scrollbar(self.image_root_frame,
-                                orient="vertical", command=rc.yview)
-        rc.config(xscrollcommand=self.hsb.set, xscrollincrement=xscroll_inc,
-                  yscrollcommand=self.vsb.set, yscrollincrement=yscroll_inc)
+        self.bitmap_menu  = ScrollMenu(self.controls_frame0, menu_width=7,
+                                       variable=self.bitmap_index)
+        self.mipmap_menu  = ScrollMenu(self.controls_frame1, menu_width=7,
+                                       variable=self.mipmap_index)
+        self.depth_menu   = ScrollMenu(self.controls_frame2, menu_width=7,
+                                       variable=self.depth_index)
+        self.channel_menu = ScrollMenu(self.controls_frame0, menu_width=9,
+                                       variable=self.channel_index)
+        self.cube_display_menu = ScrollMenu(self.controls_frame1, menu_width=9,
+                                            variable=self.cube_display_index,
+                                            options=("cross", "linear"))
+        self.save_button = tk.Button(self.controls_frame2, width=11,
+                                     text="Browse", command=self.save_as)
+        self.depth_menu.default_text = self.mipmap_menu.default_text =\
+                                       self.bitmap_menu.default_text =\
+                                       self.channel_menu.default_text =\
+                                       self.cube_display_menu.default_text = ""
+
+        labels = []
+        labels.append(tk.Label(self.controls_frame0, text="Bitmap index"))
+        labels.append(tk.Label(self.controls_frame1, text="Mipmap level"))
+        labels.append(tk.Label(self.controls_frame2, text="Depth level"))
+        labels.append(tk.Label(self.controls_frame0, text="Channels"))
+        labels.append(tk.Label(self.controls_frame1, text="Cubemap display"))
+        labels.append(tk.Label(self.controls_frame2, text="Save to file"))
+        for lbl in labels:
+            lbl.config(width=15, anchor='w',
+                       bg=self.default_bg_color, fg=self.text_normal_color,
+                       disabledforeground=self.text_disabled_color)
+
+        self.hsb = tk.Scrollbar(self, orient="horizontal",
+                                command=self.root_canvas.xview)
+        self.vsb = tk.Scrollbar(self, orient="vertical",
+                                command=self.root_canvas.yview)
+        self.root_canvas.config(xscrollcommand=self.hsb.set,
+                                yscrollcommand=self.vsb.set)
+        for w in [self.root_frame, self.root_canvas, self.image_canvas,
+                  self.controls_frame0, self.controls_frame1,
+                  self.controls_frame2] + labels:
+            w.bind('<Shift-MouseWheel>', self.mousewheel_scroll_x)
+            w.bind('<MouseWheel>',       self.mousewheel_scroll_y)
 
         # pack everything
         # pack in this order so scrollbars aren't shrunk
+        self.root_frame_id = self.root_canvas.create_window(
+            (0, 0), anchor="nw", window=self.root_frame)
         self.hsb.pack(side='bottom', fill='x', anchor='nw')
-        self.controls_frame.pack(side='top', fill='x', anchor='nw')
+        self.vsb.pack(side='right', fill='y', anchor='nw')
+        self.root_canvas.pack(fill='both', anchor='nw', expand=True)
+        self.controls_frame0.pack(side='top', fill='x', anchor='nw')
+        self.controls_frame1.pack(side='top', fill='x', anchor='nw')
+        self.controls_frame2.pack(side='top', fill='x', anchor='nw')
         self.image_root_frame.pack(fill='both', anchor='nw', expand=True)
-        self.vsb.pack(fill='y', side='right', anchor='nw')
         self.image_canvas.pack(fill='both', side='right',
                                anchor='nw', expand=True)
 
+        padx = self.horizontal_padx
+        pady = self.horizontal_pady
+        for lbl in labels[:3]:
+            lbl.pack(side='left', padx=(25, 0), pady=pady)
+        self.bitmap_menu.pack(side='left', padx=padx, pady=pady)
+        self.mipmap_menu.pack(side='left', padx=padx, pady=pady)
+        self.depth_menu.pack(side='left', padx=padx, pady=pady)
+        for lbl in labels[3:]:
+            lbl.pack(side='left', padx=(15, 0), pady=pady)
+        self.save_button.pack(side='left', padx=padx, pady=pady)
+        self.channel_menu.pack(side='left', padx=padx, pady=pady)
+        self.cube_display_menu.pack(side='left', padx=padx, pady=pady)
+
+        self.change_textures(textures)
+
+        self.write_trace(self.bitmap_index, self.settings_changed)
+        self.write_trace(self.mipmap_index, self.settings_changed)
+        self.write_trace(self.depth_index, self.settings_changed)
+        self.write_trace(self.cube_display_index, self.settings_changed)
+        self.write_trace(self.channel_index, self.settings_changed)
+
+    def destroy(self):
+        try:
+            self.clear_canvas()
+            self.clear_depth_canvas()
+        except Exception:
+            pass
+        try: del self.textures[:]
+        except Exception: pass
+        try: del self._image_handlers[:]
+        except Exception: pass
+        self.image_canvas_ids = self._image_handlers = None
+        self.textures = None
+        tk.Frame.destroy(self)
+        self.delete_all_traces()
+        self.delete_all_widget_refs()
+        gc.collect()
+
     @property
     def active_image_handler(self):
-        pass
+        b = self.bitmap_index.get()
+        if b not in range(len(self.textures)):
+            return None
+        elif b not in self._image_handlers:
+            # make a new PhotoImageHandler if one doesnt exist already
+            self._image_handlers[b] = PhotoImageHandler(
+                self.textures[b][0], self.textures[b][1], self.temp_dir)
+
+        return self._image_handlers[b]
+
+    @property
+    def should_update(self):
+        return (self.prev_bitmap_index  != self.bitmap_index.get() or
+                self.prev_mipmap_index  != self.mipmap_index.get() or
+                self.prev_channel_index != self.channel_index.get())
 
     def mousewheel_scroll_x(self, e):
-        if self.should_scroll(e):
-            self.xview_scroll(e.delta//60, "units")
+        # prevent scrolling if the root_canvas.bbox width >= canvas width
+        bbox = self.root_canvas.bbox(tk.ALL)
+        if not bbox or (self.root_canvas.winfo_width() >= bbox[2] - bbox[0]):
+            return
+        self.root_canvas.xview_scroll(e.delta//60, "units")
 
     def mousewheel_scroll_y(self, e):
-        if self.should_scroll(e):
-            self.yview_scroll(e.delta//-120, "units")
+        # prevent scrolling if the root_canvas.bbox height >= canvas height
+        bbox = self.root_canvas.bbox(tk.ALL)
+        if not bbox or (self.root_canvas.winfo_height() >= bbox[3] - bbox[1]):
+            return
+        self.root_canvas.yview_scroll(e.delta//-120, "units")
+
+    def update_scroll_regions(self):
+        if not self.image_canvas_ids and not self.depth_canvas_id:
+            return
+        rf = self.root_frame
+        region = self.image_canvas.bbox(tk.ALL)
+        # bbox region isn't actually x, y, w, h, but if the
+        # origin is at (0,0) we can treat it like that
+        if region is None:
+            x, y, w, h = (0,0,0,0)
+        else:
+            x, y, w, h = region
+
+        self.image_canvas.config(scrollregion=(x, y, w, h))
+        rf.update_idletasks()
+        max_w = w
+        total_h = h
+        for widget in self.root_frame.children.values():
+            if widget is not self.image_root_frame:
+                max_w = max(widget.winfo_reqwidth(), max_w)
+                total_h += widget.winfo_reqheight()
+
+        self.root_canvas.itemconfigure(self.root_frame_id,
+                                       width=max_w, height=total_h)
+        self.root_canvas.config(scrollregion=(0, 0, max_w, total_h))
+
+    def save_as(self, e=None, initial_dir=None):
+        handler = self.active_image_handler
+        if handler is None:
+            return None
+        fp = asksaveasfilename(
+            initialdir=initial_dir, defaultextension='.dds',
+            title="Save bitmap as...", parent=self,
+            filetypes=(("DirectDraw surface",          "*.dds"),
+                       ('Portable network graphics',   '*.png'),
+                       ('Truevision graphics adapter', '*.tga'),
+                       ('Raw pixel data',              '*.bin')))
+
+        fp, ext = os.path.splitext(fp)
+        if not fp:
+            return
+        if not ext:
+            ext = ".dds"
+
+        mip_levels = "all"
+        if ext.lower() != ".dds":
+            mip_levels = self.mipmap_index.get()
+
+        handler.arby.save_to_file(output_path=fp, ext=ext, overwrite=True,
+                                  mip_levels=mip_levels, bitmap_indexes="all",
+                                  swizzle_mode=False)
 
     def clear_depth_canvas(self):
-        self.depth_canvas.delete("all")
+        self.depth_canvas.delete(tk.ALL)
         self.prev_depth_index = None
+        self.prev_cube_display_index = None
         self.depth_canvas_image_id = None
 
     def clear_canvas(self):
-        self.image_canvas.delete("all")
+        self.image_canvas.delete(tk.ALL)
         self.clear_depth_canvas()
         self.depth_canvas_id = None
         self.image_canvas_ids = []
@@ -812,51 +1135,112 @@ class BitmapDisplayFrame(BinillaWidget, tk.Frame):
         self.depth_canvas_id = self.image_canvas.create_window(
             (0, 0), anchor="nw", window=self.depth_canvas)
 
-    def set_textures(self, textures, names=()):
+    def change_textures(self, textures):
         assert hasattr(textures, '__iter__')
-        assert isinstance(names, (list, tuple))
-        names = list(names)
-        names.extend((None, )*(len(textures) - len(names)))
 
         for tex in textures:
             assert len(tex) == 2
-            assert len(tex[0]) == len(tex[1])
             assert isinstance(tex[1], dict)
 
-        self.clear_depth_canvas()
-        del self._image_handlers[:]
-        self.bitmap_index.set(-1)
+        if self._image_handlers: del self._image_handlers
+        if self.textures:        del self.textures[:]
+
+        self.textures = list(textures)
+
+        self._image_handlers = {}
+        self.bitmap_index.set(0)
         self.mipmap_index.set(0)
         self.channel_index.set(0)
         self.depth_index.set(0)
         self.cube_display_index.set(0)
 
-        self.textures = textures
-        self.texture_names = names
+        self.bitmap_menu.set_options(range(len(textures)))
 
-    def display_cubemap(self):
-        self.clear_canvas()
-        self.hide_depth_canvas()
+        self.prev_bitmap_index       = None
+        self.prev_mipmap_index       = None
+        self.prev_channel_index      = None
+        self.prev_depth_index        = None
+        self.prev_cube_display_index = None
+        self.update_bitmap(force=True)
 
-        image_handler = self.active_image_handler()
+    def get_images(self):
+        image_handler = self.active_image_handler
         if not image_handler: return
-        images = asdf
-        if not images: return
-        canvas = self.image_canvas
-        w, h = images[0].width(), images[0].height()
-        for image in images:
-            assert image.width() == w
-            assert image.height() == h
+        images = image_handler.get_images(mip_levels=self.mipmap_index.get())
+        return tuple(images[i] for i in sorted(images.keys()))
+
+    def settings_changed(self, *args, force=False):
+        handler = self.active_image_handler
+        force = False
+        if not handler:
+            return
+        elif self.changing_settings:
+            return
+        elif self.prev_bitmap_index != self.bitmap_index.get():
+            force = True
+        elif self.prev_mipmap_index != self.mipmap_index.get():
+            force = True
+        elif self.prev_channel_index != self.channel_index.get():
+            force = True
+        elif self.prev_depth_index != self.depth_index.get():
+            pass
+        elif self.prev_cube_display_index != self.cube_display_index.get():
+            force = True
+        else:
+            return
+        self.changing_settings = True
+
+        max_depth = handler.mip_depth(self.mipmap_index.get())
+        self.mipmap_menu.set_options(range(handler.max_mipmap + 1))
+        self.depth_menu.set_options(range(max_depth))
+        if self.depth_menu.sel_index > max_depth - 1:
+            self.depth_menu.sel_index = max_depth - 1
+
+        channel_count = handler.channel_count
+        if channel_count <= 2:
+            opts = ("Luminence", "Alpha", "AL")
+        else:
+            opts = ("RGB", "Alpha", "ARGB", "Red", "Green", "Blue")
+        self.channel_menu.set_options(opts)
+
+        try:
+            handler.set_channel_mode(self.channel_index.get())
+            self.update_bitmap(force=force)
+            self.changing_settings = False
+        except Exception:
+            self.changing_settings = False
+            raise
+
+    def update_bitmap(self, *args, force=False):
+        handler = self.active_image_handler
+        if handler is None:
+            return None
+
+        tex_type = handler.tex_type
+        if   tex_type == "2D":   self._display_2d_bitmap(force)
+        elif tex_type == "3D":   self._display_3d_bitmap(force)
+        elif tex_type == "CUBE": self._display_cubemap(force)
+
+        self.prev_bitmap_index  = self.bitmap_index.get()
+        self.prev_mipmap_index  = self.mipmap_index.get()
+        self.prev_channel_index = self.channel_index.get()
+        self.prev_depth_index   = self.depth_index.get()
+        self.prev_cube_display_index = self.cube_display_index.get()
+
+    def _display_cubemap(self, force=False):
+        images = self.get_images()
+        if not images or not(self.should_update or force): return
+        w = max(image.width()  for image in images)
+        h = max(image.height() for image in images)
 
         max_column_ct = 0
         mapping_type = self.cube_display_index.get()
         if mapping_type == 0:
-            face_mapping = self.cubemap_horizontal_mapping
-        elif mapping_type == 1:
-            face_mapping = self.cubemap_vertical_mapping
+            face_mapping = self.cubemap_cross_mapping
         else:
             face_mapping = self.cubemap_strip_mapping
 
+        self.clear_canvas()
         y = 0
         for line in face_mapping:
             max_column_ct = max(max_column_ct, len(line))
@@ -865,58 +1249,95 @@ class BitmapDisplayFrame(BinillaWidget, tk.Frame):
                 if face_index in range(len(images)):
                     # place the cube face on the canvas
                     self.image_canvas_ids.append(
-                        canvas.create_image((x, y), anchor="nw",
-                                            image=images[face_index],
-                                            tags=("BITMAP", "CUBE_FACE")))
+                        self.image_canvas.create_image(
+                            (x, y), anchor="nw", image=images[face_index],
+                            tags=("BITMAP", "CUBE_FACE")))
                 x += w
             y += h
+        self.update_scroll_regions()
 
-        canvas.config(scrollregion="0 0 %s %s" % (w*max_column_ct,
-                                                  h*len(face_mapping)))
+    def _display_2d_bitmap(self, force=False):
+        images = self.get_images()
+        if not images or not(self.should_update or force): return
 
-    def display_2d_bitmap(self):
         self.clear_canvas()
-        self.hide_depth_canvas()
-
-        image_handler = self.active_image_handler()
-        if not image_handler: return
-        images = asdf
-        if not images: return
-        image = images[0]
         # place the bitmap on the canvas
         self.image_canvas_ids.append(
-            self.image_canvas.create_image((0, 0), anchor="nw", image=image,
+            self.image_canvas.create_image((0, 0), anchor="nw", image=images[0],
                                            tags=("BITMAP", "2D_BITMAP")))
-        self.image_canvas.config(scrollregion="0 0 %s %s" % (image.width(),
-                                                             image.height()))
+        self.update_scroll_regions()
 
-    def display_3d_bitmap(self):
-        if self.prev_depth_index is None or self.depth_canvas_image_id is None:
+    def _display_3d_bitmap(self, force=False):
+        if self.should_update or self.depth_canvas_image_id is None or force:
             self.clear_canvas()
             self.show_depth_canvas()
-
-            image_handler = self.active_image_handler()
-            if not image_handler: return
-            images = asdf
-            if not images: return
-            image = images[0]
-            mip_level = asdf
-            w, h, d = (image_handler.mip_width(mip_level),
-                       image_handler.mip_height(mip_level),
-                       image_handler.mip_depth(mip_level))
+            handler = self.active_image_handler
+            images  = self.get_images()
+            if not(images and handler): return
+            m = self.mipmap_index.get()
+            w, h = images[0].width(), handler.mip_height(m)
+            self.curr_depth = handler.mip_depth(m)
 
             # place the bitmap on the canvas
-            self.depth_canvas.config(scrollregion="0 0 %s %s" % (w, h))
             self.depth_canvas_image_id = self.depth_canvas.create_image(
-                (0, 0), anchor="nw", image=image, tags=("BITMAP", "3D_BITMAP"))
-            self.image_canvas.item_config(self.depth_canvas_id,
-                                          width=w, height=h)
+                (0, 0), anchor="nw", image=images[0],
+                tags=("BITMAP", "3D_BITMAP"))
+            self.image_canvas.itemconfig(self.depth_canvas_id,
+                                         width=w, height=h)
+            self.depth_canvas.config(scrollregion="0 0 %s %s" % (w, h))
+            self.update_scroll_regions()
 
-        z = self.depth_index.get()
-        self.depth_canvas.coords(self.depth_canvas_image_id, (0, -z*d))
-        self.prev_depth_index = z
+        self.depth_canvas.coords(self.depth_canvas_image_id,
+                                 (0, -self.depth_index.get()*self.curr_depth))
 
 
-#root = tk.Tk()
-#test = BitmapDisplayFrame(root)
-#test.pack(expand=True, fill="both")
+class BitmapDisplayButton(BinillaWidget, tk.Button):
+    bitmap_tag = None
+    display_frame = None
+    display_frame_class = BitmapDisplayFrame
+
+    def __init__(self, master, *args, **kwargs):
+        BinillaWidget.__init__(self)
+        self.change_bitmap(kwargs.pop('bitmap_tag', None))
+        kwargs.setdefault("command", self.show_window)
+        kwargs.setdefault("text", "Bitmap preview")
+        kwargs.setdefault("bg", self.button_color)
+        kwargs.setdefault("fg", self.text_normal_color)
+        kwargs.setdefault("disabledforeground", self.text_disabled_color)
+        kwargs.setdefault("bd", self.button_depth)
+        tk.Button.__init__(self, master, *args, **kwargs)
+
+    def change_bitmap(self, bitmap_tag):
+        if bitmap_tag is not None:
+            self.bitmap_tag = bitmap_tag
+
+        f = self.display_frame
+        if f is not None and f() is not None:
+            f().change_textures(self.get_textures())
+
+    def get_textures(self):
+        raise NotImplementedError("This method must be overloaded.")
+
+    def destroy(self, e=None):
+        self.bitmap_tag = None
+        self.f_widget_parent = None
+        tk.Button.destroy(self)
+        self.delete_all_traces()
+        self.delete_all_widget_refs()
+
+    def show_window(self, e=None, parent=None):
+        if parent is None:
+            parent = self
+        w = tk.Toplevel()
+        self.display_frame = weakref.ref(self.display_frame_class(w))
+        self.display_frame().change_textures(self.get_textures())
+        self.display_frame().pack(expand=True, fill="both")
+        w.transient(parent)
+        try:
+            #tag_name = self.bitmap_tag().filepath
+            tag_name = self.bitmap_tag.filepath
+        except Exception:
+            tag_name = "untitled"
+        w.title("Preview: %s" % tag_name)
+        w.focus_force()
+        return w

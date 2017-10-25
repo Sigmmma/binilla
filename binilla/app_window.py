@@ -124,7 +124,7 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
-    version = '0.9.34'
+    version = '0.9.40'
     log_filename = 'binilla.log'
     debug = 0
     debug_mode = False
@@ -940,16 +940,18 @@ class Binilla(tk.Tk, BinillaWidget):
             title="Save style as...", parent=self,
             filetypes=(("binilla style", "*.sty"), ('All', '*')))
 
-        if filepath:
-            self.styles_dir = dirname(filepath)
-            style_file = self.style_def.build()
-            style_file.filepath = filepath
+        if not filepath:
+            return
 
-            style_file.data.widgets.depths.extend(len(widget_depth_names))
-            style_file.data.colors.extend(len(color_names))
+        self.styles_dir = dirname(filepath)
+        style_file = self.style_def.build()
+        style_file.filepath = filepath
 
-            self.update_style(style_file)
-            style_file.serialize(temp=0, backup=0, calc_pointers=0)
+        style_file.data.widgets.depths.extend(len(widget_depth_names))
+        style_file.data.colors.extend(len(color_names))
+
+        self.update_style(style_file)
+        style_file.serialize(temp=0, backup=0, calc_pointers=0)
 
     def toggle_sync(self):
         self.config_file.data.header.flags.sync_window_movement = (

@@ -137,6 +137,7 @@ class FieldWidget(widgets.BinillaWidget):
     _initialized = False
 
     def __init__(self, *args, **kwargs):
+        widgets.BinillaWidget.__init__(self)
         self.node = kwargs.get('node', self.node)
         self._desc = kwargs.get('desc', self._desc)
         self.parent = kwargs.get('parent', self.parent)
@@ -569,16 +570,6 @@ class FieldWidget(widgets.BinillaWidget):
         except Exception:
             pass
 
-    # Make some of the tkinter methods into properties for cleaner access
-    @property
-    def height(self): return self.winfo_height(self)
-    @property
-    def width(self): return self.winfo_width(self)
-    @property
-    def pos_x(self): return self.winfo_x(self)
-    @property
-    def pos_y(self): return self.winfo_y(self)
-
 
 class ContainerFrame(tk.Frame, FieldWidget):
     show = None
@@ -611,7 +602,7 @@ class ContainerFrame(tk.Frame, FieldWidget):
                                      self.f_widget_parent is not None)
 
         tk.Frame.__init__(self, *args, **fix_kwargs(**kwargs))
-        self.show = tk.IntVar(self)
+        self.show = tk.BooleanVar(self)
 
         # if the orientation is vertical, make a title frame
         if self.show_title:
@@ -631,8 +622,7 @@ class ContainerFrame(tk.Frame, FieldWidget):
 
             self.show_btn = ttk.Checkbutton(
                 self.title, width=3, text=toggle_text,
-                command=self.toggle_visible,
-                variable=self.show, style='ShowButton.TButton')
+                command=self.toggle_visible, style='ShowButton.TButton')
             self.title_label = tk.Label(
                 self.title, text=self.gui_name, anchor='w',
                 width=self.title_size, justify='left', font=title_font,
@@ -719,6 +709,8 @@ class ContainerFrame(tk.Frame, FieldWidget):
         try: del self.tag_window
         except Exception: pass
         tk.Frame.destroy(self)
+        self.delete_all_traces()
+        self.delete_all_widget_refs()
 
     def populate(self):
         '''Destroys and rebuilds this widgets children.'''
@@ -944,7 +936,7 @@ class ContainerFrame(tk.Frame, FieldWidget):
         else:       self.export_btn.config(state="normal")
 
     def toggle_visible(self):
-        self.set_collapsed(bool(not self.show.get()))
+        self.set_collapsed(self.show.get())
 
     def set_collapsed(self, collapse=True):
         if self.content is self:
@@ -1091,7 +1083,7 @@ class ArrayFrame(ContainerFrame):
             def_show = False
         show_frame = bool(kwargs.pop('show_frame', def_show))
 
-        self.show = tk.IntVar()
+        self.show = tk.BooleanVar()
         self.show.set(show_frame)
         self.options_sane = False
 
@@ -1125,10 +1117,11 @@ class ArrayFrame(ContainerFrame):
 
         self.show_btn = ttk.Checkbutton(
             title, width=3, text=toggle_text, command=self.toggle_visible,
-            variable=self.show, style='ShowButton.TButton')
+            style='ShowButton.TButton')
         self.sel_menu = widgets.ScrollMenu(
             title, f_widget_parent=self,
-            sel_index=self.sel_index, max_index=node_len-1)
+            sel_index=self.sel_index, max_index=node_len-1,
+            option_getter=self.get_options, callback=self.select_option)
 
         self.shift_up_btn = tk.Button(
             title, width=6, text='Shift ▲',
@@ -1183,6 +1176,8 @@ class ArrayFrame(ContainerFrame):
         try: del self.option_cache
         except Exception: pass
         tk.Frame.destroy(self)
+        self.delete_all_traces()
+        self.delete_all_widget_refs()
 
     def export_node(self):
         try:
@@ -1200,14 +1195,21 @@ class ArrayFrame(ContainerFrame):
             return
         w.import_node()
 
-    @property
-    def options(self):
+    def get_options(self, opt_index=None):
         '''
         Returns a list of the option strings sorted by option index.
         '''
         if not self.options_sane or self.option_cache is None:
             self.cache_options()
-        return self.option_cache
+
+        if opt_index is None:
+            return self.option_cache
+        elif opt_index == "active":
+            opt_index = self.sel_index
+
+        if opt_index < 0: opt_index = -1
+
+        return self.option_cache.get(opt_index)
 
     def cache_options(self):
         # sort the options by value(values are integers)
@@ -1232,14 +1234,6 @@ class ArrayFrame(ContainerFrame):
 
         self.options_sane = True
         self.option_cache = options
-
-    def get_option(self, opt_index=None):
-        if opt_index is None:
-            opt_index = self.sel_index
-        if opt_index < 0:
-            return None
-
-        return self.options.get(opt_index)
 
     def set_shift_up_disabled(self, disable=True):
         '''
@@ -1610,7 +1604,7 @@ class ArrayFrame(ContainerFrame):
         if not sub_struct_name:
             sub_struct_name = sub_desc['NAME']
 
-        self.sel_menu.default_entry_text = sub_struct_name
+        self.sel_menu.default_text = sub_struct_name
         self.sel_menu.update_label()
         if len(node) == 0:
             self.sel_menu.disable()
@@ -1906,6 +1900,8 @@ class DataFrame(FieldWidget, tk.Frame):
         try: del self.tag_window
         except Exception: pass
         tk.Frame.destroy(self)
+        self.delete_all_traces()
+        self.delete_all_widget_refs()
 
     def populate(self):
         pass
@@ -2235,7 +2231,7 @@ class EntryFrame(DataFrame):
         self.data_entry.bind('<Return>', self.flush)
         self.data_entry.bind('<FocusOut>', self.flush)
 
-        self.entry_string.trace('w', self.set_modified)
+        self.write_trace(self.entry_string, self.set_modified)
 
         if self.gui_name != '':
             self.title_label.pack(side="left", fill="x")
@@ -2902,7 +2898,7 @@ class UnionFrame(ContainerFrame):
 
         tk.Frame.__init__(self, *args, **fix_kwargs(**kwargs))
 
-        self.show = tk.IntVar(self)
+        self.show = tk.BooleanVar(self)
         self.show.set(show_frame)
 
         max_u_index = len(self.desc['CASE_MAP'])
@@ -2925,14 +2921,15 @@ class UnionFrame(ContainerFrame):
                               bg=self.frame_bg_color)
         self.show_btn = ttk.Checkbutton(
             self.title, width=3, text=toggle_text, command=self.toggle_visible,
-            variable=self.show, style='ShowButton.TButton')
+            style='ShowButton.TButton')
         self.title_label = tk.Label(
             self.title, text=self.gui_name, anchor='w',
             width=self.title_size, justify='left', font=title_font,
             bg=self.frame_bg_color, fg=self.text_normal_color)
         self.sel_menu = widgets.ScrollMenu(
             self.title, f_widget_parent=self, sel_index=u_index,
-            max_index=max_u_index, disabled=self.disabled)
+            max_index=max_u_index, disabled=self.disabled,
+            callback=self.select_option, option_getter=self.get_options)
 
         self.show_btn.pack(side="left")
         self.title_label.pack(side="left", fill="x", expand=True)
@@ -2943,29 +2940,29 @@ class UnionFrame(ContainerFrame):
         self.populate()
         self._initialized = True
 
-    @property
-    def options(self):
+    def get_options(self, opt_index=None):
         '''
         Returns a list of the option strings sorted by option index.
         '''
         if self.option_cache is None:
             self.cache_options()
-        return self.option_cache
+
+        if opt_index is None:
+            return self.option_cache
+        elif opt_index == "active":
+            opt_index = self.node.u_index
+            if opt_index is None:
+                opt_index = len(self.option_cache) - 1
+
+        if opt_index is None:
+            opt_index = -1
+
+        return self.option_cache.get(opt_index, e_c.INVALID_OPTION)
 
     def cache_options(self):
         options = {i: c for c, i in self.desc['CASE_MAP'].items()}
         options[len(options)] = e_c.RAW_BYTES
         self.option_cache = options
-
-    def get_option(self, opt_index=None):
-        if opt_index is None:
-            opt_index = self.node.u_index
-            if opt_index is None:
-                opt_index = len(self.options) - 1
-        if opt_index is None:
-            opt_index = -1
-
-        return self.options.get(opt_index, e_c.INVALID_OPTION)
 
     def edit_apply(self=None, *, edit_state, undo=True):
         edit_info = edit_state.edit_info
@@ -3157,7 +3154,7 @@ class StreamAdapterFrame(ContainerFrame):
 
         tk.Frame.__init__(self, *args, **fix_kwargs(**kwargs))
 
-        self.show = tk.IntVar(self)
+        self.show = tk.BooleanVar(self)
         self.show.set(show_frame)
 
         toggle_text = '-' if show_frame else '+'
@@ -3176,7 +3173,7 @@ class StreamAdapterFrame(ContainerFrame):
                                 bg=self.default_bg_color)
         self.show_btn = ttk.Checkbutton(
             self.title, width=3, text=toggle_text, command=self.toggle_visible,
-            variable=self.show, style='ShowButton.TButton')
+            style='ShowButton.TButton')
         self.title_label = tk.Label(
             self.title, text=self.gui_name, anchor='w',
             width=self.title_size, justify='left', font=title_font,
@@ -3276,7 +3273,7 @@ class EnumFrame(DataFrame):
         label_width = self.widget_width
         if not label_width:
             label_width = self.enum_menu_width
-            for s in self.options.values():
+            for s in self.get_options().values():
                 label_width = max(label_width, len(s))
 
         # make the widgets
@@ -3293,7 +3290,8 @@ class EnumFrame(DataFrame):
         self.sel_menu = widgets.ScrollMenu(
             self.content, f_widget_parent=self, menu_width=label_width,
             sel_index=sel_index, max_index=self.desc.get('ENTRIES', 0) - 1,
-            disabled=self.disabled, default_entry_text="<INVALID>")
+            disabled=self.disabled, default_text="<INVALID>",
+            option_getter=self.get_options, callback=self.select_option)
 
         if self.gui_name != '':
             self.title_label.pack(side="left", fill="x")
@@ -3336,14 +3334,19 @@ class EnumFrame(DataFrame):
                       max_index=self.sel_menu.max_index)
         FieldWidget.edit_create(self, **kwargs)
 
-    @property
-    def options(self):
+    def get_options(self, opt_index=None):
         '''
         Returns a list of the option strings sorted by option index.
         '''
         if self.option_cache is None:
             self.cache_options()
-        return self.option_cache
+
+        if opt_index is None:
+            return self.option_cache
+        elif opt_index == "active":
+            opt_index = self.sel_menu.sel_index
+
+        return self.option_cache.get(opt_index, e_c.INVALID_OPTION)
 
     def cache_options(self):
         desc = self.desc
@@ -3358,11 +3361,6 @@ class EnumFrame(DataFrame):
                              .replace('_', ' ')
         self.option_cache = options
 
-    def get_option(self, opt_index=None):
-        if opt_index is None:
-            opt_index = self.sel_menu.sel_index
-        return self.options.get(opt_index)
-
     def reload(self):
         try:
             if self.disabled == self.sel_menu.disabled:
@@ -3375,7 +3373,7 @@ class EnumFrame(DataFrame):
             for w in (self, self.content, self.sel_menu, self.title_label):
                 w.tooltip_string = self.desc.get('TOOLTIP')
 
-            options = self.options
+            options = self.get_options()
             option_count = len(options)
             if not option_count:
                 self.sel_menu.sel_index = -1
@@ -3401,8 +3399,8 @@ class EnumFrame(DataFrame):
         node = self.node
         curr_index = self.sel_menu.sel_index
 
-        if (opt_index < 0 or opt_index > self.sel_menu.max_index or
-            opt_index is None):
+        if (opt_index is None or opt_index < 0 or
+            opt_index > self.sel_menu.max_index):
             return
 
         self.sel_menu.sel_index = opt_index
@@ -3429,7 +3427,7 @@ class DynamicEnumFrame(EnumFrame):
         label_width = self.widget_width
         if not label_width:
             label_width = self.enum_menu_width
-            for s in self.options.values():
+            for s in self.get_options().values():
                 label_width = max(label_width, len(s))
 
         # make the widgets
@@ -3444,7 +3442,8 @@ class DynamicEnumFrame(EnumFrame):
         self.sel_menu = widgets.ScrollMenu(
             self.content, f_widget_parent=self, menu_width=label_width,
             sel_index=self.node + 1, max_index=0,
-            disabled=self.disabled, default_entry_text="<INVALID>")
+            disabled=self.disabled, default_text="<INVALID>",
+            option_getter=self.get_options,  callback=self.select_option)
         self.sel_menu.bind('<FocusIn>', self.set_not_sane)
         self.sel_menu.arrow_button.bind('<FocusIn>', self.set_not_sane)
 
@@ -3455,12 +3454,14 @@ class DynamicEnumFrame(EnumFrame):
         self.reload()
         self._initialized = True
 
-    @property
-    def options(self):
+    def get_options(self, opt_index=None):
+        '''
+        Returns a list of the option strings sorted by option index.
+        '''
         if not self.options_sane:
             self.cache_options()
             self.options_sane = True
-        return self.option_cache
+        return EnumFrame.get_options(self, opt_index)
 
     def edit_apply(self=None, *, edit_state, undo=True):
         state = edit_state

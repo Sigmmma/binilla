@@ -286,6 +286,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         Handles destroying this Toplevel and removing the tag from app_root
         '''
         try:
+            app_root = self.app_root
             tag = self.tag
             try:
                 w = self.field_widget
@@ -308,21 +309,23 @@ class TagWindow(tk.Toplevel, BinillaWidget):
                     if ans is None:
                         return True
                     elif ans is True:
-                        self.app_root.save_tag(tag)
+                        app_root.save_tag(tag)
             except Exception:
                 print(format_exc())
 
             self.tag = None
+            self.app_root = None
 
             if tag is not None:
                 # remove the tag and tag_window from the app_root
-                try: self.app_root.delete_tag(tag, 0)
+                try: app_root.delete_tag(tag, 0)
                 except Exception: print(format_exc())
 
         except Exception:
             print(format_exc())
 
         tk.Toplevel.destroy(self)
+        self.delete_all_widget_refs()
         gc.collect()
 
     def save(self, **kwargs):

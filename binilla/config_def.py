@@ -120,6 +120,7 @@ color_names = (
     "enum_normal", "enum_disabled", "enum_highlighted",
     "entry_normal", "entry_disabled", "entry_highlighted",
     "invalid_path", "tooltip_bg",
+    "bitmap_canvas_bg", "bitmap_canvas_outline"
     )
 
 modifier_enums = (

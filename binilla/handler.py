@@ -372,11 +372,18 @@ class Handler():
     def get_def(self, def_id):
         return self.defs.get(def_id)
 
-    def get_tag(self, filepath, def_id, load_unloaded=False):
+    def get_tag(self, filepath, def_id=None, load_unloaded=False):
         '''
         filepath is expected to be a relative filepath if
         self.tagsdir_relative == True
         '''
+        if not def_id:
+            def_id = self.get_def_id(filepath)
+
+        if not def_id:
+            raise LookupError('Unable to determine def_id for:' +
+                              '\n' + ' '*BPI + self.current_tag)
+
         tag_coll = self.tags.get(def_id, {})
         if not self.case_sensitive:
             filepath = filepath.lower()

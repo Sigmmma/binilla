@@ -1034,7 +1034,7 @@ class BitmapDisplayFrame(BinillaWidget, tk.Frame):
     @property
     def active_image_handler(self):
         b = self.bitmap_index.get()
-        if b not in range(len(self.textures)):
+        if b not in range(len(self.textures)) or not import_arbytmap():
             return None
         elif b not in self._image_handlers:
             # make a new PhotoImageHandler if one doesnt exist already

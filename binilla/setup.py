@@ -8,8 +8,8 @@ except ImportError:
 curr_dir = dirname(__file__)
 
 #               YYYY.MM.DD
-release_date = "2017.10.25"
-version = (0, 9, 40)  # DONT FORGET TO UPDATE THE VERSION IN app_window.py
+release_date = "2017.10.27"
+version = (0, 9, 41)  # DONT FORGET TO UPDATE THE VERSION IN app_window.py
 
 try:
     try:
@@ -39,8 +39,10 @@ setup(
         },
     platforms=["POSIX", "Windows"],
     keywords="binilla, binary, data structure",
-    install_requires=['supyr_struct'],
-    requires=['supyr_struct'],
+    # arbytmap can be removed from the dependencies if you cannot install
+    # it for some reason, though it will prevent certain things from working.
+    install_requires=['supyr_struct', 'arbytmap'],
+    requires=['supyr_struct', 'arbytmap'],
     provides=['binilla'],
     classifiers=[
         "Development Status :: 4 - Beta",

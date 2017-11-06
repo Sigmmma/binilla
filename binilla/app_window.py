@@ -124,7 +124,7 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
-    version = '0.9.40'
+    version = '0.9.42'
     log_filename = 'binilla.log'
     debug = 0
     debug_mode = False
@@ -541,7 +541,9 @@ class Binilla(tk.Tk, BinillaWidget):
 
     def delete_tag(self, tag, destroy_window=True, forget_window=True):
         try:
-            if tag is self.config_file:
+            if tag is None:
+                return
+            elif tag is self.config_file:
                 pass
             elif hasattr(tag, "rel_filepath"):
                 # remove the tag from the handlers tag library.

@@ -1,6 +1,6 @@
 import gc
 
-from . import threadsafe_tkinter as tk
+import threadsafe_tkinter as tk
 import tkinter.ttk
 
 from os.path import exists

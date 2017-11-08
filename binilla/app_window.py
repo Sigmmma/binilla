@@ -2,7 +2,7 @@ import gc
 import os
 import re
 import sys
-from . import threadsafe_tkinter as tk
+import threadsafe_tkinter as tk
 
 from copy import deepcopy
 from datetime import datetime
@@ -124,7 +124,7 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
-    version = '0.9.42'
+    version = '0.9.43'
     log_filename = 'binilla.log'
     debug = 0
     debug_mode = False

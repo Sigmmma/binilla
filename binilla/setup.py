@@ -8,8 +8,8 @@ except ImportError:
 curr_dir = dirname(__file__)
 
 #               YYYY.MM.DD
-release_date = "2017.11.05"
-version = (0, 9, 42)  # DONT FORGET TO UPDATE THE VERSION IN app_window.py
+release_date = "2017.11.07"
+version = (0, 9, 43)  # DONT FORGET TO UPDATE THE VERSION IN app_window.py
 
 try:
     try:
@@ -41,8 +41,8 @@ setup(
     keywords="binilla, binary, data structure",
     # arbytmap can be removed from the dependencies if you cannot install
     # it for some reason, though it will prevent certain things from working.
-    install_requires=['supyr_struct', 'arbytmap'],
-    requires=['supyr_struct', 'arbytmap'],
+    install_requires=['supyr_struct', 'arbytmap', 'threadsafe_tkinter'],
+    requires=['supyr_struct', 'arbytmap', 'threadsafe_tkinter'],
     provides=['binilla'],
     classifiers=[
         "Development Status :: 4 - Beta",

@@ -11,7 +11,7 @@ from time import time
 from traceback import format_exc
 from tkinter.filedialog import asksaveasfilename
 
-from . import threadsafe_tkinter as tk
+import threadsafe_tkinter as tk
 from . import editor_constants as e_c
 
 field_widgets = None  # linked to through __init__.py

@@ -1,5 +1,5 @@
 from os.path import splitext
-from . import threadsafe_tkinter as tk
+import threadsafe_tkinter as tk
 import tkinter.ttk as ttk
 
 from copy import deepcopy

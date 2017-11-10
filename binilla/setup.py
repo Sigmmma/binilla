@@ -8,8 +8,8 @@ except ImportError:
 curr_dir = dirname(__file__)
 
 #               YYYY.MM.DD
-release_date = "2017.11.07"
-version = (0, 9, 43)  # DONT FORGET TO UPDATE THE VERSION IN app_window.py
+release_date = "2017.11.09"
+version = (0, 9, 44)  # DONT FORGET TO UPDATE THE VERSION IN app_window.py
 
 try:
     try:

@@ -697,14 +697,14 @@ class PhotoImageHandler():
             self.load_texture(tex_block, tex_info)
 
     def load_texture(self, tex_block, tex_info):
-        w = max(tex_info.get("width", 1), 1)
-        h = max(tex_info.get("height", 1), 1)
-        d = max(tex_info.get("depth", 1), 1)
-        if ((2**int(log(w, 2)) != w) or
-            (2**int(log(h, 2)) != h) or
-            (2**int(log(d, 2)) != d)):
-            print("Cannot display non-power of 2 textures.")
-            return
+        #w = max(tex_info.get("width", 1), 1)
+        #h = max(tex_info.get("height", 1), 1)
+        #d = max(tex_info.get("depth", 1), 1)
+        #if ((2**int(log(w, 2)) != w) or
+        #    (2**int(log(h, 2)) != h) or
+        #    (2**int(log(d, 2)) != d)):
+        #    print("Cannot display non-power of 2 textures.")
+        #    return
         self.arby.load_new_texture(texture_block=tex_block,
                                    texture_info=tex_info)
 

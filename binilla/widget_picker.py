@@ -95,21 +95,21 @@ for f_type in (Array, WhileArray):
 for f_type in (Container, Struct, QStruct, BitStruct):
     add_widget(f_type, ContainerFrame)
 
-for f_type in (BitUInt, BitSInt, Bit1SInt, BigUInt, BigSInt, Big1SInt,
+for f_type in (UBitInt, SBitInt, S1BitInt, UIntBig, SIntBig, S1IntBig,
                UInt8, SInt8, Pointer32, Pointer64, UDecimal, SDecimal,
                UInt16, UInt24, UInt32, UInt64, Float,
                SInt16, SInt24, SInt32, SInt64, Double):
     add_widget(f_type, NumberEntryFrame)
 
-for f_type in (TimestampFloat, Timestamp):
+for f_type in (FloatTimestamp, DoubleTimestamp, Timestamp32, Timestamp64):
     add_widget(f_type, TimestampFrame)
 
-for f_type in (BitUEnum, BitSEnum, BigUEnum, BigSEnum, StrAsciiEnum,
+for f_type in (UBitEnum, SBitEnum, UEnumBig, SEnumBig, StrAsciiEnum,
                UEnum8,  SEnum8, UEnum16, UEnum24, UEnum32, UEnum64,
                SEnum16, SEnum24, SEnum32, SEnum64, BytesRawEnum):
     add_widget(f_type, EnumFrame)
 
-for f_type in (BitBool, BigBool, Bool8, Bool16, Bool24, Bool32, Bool64):
+for f_type in (BitBool, BoolBig, Bool8, Bool16, Bool24, Bool32, Bool64):
     add_widget(f_type, BoolFrame)
 
 for f_type in (BytesRaw, BytearrayRaw):

@@ -288,9 +288,9 @@ method_enums = (
 
 hotkey = Struct("hotkey",
     BitStruct("combo",
-        BitUEnum("modifier", GUI_NAME="", *modifier_enums, SIZE=4,
+        UBitEnum("modifier", GUI_NAME="", *modifier_enums, SIZE=4,
             TOOLTIP="Additional combination to hold when pressing the key"),
-        BitUEnum("key", GUI_NAME="and", *hotkey_enums, SIZE=28),
+        UBitEnum("key", GUI_NAME="and", *hotkey_enums, SIZE=28),
         SIZE=4, ORIENT='h'
         ),
     UEnum32("method", *method_enums,
@@ -326,7 +326,7 @@ filepath = Container("filepath",
 
 
 config_header = Struct("header",
-    LUEnum32("id", ('Bnla', 'alnB'), VISIBLE=False, DEFAULT='alnB'),
+    UEnum32("id", ('Bnla', 'alnB'), VISIBLE=False, DEFAULT='alnB'),
     UInt32("version", DEFAULT=1, VISIBLE=False, EDITABLE=False),
     Bool32("flags",
         {NAME: "sync_window_movement", TOOLTIP: flag_tooltips[0]},
@@ -395,8 +395,8 @@ config_header = Struct("header",
         TOOLTIP="Flags governing what is shown when a tag is printed."
         ),
 
-    Timestamp("date_created", EDITABLE=False),
-    Timestamp("date_modified", EDITABLE=False),
+    Timestamp32("date_created", EDITABLE=False),
+    Timestamp32("date_modified", EDITABLE=False),
 
     UInt16("recent_tag_max", DEFAULT=20,
         TOOLTIP="Max number of files in the 'recent' menu."),
@@ -417,8 +417,8 @@ config_header = Struct("header",
 style_header = Struct("header",
     UInt32("id", DEFAULT='lytS', VISIBLE=False),
     UInt32("version", DEFAULT=1, VISIBLE=False),
-    Timestamp("data_created"),
-    Timestamp("data_modified"),
+    Timestamp32("data_created"),
+    Timestamp32("data_modified"),
     SIZE=128
     )
 

@@ -307,6 +307,12 @@ class ScrollMenu(tk.Frame, BinillaWidget):
     def sel_index(self, new_val):
         self.variable.set(new_val)
 
+    def get_option(self, opt_index=None):
+        if opt_index is None:
+            opt_index = "active"
+        assert isinstance(opt_index, (int, str))
+        return self.get_options(opt_index)
+
     def get_options(self, opt_index=None):
         if self.option_getter is not None:
             return self.option_getter(opt_index)
@@ -349,7 +355,10 @@ class ScrollMenu(tk.Frame, BinillaWidget):
     def decrement_listbox_sel(self, e=None):
         if self.selecting:
             return
-        sel_index = [int(i) - 1 for i in self.option_box.curselection()]
+        sel_indices = self.option_box.curselection()
+        if not sel_indices:
+            return
+        sel_index = sel_indices[0] - 1
         if sel_index < 0:
             new_index = (self.max_index >= 0) - 1
         try:
@@ -427,7 +436,10 @@ class ScrollMenu(tk.Frame, BinillaWidget):
     def increment_listbox_sel(self, e=None):
         if self.selecting:
             return
-        sel_index = [int(i) + 1 for i in self.option_box.curselection()]
+        sel_indices = self.option_box.curselection()
+        if not sel_indices:
+            return
+        sel_index = sel_indices[0] + 1
         if sel_index > self.max_index:
             new_index = self.max_index
         try:

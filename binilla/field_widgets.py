@@ -3401,6 +3401,7 @@ class EnumFrame(DataFrame):
 
         if (opt_index is None or opt_index < 0 or
             opt_index > self.sel_menu.max_index):
+            print("Invalid option index '%s'" % opt_index)
             return
 
         self.sel_menu.sel_index = opt_index

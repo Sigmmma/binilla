@@ -87,6 +87,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
     # Determines whether this TagWindow is currently trying to undo or redo
     # This exists to prevent trying to apply multiple undos or redos at once
     _applying_edit_state = False
+    _resizing_window = False
 
     def __init__(self, master, tag=None, *args, **kwargs):
         self.tag = tag
@@ -113,9 +114,11 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             xscroll_inc = yscroll_inc = 20
 
         try:
-            self.flags = self.app_root.config_file.data.header.tag_window_flags
+            config_data = self.app_root.config_file.data
+            self.flags = config_data.header.tag_window_flags
+            use_def_dims = self.flags.use_default_window_dimensions
         except AttributeError:
-            pass
+            use_def_dims = False
 
         kwargs.update(bg=self.default_bg_color)
 
@@ -168,9 +171,16 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         if new:
             try: self.field_widget.set_edited()
             except Exception: pass
-        self.root_frame.update_idletasks()
-        self.resize_window(self.root_frame.winfo_width(),
-                           self.root_frame.winfo_height(), dont_shrink=False)
+
+        self.update()
+        if use_def_dims:
+            width  = config_data.app_window.default_tag_window_width
+            height = config_data.app_window.default_tag_window_height
+        else:
+            width  = rf.winfo_reqwidth()  + self.root_vsb.winfo_reqwidth()  + 2
+            height = rf.winfo_reqheight() + self.root_hsb.winfo_reqheight() + 2
+
+        self.resize_window(width, height)
 
     @property
     def max_height(self):
@@ -186,30 +196,38 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         '''
         Updates the size of the canvas when the window is resized.
         '''
-        rf,   rc   = self.root_frame, self.root_canvas
-        rf_w, rf_h = rf.winfo_reqwidth(), rf.winfo_reqheight()
-        rc.config(scrollregion="0 0 %s %s" % (rf_w, rf_h))
-        if rf_w != rc.winfo_reqwidth():  rc.config(width=rf_w)
-        if rf_h != rc.winfo_reqheight(): rc.config(height=rf_h)
+        if self._resizing_window:
+            return
 
-        # account for the size of the scrollbars when resizing the window
-        new_window_height = rf_h + self.root_hsb.winfo_reqheight() + 2
-        new_window_width  = rf_w + self.root_vsb.winfo_reqwidth()  + 2
+        self._resizing_window = True
+        try:
+            rf,   rc   = self.root_frame,     self.root_canvas
+            rf_w, rf_h = rf.winfo_reqwidth(), rf.winfo_reqheight()
+            rc.config(scrollregion="0 0 %s %s" % (rf_w, rf_h))
+            if rf_w != rc.winfo_reqwidth():  rc.config(width=rf_w)
+            if rf_h != rc.winfo_reqheight(): rc.config(height=rf_h)
 
-        if self.flags is not None:
-            cap_size = self.flags.cap_window_size
-            dont_shrink = self.flags.dont_shrink_window
-            auto_resize = self.flags.auto_resize_window
-        else:
-            cap_size = dont_shrink = auto_resize = True
+            # account for the size of the scrollbars when resizing the window
+            new_window_width  = rf_w + self.root_vsb.winfo_reqwidth()  + 2
+            new_window_height = rf_h + self.root_hsb.winfo_reqheight() + 2
 
-        if auto_resize:
-            self.resize_window(new_window_width, new_window_height,
-                               cap_size, dont_shrink)
+            if self.flags is not None:
+                cap_size = self.flags.cap_window_size
+                dont_shrink = self.flags.dont_shrink_window
+                if not self.flags.auto_resize_width:
+                    new_window_width = None
+                if not self.flags.auto_resize_height:
+                    new_window_height = None
+            else:
+                cap_size = dont_shrink = True
 
-            self.can_scroll = False
-            if new_window_height > self.max_height:
-                self.can_scroll = True
+            if new_window_width is not None or new_window_height is not None:
+                self.resize_window(new_window_width, new_window_height,
+                                   cap_size, dont_shrink)
+            self._resizing_window = False
+        except Exception:
+            self._resizing_window = False
+            raise
 
     def _resize_frame(self, e):
         '''
@@ -222,12 +240,22 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         if rc_h != rf.winfo_reqheight(): rc.itemconfigure(rf_id, height=rc_h)
 
     def mousewheel_scroll_x(self, e):
-        if self.should_scroll(e):
-            self.root_canvas.xview_scroll(e.delta//60, "units")
+        if not self.should_scroll(e):
+            return
+        # prevent scrolling if the root_canvas.bbox width >= canvas width
+        bbox = self.root_canvas.bbox(tk.ALL)
+        if not bbox or (self.root_canvas.winfo_width() >= bbox[2] - bbox[0]):
+            return
+        self.root_canvas.xview_scroll(e.delta//60, "units")
 
     def mousewheel_scroll_y(self, e):
-        if self.should_scroll(e):
-            self.root_canvas.yview_scroll(e.delta//-120, "units")
+        if not self.should_scroll(e):
+            return
+        # prevent scrolling if the root_canvas.bbox height >= canvas height
+        bbox = self.root_canvas.bbox(tk.ALL)
+        if not bbox or (self.root_canvas.winfo_height() >= bbox[3] - bbox[1]):
+            return
+        self.root_canvas.yview_scroll(e.delta//-120, "units")
 
     def should_scroll(self, e):
         '''
@@ -290,9 +318,9 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             tag = self.tag
             try:
                 w = self.field_widget
-                if w.needs_flushing:
+                if w and w.needs_flushing:
                     w.flush()
-                if w.edited:
+                if w and w.edited:
                     try:
                         path = tag.filepath
                     except Exception:
@@ -347,10 +375,11 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         If cap_size is True the width and height will be capped so they
         do not expand beyond the right and bottom edges of the screen.
         '''
-        old_width = self.winfo_reqwidth()
-        old_height = self.winfo_reqheight()
-        if new_width is None:  new_width = old_width
-        if new_height is None: new_height = old_height
+        old_width, old_height  = self.winfo_width(), self.winfo_height()
+        if new_width is None or (dont_shrink and new_width < old_width):
+            new_width = old_width
+        if new_height is None or (dont_shrink and new_height < old_height):
+            new_height = old_height
 
         if cap_size:
             # get the max size the width and height that the window
@@ -367,7 +396,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
                 old_height = 0
 
         if dont_shrink:
-            if new_width < old_width: new_width = old_width
+            if new_width  < old_width:  new_width  = old_width
             if new_height < old_height: new_height = old_height
 
         # aint nothin to do if they're the same!

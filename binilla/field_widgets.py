@@ -202,6 +202,14 @@ class FieldWidget(widgets.BinillaWidget):
             return True
 
     @property
+    def use_gui_names(self):
+        try:
+            return bool(self.tag_window.app_root.config_file\
+                        .data.header.tag_window_flags.use_gui_names)
+        except Exception:
+            return True
+
+    @property
     def all_visible(self):
         try:
             return bool(self.tag_window.app_root.config_file\
@@ -302,8 +310,14 @@ class FieldWidget(widgets.BinillaWidget):
     @property
     def gui_name(self):
         '''The gui_name of the node of this FieldWidget.'''
-        desc = self.desc
-        return desc.get('GUI_NAME', desc['NAME'].replace('_', ' '))
+        name = self.name.replace('_', ' ')
+        if self.use_gui_names:
+            return self.desc.get('GUI_NAME', name)
+        return name
+
+    @property
+    def hide_title(self):
+        return self.desc.get('HIDE_TITLE', False)
 
     @property
     def name(self):
@@ -605,7 +619,7 @@ class ContainerFrame(tk.Frame, FieldWidget):
         self.show = tk.BooleanVar(self)
 
         # if the orientation is vertical, make a title frame
-        if self.show_title:
+        if self.show_title and not self.hide_title:
             self.show.set(show_frame)
             toggle_text = '-' if show_frame else '+'
 
@@ -721,7 +735,7 @@ class ContainerFrame(tk.Frame, FieldWidget):
         content = self
         if hasattr(self, 'content'):
             content = self.content
-        if self.show_title and content in (None, self):
+        if self.show_title and (not self.hide_title) and content in (None, self):
             content = tk.Frame(self, relief="sunken", bd=self.frame_depth,
                                bg=self.default_bg_color)
 
@@ -3297,7 +3311,8 @@ class EnumFrame(DataFrame):
             self.title_label.pack(side="left", fill="x")
         self.content.pack(fill="x", expand=True)
         self.sel_menu.pack(side="left", fill="x")
-        self.reload()
+        self.populate()
+        self.pose_fields()
         self._initialized = True
 
     def flush(self): pass
@@ -3571,23 +3586,24 @@ class BoolFrame(DataFrame):
         DataFrame.__init__(self, *args, **kwargs)
         self.checkvars = {}
 
+        self.content = tk.Frame(
+            self, bg=self.default_bg_color, highlightthickness=0)
+
+        self.display_comment()
+
         self.title_label = tk.Label(
-            self, text=self.gui_name, width=self.title_size, anchor='w',
+            self.content, text=self.gui_name, width=self.title_size, anchor='w',
             bg=self.default_bg_color, fg=self.text_normal_color,
             disabledforeground=self.text_disabled_color,)
 
         if self.gui_name != '':
             self.title_label.pack(side='left')
 
-        self.display_comment()
-
-        self.content = tk.Frame(
-            self, bg=self.default_bg_color, bd=self.listbox_depth,
-            relief='sunken', highlightthickness=0)
         self.check_canvas = tk.Canvas(
-            self.content, bg=self.entry_normal_color, highlightthickness=0)
+            self.content, bg=self.default_bg_color, highlightthickness=0)
         self.check_frame = tk.Frame(
-            self.check_canvas, bg=self.entry_normal_color, highlightthickness=0)
+            self.check_canvas, bg=self.entry_normal_color,
+            bd=self.listbox_depth, relief='sunken',  highlightthickness=0)
 
         self.scrollbar_y = tk.Scrollbar(self.content, orient='vertical',
                                         command=self.check_canvas.yview)
@@ -3661,7 +3677,7 @@ class BoolFrame(DataFrame):
         for bit in range(size):
             opt = desc.get(value_index_map.get(1 << bit))
 
-            if opt is None:
+            if opt is None or not opt.get("VISIBLE", True):
                 if not all_visible:
                     continue
                 name = e_c.UNKNOWN_BOOLEAN % bit
@@ -3675,6 +3691,7 @@ class BoolFrame(DataFrame):
         
         for bit in sorted(bit_opt_map):
             opt = bit_opt_map[bit]
+
             name = opt.get('GUI_NAME', opt['NAME'])
             check_var = tk.IntVar(self.check_frame)
             check_var.set(bool(data & (1 << bit)))
@@ -3725,7 +3742,7 @@ class BoolFrame(DataFrame):
 
         self.check_canvas.config(scrollregion="0 0 %s %s" % (width, height))
 
-        width = max(width, self.bool_frame_min_width)
+        width  = max(width,  self.bool_frame_min_width)
         height = max(height, self.bool_frame_min_height)
         if height > self.bool_frame_max_height:
             height = self.bool_frame_max_height
@@ -3751,6 +3768,8 @@ class BoolFrame(DataFrame):
         self.content.config(width=width + self.frame_depth*2,
                             height=height + self.frame_depth*2)
         self.check_canvas.config(width=width, height=height)
+        self.check_canvas.itemconfigure(
+            self.check_frame_id, width=self.check_canvas.winfo_reqwidth())
 
     def mousewheel_scroll_y(self, e):
         if self.should_scroll(e):

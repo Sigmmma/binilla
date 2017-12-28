@@ -11,6 +11,7 @@ from supyr_struct.defs.constants import *
 EDITABLE = "EDITABLE"  # If False, attribute is greyed out and uneditable
 VISIBLE = "VISIBLE"  # False = Attribute is not rendered when loaded
 GUI_NAME = "GUI_NAME"  # The displayed name of the attribute
+HIDE_TITLE = "HIDE_TITLE"  # If True, hides the title bar for structs
 ORIENT = "ORIENT"  # Which way to display the container entries.
 #                    valid values are "v" for vertical and "h" for horizontal.
 WIDGET_WIDTH = "WIDGET_WIDTH"  # the width of the widget
@@ -54,7 +55,8 @@ DYN_I = "[DYN_I]"
 
 def inject():
     # add the new descriptor keywords to the sets
-    add_desc_keywords(EDITABLE, VISIBLE, GUI_NAME, ORIENT, WIDGET_WIDTH,
-                      MAX, MIN, ALLOW_MAX, ALLOW_MIN, UNIT_SCALE,
-                      EXT, PORTABLE, WIDGET, DYN_NAME_PATH,
-                      TOOLTIP, COMMENT, SIDETIP)
+    add_desc_keywords(
+        EDITABLE, VISIBLE, GUI_NAME, HIDE_TITLE, ORIENT, WIDGET_WIDTH,
+        MAX, MIN, ALLOW_MAX, ALLOW_MIN, UNIT_SCALE,
+        EXT, PORTABLE, WIDGET, DYN_NAME_PATH,
+        TOOLTIP, COMMENT, SIDETIP)

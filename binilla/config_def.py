@@ -48,13 +48,16 @@ tag_window_flag_tooltips = (
     ("Whether to cap the size of tag windows when auto-sizing them\n" +
      "so that they dont expand past the edge of the screen."),
     "Whether to allow shrinking tag windows when auto-sizing them",
-    ("Whether to resize tag windows to fit their contents when something\n" +
-     "happens to the contents(mouse scrolling, a widget is changed, etc)."),
+    (""),
     "Whether to set tag window dimensions to the default ones when opening a tag.",
     ("Whether to enable scrolling on widgets that aren't\n" +
      "currently selected, but are underneath the mouse."),
+    ("Whether to resize a tag windows width to fit its contents when something\n" +
+     "happens to the contents(mouse scrolling, a widget is changed, etc)."),
+    ("Whether to resize a tag windows height to fit its contents when something\n" +
+     "happens to the contents(mouse scrolling, a widget is changed, etc)."),
     ("Whether to display a checkbox for each available bit in a boolean, even\n" +
-     "if that bit doesnt represent anything. Used for debugging and testing.")
+     "if that bit doesnt represent anything. Used for debugging and testing."),
     )
 
 app_window_tooltips = (
@@ -334,7 +337,8 @@ config_header = Struct("header",
         {NAME: "log_output",    TOOLTIP: flag_tooltips[2]},
         {NAME: "log_tag_print", TOOLTIP: flag_tooltips[3]},
         {NAME: "debug_mode",    TOOLTIP: flag_tooltips[4]},
-        DEFAULT=sum([1<<i for i in (0, 2, 3)])
+        DEFAULT=sum([1<<i for i in (0, 2, 3)]),
+        GUI_NAME="general flags"
         ),
 
     Bool32("handler_flags",
@@ -342,7 +346,8 @@ config_header = Struct("header",
         {NAME: "write_as_temp", TOOLTIP: handler_flag_tooltips[1]},
         {NAME: "allow_corrupt", TOOLTIP: handler_flag_tooltips[2]},
         {NAME: "integrity_test", TOOLTIP: handler_flag_tooltips[3]},
-        DEFAULT=sum([1<<i for i in (0, 3)])
+        DEFAULT=sum([1<<i for i in (0, 3)]),
+        GUI_NAME="file handling flags"
         ),
 
     Bool32("tag_window_flags",
@@ -361,12 +366,14 @@ config_header = Struct("header",
 
         {NAME: "cap_window_size", TOOLTIP: tag_window_flag_tooltips[10]},
         {NAME: "dont_shrink_window", TOOLTIP: tag_window_flag_tooltips[11]},
-        {NAME: "auto_resize_window", TOOLTIP: tag_window_flag_tooltips[12]},
+        {NAME: "unused", VISIBLE: False, TOOLTIP: tag_window_flag_tooltips[12]},
         {NAME: "use_default_window_dimensions", TOOLTIP: tag_window_flag_tooltips[13]},
         {NAME: "scroll_unselected_widgets", TOOLTIP: tag_window_flag_tooltips[14]},
+        {NAME: "auto_resize_width", TOOLTIP: tag_window_flag_tooltips[15]},
+        {NAME: "auto_resize_height", TOOLTIP: tag_window_flag_tooltips[16]},
 
         {NAME: "show_all_bools", TOOLTIP: tag_window_flag_tooltips[-1]},
-        DEFAULT=sum([1<<i for i in (2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)])
+        DEFAULT=sum([1<<i for i in (2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15)])
         ),
 
     Bool32("block_print",
@@ -392,6 +399,7 @@ config_header = Struct("header",
         ("show_all", 1<<31),
         DEFAULT=sum([1<<i for i in (
             0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 15, 16)]),
+        GUI_NAME="tag printout flags",
         TOOLTIP="Flags governing what is shown when a tag is printed."
         ),
 
@@ -403,14 +411,14 @@ config_header = Struct("header",
     UInt16("max_undos", DEFAULT=1000,
         TOOLTIP="Max number of undo/redo operations per tag window."),
 
-    UInt16("print_precision", DEFAULT=8,
-        TOOLTIP="Number of decimal places to round to when printing floats."),
+    UInt16("print_precision", DEFAULT=8, TOOLTIP="unused", VISIBLE=False),
     UInt16("print_indent", DEFAULT=NODE_PRINT_INDENT,
         TOOLTIP="Number of spaces to indent each print level."),
 
-    UInt16("backup_count", DEFAULT=1, MIN=1, MAX=1,
+    UInt16("backup_count", DEFAULT=1, MIN=1, MAX=1, VISIBLE=False,
         TOOLTIP="Max number of backups to make before overwriting the oldest"),
-    SIZE=128
+    SIZE=128,
+    GUI_NAME='general settings'
     )
 
 
@@ -456,7 +464,8 @@ app_window = Struct("app_window",
 
     UInt16("scroll_increment_x", DEFAULT=50, TOOLTIP=app_window_tooltips[12]),
     UInt16("scroll_increment_y", DEFAULT=50, TOOLTIP=app_window_tooltips[13]),
-    SIZE=128
+    SIZE=128,
+    GUI_NAME='main window settings'
     )
 
 widgets = Container("widgets",
@@ -516,7 +525,8 @@ widgets = Container("widgets",
         SIZE="..array_counts.widget_depth_count",
         MAX=len(widget_depth_names), MIN=len(widget_depth_names),
         NAME_MAP=widget_depth_names
-        )
+        ),
+    GUI_NAME='widget settings'
     )
 
 open_tags = Array("open_tags",

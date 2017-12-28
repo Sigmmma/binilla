@@ -13,7 +13,6 @@ from tkinter.font import Font
 from tkinter.constants import *
 from tkinter.filedialog import askopenfilenames, askopenfilename,\
      askdirectory, asksaveasfilename
-from tkinter import messagebox
 from traceback import format_exc
 
 # load the binilla constants so they are injected before any defs are loaded
@@ -124,7 +123,7 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
-    version = '0.9.46'
+    version = '0.9.47'
     log_filename = 'binilla.log'
     debug = 0
     debug_mode = False
@@ -303,9 +302,6 @@ class Binilla(tk.Tk, BinillaWidget):
         fm_ac(label="Exit",       command=self.exit)
 
         #add the commands to the settings_menu
-        '''
-        UNCOMMENT THESE WHEN THE DEFINITION LOADING ACTUALLY WORKS
-        '''
         self.settings_menu.add_command(
             label="Load definitions", command=self.select_defs)
         self.settings_menu.add_command(
@@ -612,8 +608,6 @@ class Binilla(tk.Tk, BinillaWidget):
                     return
             except Exception:
                 pass
-
-        self.tk.unhook()
 
         try: self.destroy()  # wont close if a listener is open without this
         except Exception: pass
@@ -1099,6 +1093,7 @@ class Binilla(tk.Tk, BinillaWidget):
         window = window_cls(
             self, tag, app_root=self, handler=self.handler,
             is_new_tag=is_new_tag, widget_picker=self.widget_picker)
+        window.update()  # make sure the window gets a chance to update its size
 
         # reposition the window
         if self.curr_step_y > self.max_step_y:
@@ -1111,16 +1106,6 @@ class Binilla(tk.Tk, BinillaWidget):
             window, self.curr_step_x*self.tile_stride_x + 5,
             self.curr_step_y*self.tile_stride_y + 50)
         self.curr_step_y += 1
-
-        try:
-            use_default_size = self.config_file.data.header.tag_window_flags.\
-                               use_default_window_dimensions
-        except Exception:
-            use_default_size = False
-
-        if use_default_size:
-            window.geometry("%sx%s" % (
-                self.default_tag_window_width, self.default_tag_window_height))
 
         self.tag_windows[id(window)] = window
         self.tag_id_to_window_id[id(tag)] = id(window)

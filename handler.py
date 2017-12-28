@@ -32,11 +32,11 @@ from .constants import *
 from supyr_struct.defs.util import *
 
 
-###################################################
-# ALL BELOW CODE HASNT BEEN MODIFIED FOR A LONG   #
-# TIME AND WILL BE COMPLETELY REDONE TO BRING IT  #
-# TO THE QUALITY LEVEL OF THE REST OF THE LIBRARY #
-###################################################
+######################################################
+# MUCH OF THE BELOW CODE HAS NOT BEEN MODIFIED IN A  #
+# LONG TIME, AND WILL BE COMPLETELY REDONE TO BRING  #
+# IT TO THE QUALITY LEVEL OF THE REST OF THE LIBRARY #
+######################################################
 
 
 class Handler():

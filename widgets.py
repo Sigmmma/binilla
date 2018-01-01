@@ -240,7 +240,8 @@ class ScrollMenu(tk.Frame, BinillaWidget):
 
         self.sel_label = tk.Label(
             self, bg=self.enum_normal_color, fg=self.text_normal_color,
-            bd=2, relief='groove', width=self.menu_width)
+            bd=2, relief='groove',
+            width=self.menu_width if self.menu_width else self.enum_menu_width)
         # the button_frame is to force the button to be a certain size
         self.button_frame = tk.Frame(self, relief='flat', height=18, width=18,
                                      bd=0, bg=self.default_bg_color)
@@ -500,14 +501,18 @@ class ScrollMenu(tk.Frame, BinillaWidget):
             return
 
         self.arrow_button.unbind('<FocusOut>')
-        option_cnt = self.max_index + 1
 
+        # get the options before checking if sane
+        # since getting them will force a sanity check
+        options = self.get_options()
+        option_cnt = self.max_index + 1
         if not self.options_sane:
-            options = self.get_options()
             END = tk.END
             self.option_box.delete(0, END)
             insert = self.option_box.insert
             def_str = '%s' + ('. %s' % self.default_text)
+            menu_width = self.menu_width if self.menu_width else\
+                         self.enum_menu_width
             for i in range(option_cnt):
                 if i in options:
                     insert(END, options[i])
@@ -515,17 +520,20 @@ class ScrollMenu(tk.Frame, BinillaWidget):
                     insert(END, def_str % i)
 
             self.options_sane = True
+            self.sel_label.config(width=menu_width)
 
         self.option_box.pack(side='left', expand=True, fill='both')
+        self.update()
 
         self_height = self.winfo_reqheight()
         root = self.winfo_toplevel()
 
         pos_x = self.sel_label.winfo_rootx() - root.winfo_x()
         pos_y = self.winfo_rooty() + self_height - root.winfo_y()
-        height = min(option_cnt, self.max_height)*(14 + win_10_pad) + 4
-        width = (self.sel_label.winfo_width() +
-                 self.arrow_button.winfo_width())
+        height = min(max(option_cnt, 0), self.max_height)*(14 + win_10_pad) + 4
+        width = max(self.option_box.winfo_reqwidth(),
+                    self.sel_label.winfo_width() +
+                    self.arrow_button.winfo_width())
 
         # figure out how much space is above and below where the list will be
         space_above = pos_y - self_height - 32
@@ -929,20 +937,14 @@ class BitmapDisplayFrame(BinillaWidget, tk.Frame):
         self.depth_index   = tk.IntVar(self)
         self.channel_index = tk.IntVar(self)
         self.cube_display_index = tk.IntVar(self)
-        self.root_canvas = tk.Canvas(self, highlightthickness=0,
-                                     bg=self.default_bg_color)
-        self.root_frame = tk.Frame(self.root_canvas, highlightthickness=0,
-                                   bg=self.default_bg_color)
+        self.root_canvas = tk.Canvas(self, highlightthickness=0)
+        self.root_frame = tk.Frame(self.root_canvas, highlightthickness=0)
 
         # create the root_canvas and the root_frame within the canvas
-        self.controls_frame0 = tk.Frame(self.root_frame, highlightthickness=0,
-                                        bg=self.default_bg_color)
-        self.controls_frame1 = tk.Frame(self.root_frame, highlightthickness=0,
-                                        bg=self.default_bg_color)
-        self.controls_frame2 = tk.Frame(self.root_frame, highlightthickness=0,
-                                        bg=self.default_bg_color)
-        self.image_root_frame = tk.Frame(self.root_frame, highlightthickness=0,
-                                         bg=self.default_bg_color)
+        self.controls_frame0 = tk.Frame(self.root_frame, highlightthickness=0)
+        self.controls_frame1 = tk.Frame(self.root_frame, highlightthickness=0)
+        self.controls_frame2 = tk.Frame(self.root_frame, highlightthickness=0)
+        self.image_root_frame = tk.Frame(self.root_frame, highlightthickness=0)
         self.image_canvas = tk.Canvas(self.image_root_frame,
                                       highlightthickness=0,
                                       bg=self.bitmap_canvas_bg_color)
@@ -1025,6 +1027,20 @@ class BitmapDisplayFrame(BinillaWidget, tk.Frame):
         self.write_trace(self.depth_index, self.settings_changed)
         self.write_trace(self.cube_display_index, self.settings_changed)
         self.write_trace(self.channel_index, self.settings_changed)
+
+        self.apply_style()
+ 
+    def apply_style(self):
+        self.config(bg=self.default_bg_color)
+        for w in (self.root_canvas, self.root_frame, self.image_root_frame,
+                  self.controls_frame0, self.controls_frame1,
+                  self.controls_frame2):
+            w.config(bg=self.default_bg_color)
+
+        for w in (self.save_button, ):
+            w.config(bg=self.button_color, activebackground=self.button_color,
+                     fg=self.text_normal_color, bd=self.button_depth,
+                     disabledforeground=self.text_disabled_color)
 
     def destroy(self):
         try:

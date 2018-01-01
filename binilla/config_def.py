@@ -47,8 +47,8 @@ tag_window_flag_tooltips = (
     "Whether to show sidetips.",
     ("Whether to cap the size of tag windows when auto-sizing them\n" +
      "so that they dont expand past the edge of the screen."),
-    "Whether to allow shrinking tag windows when auto-sizing them",
-    (""),
+    "Disables shrinking a tag windows width when auto-sizing it.",
+    "Disables shrinking a tag windows height when auto-sizing it.",
     "Whether to set tag window dimensions to the default ones when opening a tag.",
     ("Whether to enable scrolling on widgets that aren't\n" +
      "currently selected, but are underneath the mouse."),
@@ -365,15 +365,15 @@ config_header = Struct("header",
         {NAME: "show_sidetips", TOOLTIP: tag_window_flag_tooltips[9]},
 
         {NAME: "cap_window_size", TOOLTIP: tag_window_flag_tooltips[10]},
-        {NAME: "dont_shrink_window", TOOLTIP: tag_window_flag_tooltips[11]},
-        {NAME: "unused", VISIBLE: False, TOOLTIP: tag_window_flag_tooltips[12]},
+        {NAME: "dont_shrink_width", TOOLTIP: tag_window_flag_tooltips[11]},
+        {NAME: "dont_shrink_height", TOOLTIP: tag_window_flag_tooltips[12]},
         {NAME: "use_default_window_dimensions", TOOLTIP: tag_window_flag_tooltips[13]},
         {NAME: "scroll_unselected_widgets", TOOLTIP: tag_window_flag_tooltips[14]},
         {NAME: "auto_resize_width", TOOLTIP: tag_window_flag_tooltips[15]},
         {NAME: "auto_resize_height", TOOLTIP: tag_window_flag_tooltips[16]},
 
         {NAME: "show_all_bools", TOOLTIP: tag_window_flag_tooltips[-1]},
-        DEFAULT=sum([1<<i for i in (2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15)])
+        DEFAULT=sum([1<<i for i in (2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15)])
         ),
 
     Bool32("block_print",
@@ -425,8 +425,8 @@ config_header = Struct("header",
 style_header = Struct("header",
     UInt32("id", DEFAULT='lytS', VISIBLE=False),
     UInt32("version", DEFAULT=1, VISIBLE=False),
-    Timestamp32("data_created"),
-    Timestamp32("data_modified"),
+    Timestamp32("date_created"),
+    Timestamp32("date_modified"),
     SIZE=128
     )
 

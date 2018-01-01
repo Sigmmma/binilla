@@ -6,7 +6,6 @@ import threadsafe_tkinter as tk
 
 from copy import deepcopy
 from datetime import datetime
-from io import StringIO
 from time import time, sleep
 from os.path import basename, dirname, exists, join, isfile, relpath
 from tkinter.font import Font
@@ -19,7 +18,6 @@ from traceback import format_exc
 from . import constants as s_c
 s_c.inject()
 from supyr_struct.field_types import FieldType
-from supyr_struct.defs.util import *
 
 from . import editor_constants as e_c
 from .tag_window import *
@@ -27,6 +25,7 @@ from .config_def import *
 from .widget_picker import *
 from .widgets import BinillaWidget, ToolTipHandler
 from .handler import Handler
+from .util import *
 
 this_curr_dir = dirname(__file__)
 default_config_path = this_curr_dir + '%sbinilla.cfg' % s_c.PATHDIV
@@ -66,30 +65,6 @@ default_tag_window_hotkeys = {
     }
 
 
-class IORedirecter(StringIO):
-    # Text widget to output text to
-    text_out = None
-    log_file = None
-    edit_log = None
-
-    def __init__(self, text_out, *args, **kwargs):
-        self.log_file = kwargs.pop('log_file', None)
-        self.edit_log = kwargs.pop('edit_log', None)
-        StringIO.__init__(self, *args, **kwargs)
-        self.text_out = text_out
-
-    def write(self, string):
-        if self.edit_log and self.log_file is not None:
-            try:
-                self.log_file.write(string)
-            except Exception:
-                pass
-        self.text_out.config(state=NORMAL)
-        self.text_out.insert(END, string)
-        self.text_out.see(END)
-        self.text_out.config(state=DISABLED)
-
-
 class Binilla(tk.Tk, BinillaWidget):
     # the tag of the currently in-focus TagWindow
     selected_tag = None
@@ -123,7 +98,7 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
-    version = '0.9.47'
+    version = '0.9.48'
     log_filename = 'binilla.log'
     debug = 0
     debug_mode = False
@@ -240,7 +215,7 @@ class Binilla(tk.Tk, BinillaWidget):
         self.container_title_font = Font(
             family="Courier", size=10, weight='bold')
         self.comment_font = Font(family="Courier", size=9)
-        
+
         self.title('%s v%s' % (self.app_name, self.version))
         self.minsize(width=200, height=50)
         self.protocol("WM_DELETE_WINDOW", self.exit)
@@ -326,7 +301,7 @@ class Binilla(tk.Tk, BinillaWidget):
         self.debug_menu.add_command(
             label="Force normal endian", command=self.force_normal_endian)
         self.debug_menu.add_separator()
-        
+
         # make the canvas for anything in the main window
         self.root_frame = tk.Frame(self, bd=3, highlightthickness=0,
                                    relief=SUNKEN)
@@ -485,7 +460,7 @@ class Binilla(tk.Tk, BinillaWidget):
         self.curr_step_x = 0
         x_stride = self.cascade_stride_x
         y_stride = self.tile_stride_y
-        
+
         # reposition the window
         for wid in sorted(windows):
             window = windows[wid]
@@ -863,7 +838,7 @@ class Binilla(tk.Tk, BinillaWidget):
                   'bool_frame_min_width', 'bool_frame_min_height',
                   'bool_frame_max_width', 'bool_frame_max_height',
                   'def_int_entry_width',    'max_int_entry_width',
-                  'def_float_entry_width',  'max_float_entry_width', 
+                  'def_float_entry_width',  'max_float_entry_width',
                   'def_string_entry_width', 'max_string_entry_width',
                   'scroll_menu_max_width', 'scroll_menu_max_height', ):
             try: __tsa__(BinillaWidget, s, widgets[s])
@@ -1052,7 +1027,7 @@ class Binilla(tk.Tk, BinillaWidget):
         '''Prompts the user for a tag to load and loads it.'''
         if self.def_selector_window:
             return
-        
+
         filetypes = [('All', '*')]
         defs = self.handler.defs
         for def_id in sorted(defs.keys()):
@@ -1132,7 +1107,7 @@ class Binilla(tk.Tk, BinillaWidget):
     def new_tag(self, e=None):
         if self.def_selector_window:
             return
-        
+
         dsw = DefSelectorWindow(
             self, title="Select a definition to use", action=lambda def_id:
             self.load_tags(filepaths='', def_id=def_id))
@@ -1368,7 +1343,7 @@ class Binilla(tk.Tk, BinillaWidget):
     def show_defs(self, e=None):
         if self.def_selector_window:
             return
-        
+
         self.def_selector_window = DefSelectorWindow(self, action=lambda x: x)
         self.place_window_relative(self.def_selector_window, 30, 50)
 
@@ -1545,7 +1520,7 @@ class Binilla(tk.Tk, BinillaWidget):
                   'bool_frame_min_width', 'bool_frame_min_height',
                   'bool_frame_max_width', 'bool_frame_max_height',
                   'def_int_entry_width',    'max_int_entry_width',
-                  'def_float_entry_width',  'max_float_entry_width', 
+                  'def_float_entry_width',  'max_float_entry_width',
                   'def_string_entry_width', 'max_string_entry_width',
                   'scroll_menu_max_width', 'scroll_menu_max_height', ):
             try: widgets[s] = __tga__(BinillaWidget, s)
@@ -1702,7 +1677,7 @@ class DefSelectorWindow(tk.Toplevel, BinillaWidget):
 
     def set_selected_def(self, event=None):
         indexes = [int(i) for i in self.def_listbox.curselection()]
-        
+
         if len(indexes) == 1:
             self.def_id = self.sorted_def_ids[indexes[0]]
 

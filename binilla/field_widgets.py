@@ -1346,9 +1346,13 @@ class ArrayFrame(ContainerFrame):
                     else:
                         w.sel_index -= 1
 
+                max_index = len(node) - 1
+                w.sel_menu.max_index = max_index
                 w.options_sane = w.sel_menu.options_sane = False
-                w.sel_menu.max_index = len(node) - 1
-                w.select_option(w.sel_index, force_reload=True)
+                if w.sel_index < 0 or max_index < w.sel_index:
+                    w.select_option(0, force_reload=True)
+                else:
+                    w.select_option(w.sel_index, force_reload=True)
 
                 w.needs_flushing = False
                 w.sel_menu.update_label()
@@ -1531,9 +1535,9 @@ class ArrayFrame(ContainerFrame):
         del self.node[:]
         self.sel_index = self.sel_menu.sel_index = self.sel_menu.max_index = -1
         self.sel_menu.update_label()
-        self.select_option()
 
         self.options_sane = self.sel_menu.options_sane = False
+        self.select_option()
         self.enable_all_buttons()
         self.disable_unusable_buttons()
         self.set_edited()
@@ -3440,23 +3444,16 @@ class DynamicEnumFrame(EnumFrame):
                       bg=self.default_bg_color)
         DataFrame.__init__(self, *args, **kwargs)
 
-        label_width = self.widget_width
-        if not label_width:
-            label_width = self.enum_menu_width
-            for s in self.get_options().values():
-                label_width = max(label_width, len(s))
-
         # make the widgets
         self.content = tk.Frame(self, relief='flat', bd=0,
                                 bg=self.default_bg_color)
-
         self.title_label = tk.Label(
             self.content, text=self.gui_name,
             justify='left', anchor='w', width=self.title_size,
             bg=self.default_bg_color, fg=self.text_normal_color,
             disabledforeground=self.text_disabled_color)
         self.sel_menu = widgets.ScrollMenu(
-            self.content, f_widget_parent=self, menu_width=label_width,
+            self.content, f_widget_parent=self, menu_width=self.widget_width,
             sel_index=self.node + 1, max_index=0,
             disabled=self.disabled, default_text="<INVALID>",
             option_getter=self.get_options,  callback=self.select_option)
@@ -3477,6 +3474,7 @@ class DynamicEnumFrame(EnumFrame):
         if not self.options_sane:
             self.cache_options()
             self.options_sane = True
+            self.sel_menu.options_sane = False
         return EnumFrame.get_options(self, opt_index)
 
     def edit_apply(self=None, *, edit_state, undo=True):

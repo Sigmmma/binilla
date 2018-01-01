@@ -213,17 +213,19 @@ class TagWindow(tk.Toplevel, BinillaWidget):
 
             if self.flags is not None:
                 cap_size = self.flags.cap_window_size
-                dont_shrink = self.flags.dont_shrink_window
+                dont_shrink_width  = self.flags.dont_shrink_width
+                dont_shrink_height = self.flags.dont_shrink_height
                 if not self.flags.auto_resize_width:
                     new_window_width = None
                 if not self.flags.auto_resize_height:
                     new_window_height = None
             else:
-                cap_size = dont_shrink = True
+                cap_size = dont_shrink_width = dont_shrink_height = True
 
             if new_window_width is not None or new_window_height is not None:
-                self.resize_window(new_window_width, new_window_height,
-                                   cap_size, dont_shrink)
+                self.resize_window(
+                    new_window_width, new_window_height, cap_size,
+                    dont_shrink_width, dont_shrink_height)
             self._resizing_window = False
         except Exception:
             self._resizing_window = False
@@ -368,17 +370,17 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         self.tag.serialize(**kwargs)
         self.field_widget.set_edited(False)
 
-    def resize_window(self, new_width=None, new_height=None,
-                      cap_size=True, dont_shrink=True):
+    def resize_window(self, new_width=None, new_height=None, cap_size=True,
+                      dont_shrink_width=True, dont_shrink_height=True):
         '''
         Resizes this TagWindow to the width and height specified.
         If cap_size is True the width and height will be capped so they
         do not expand beyond the right and bottom edges of the screen.
         '''
         old_width, old_height  = self.winfo_width(), self.winfo_height()
-        if new_width is None or (dont_shrink and new_width < old_width):
+        if new_width is None or (dont_shrink_width and new_width < old_width):
             new_width = old_width
-        if new_height is None or (dont_shrink and new_height < old_height):
+        if new_height is None or (dont_shrink_height and new_height < old_height):
             new_height = old_height
 
         if cap_size:
@@ -395,9 +397,10 @@ class TagWindow(tk.Toplevel, BinillaWidget):
                 new_height = max_height
                 old_height = 0
 
-        if dont_shrink:
-            if new_width  < old_width:  new_width  = old_width
-            if new_height < old_height: new_height = old_height
+        if dont_shrink_width  and new_width  < old_width:
+            new_width  = old_width
+        if dont_shrink_height and new_height < old_height:
+            new_height = old_height
 
         # aint nothin to do if they're the same!
         if new_width == old_width and new_height == old_height:

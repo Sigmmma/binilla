@@ -198,7 +198,7 @@ class Binilla(tk.Tk, BinillaWidget):
         if not exists(self.curr_dir):
             self.curr_dir = this_curr_dir
             try:
-                self.config_file.data.directory_paths.curr_dir.path = curr_dir
+                self.config_file.data.directory_paths.curr_dir.path = this_curr_dir
             except Exception:
                 pass
 

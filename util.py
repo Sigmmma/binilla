@@ -36,10 +36,15 @@ class IORedirecter(StringIO):
 class ProcController():
     kill = False
     abandon = False
+    process = None
+    returncode = None
 
-    def __init__(self, kill=False, abandon=False):
+    def __init__(self, kill=False, abandon=False,
+                 process=None, returncode=None):
         self.kill = kill
         self.abandon = abandon
+        self.process = process
+        self.returncode = returncode
 
 
 def do_subprocess(exec_path, cmd_args=(), exec_args=(), **kw):
@@ -53,6 +58,7 @@ def do_subprocess(exec_path, cmd_args=(), exec_args=(), **kw):
             cmd_str = "cmd %s %s" % (cmd_args, cmd_str)
 
         with subprocess.Popen(cmd_str % (exec_path, exec_args), **kw) as p:
+            proc_controller.process = p
             while p.poll() is None:
                 if proc_controller.kill:
                     p.kill()
@@ -62,4 +68,6 @@ def do_subprocess(exec_path, cmd_args=(), exec_args=(), **kw):
                 sleep(0.02)
     except Exception:
         print(format_exc())
+
+    proc_controller.returncode = result
     return result

@@ -5,9 +5,24 @@ except ImportError:
     import Tkinter as tk
 from io import StringIO
 
+from math import log, ceil
 from time import sleep
 from supyr_struct.defs.util import *
 from traceback import format_exc
+
+
+FLOAT_PREC  = 23*log(2, 10)
+DOUBLE_PREC = 52*log(2, 10)
+
+
+def float_to_str(f, max_sig_figs=FLOAT_PREC):
+    sig_figs = -1
+    if abs(f) > 0:
+        sig_figs = int(round(max_sig_figs - log(abs(f), 10)))
+
+    if sig_figs < 0:
+        return str(f).split(".")[0]
+    return (("%" + (".%sf" % sig_figs)) % f).rstrip("0").rstrip(".")
 
 
 class IORedirecter(StringIO):
@@ -66,6 +81,8 @@ def do_subprocess(exec_path, cmd_args=(), exec_args=(), **kw):
                 elif proc_controller.abandon:
                     break
                 sleep(0.02)
+
+        result = p.returncode
     except Exception:
         print(format_exc())
 

@@ -98,7 +98,7 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
-    version = '0.9.48'
+    version = '0.9.49'
     log_filename = 'binilla.log'
     debug = 0
     debug_mode = False
@@ -202,8 +202,8 @@ class Binilla(tk.Tk, BinillaWidget):
             except Exception:
                 pass
 
-        self.app_name = kwargs.pop('app_name', self.app_name)
-        self.app_name = str(kwargs.pop('version', self.app_name))
+        self.app_name = str(kwargs.pop('app_name', self.app_name))
+        self.version  = str(kwargs.pop('version', self.version))
 
         if self.handler is not None:
             self.handler.log_filename = self.log_filename

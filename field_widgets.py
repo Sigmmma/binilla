@@ -3,7 +3,7 @@ import threadsafe_tkinter as tk
 import tkinter.ttk as ttk
 
 from copy import deepcopy
-from math import log, ceil, floor
+from math import log, ceil
 from tkinter import messagebox
 from tkinter import constants as t_const
 from tkinter.font import Font
@@ -15,6 +15,7 @@ from supyr_struct.buffer import get_rawdata
 from .edit_manager import EditState
 from . import widgets
 from . import editor_constants as e_c
+from .util import float_to_str, FLOAT_PREC, DOUBLE_PREC
 
 # linked to through __init__.py
 widget_picker = None
@@ -31,20 +32,6 @@ __all__ = (
     "EntryFrame", "HexEntryFrame", "TimestampFrame", "NumberEntryFrame",
     "TextFrame", "RawdataFrame",
     )
-
-
-FLOAT_PREC  = 23*log(2, 10)
-DOUBLE_PREC = 52*log(2, 10)
-
-
-def float_to_str(f, max_sig_figs=FLOAT_PREC):
-    sig_figs = -1
-    if abs(f) > 0:
-        sig_figs = int(round(max_sig_figs - log(abs(f), 10)))
-
-    if sig_figs < 0:
-        return str(f).split(".")[0]
-    return (("%" + (".%sf" % sig_figs)) % f).rstrip("0").rstrip(".")
 
 
 def fix_kwargs(**kw):

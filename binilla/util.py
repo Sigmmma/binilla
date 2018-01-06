@@ -66,11 +66,16 @@ def do_subprocess(exec_path, cmd_args=(), exec_args=(), **kw):
     result = 1
     proc_controller = kw.pop("proc_controller", ProcController())
     try:
-        cmd_args  = ''.join((" /%s" % a) for a in cmd_args)
-        exec_args = ''.join(( " %s" % a) for a in exec_args)
+        cmd_args  = ''.join((" /%s" % a.lower()) for a in cmd_args)
+        exec_args = ''.join(( " %s" % a.lower()) for a in exec_args)
         cmd_str = '"%s" %s'
         if cmd_args:
-            cmd_str = "cmd %s %s" % (cmd_args, cmd_str)
+            # ALWAYS make sure either /c or /k are explicitely supplied when
+            # calling cmd, otherwise default quote handling will be used and
+            # putting quotes around everything won't supply parameters right
+            if '/k' not in cmd_args:
+                cmd_args += ' /c'
+            cmd_str = 'cmd %s "%s"' % (cmd_args, cmd_str)
 
         with subprocess.Popen(cmd_str % (exec_path, exec_args), **kw) as p:
             proc_controller.process = p

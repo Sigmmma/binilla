@@ -155,16 +155,11 @@ class FieldWidget(widgets.BinillaWidget):
                                                  background=self.frame_bg_color)
 
         # if custom padding is given, set it
-        self.pack_padx = self.horizontal_padx
-        self.pack_pady = self.horizontal_pady
-        if 'pack_padx' in kwargs:
-            self.pack_padx = kwargs['pack_padx']
-        elif self._vert_oriented:
+        if not self._vert_oriented:
+            self.pack_padx = kwargs.get('pack_padx', self.horizontal_padx)
+            self.pack_pady = kwargs.get('pack_pady', self.horizontal_pady)
+        else:
             self.pack_padx = self.vertical_padx
-
-        if 'pack_pady' in kwargs:
-            self.pack_pady = kwargs['pack_pady']
-        elif self._vert_oriented:
             self.pack_pady = self.vertical_pady
 
         self.f_widget_ids = []
@@ -579,7 +574,7 @@ class ContainerFrame(tk.Frame, FieldWidget):
         FieldWidget.__init__(self, *args, **kwargs)
 
         # if only one sub-widget being displayed, dont display the title
-        if self.visible_field_count <= 1:
+        if self.visible_field_count < 2:
             self.pack_padx = self.pack_pady = 0
             kwargs['show_title'] = False
         if self.f_widget_parent is None:
@@ -800,14 +795,16 @@ class ContainerFrame(tk.Frame, FieldWidget):
             kwargs['dont_padx_fields'] = True
 
         w_parent = self.f_widget_parent
-        if w_parent and w_parent.dont_padx_fields and not self.show_title:
+        if w_parent is None:
+            pass
+        elif self.hide_title or not self.show_title:
+            kwargs['pack_padx'] = 0
+        elif w_parent.dont_padx_fields and visible_count <= 1:
             # The parent isnt padding its children and this widget
             # has only one child and is displaying ONLY that child.
-            # Dont pad the child so that it appears where this widget would.
-            kwargs['pack_padx'] = 0
-
-        if self.dont_padx_fields:
-            kwargs['pack_padx'] = 0
+            # Use this widgets x padding amount so that it appears
+            # where this widget would.
+            kwargs['pack_padx'] = self.pack_padx
 
         # loop over each field and make its widget
         for i in field_indices:
@@ -912,6 +909,7 @@ class ContainerFrame(tk.Frame, FieldWidget):
         side = 'left' if orient == 'h' else 'top'
         for wid in f_widget_ids:
             w = f_widgets[wid]
+            print(w.name, w.pack_padx)
             w.pack(fill='x', side=side, anchor='nw',
                    padx=w.pack_padx, pady=w.pack_pady)
 

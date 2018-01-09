@@ -18,6 +18,21 @@ __all__ = ("TagWindow", "ConfigWindow",
            "make_hotkey_string", "read_hotkey_string",)
 
 
+OS_PAD_X, OS_PAD_Y = 8, 64
+try:
+    from platform import win32_ver
+    win_info = win32_ver()
+except Exception:
+    win_info = None
+
+if win_info is None:
+    pass
+elif win_info[0] in ('XP', '2000', '2003Server'):
+    OS_PAD_X, OS_PAD_Y = 8, 64
+elif win_info[0] in ('Vista', '7', '8.1', '10'):
+    OS_PAD_X, OS_PAD_Y = 15, 77
+
+
 def make_hotkey_string(hotkey):
     keys = hotkey.combo
     prefix = keys.modifier.enum_name.replace('_', '-')
@@ -185,12 +200,12 @@ class TagWindow(tk.Toplevel, BinillaWidget):
     @property
     def max_height(self):
         # The -64 accounts for the width of the windows border
-        return self.winfo_screenheight() - self.winfo_y() - 64
+        return self.winfo_screenheight() - self.winfo_y() - OS_PAD_Y
 
     @property
     def max_width(self):
         # The -8 accounts for the width of the windows border
-        return self.winfo_screenwidth() - self.winfo_x() - 8
+        return self.winfo_screenwidth() - self.winfo_x() - OS_PAD_X
 
     def _resize_canvas(self, e):
         '''

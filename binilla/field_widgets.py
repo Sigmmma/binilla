@@ -90,13 +90,14 @@ class FieldWidget(widgets.BinillaWidget):
     content = None
 
     # the amount of external padding this widget needs
-    pack_padx = 0
-    pack_pady = 0
+    _pack_padx = 0
+    _pack_pady = 0
 
     # whether or not this FieldWidget's title is shown
-    show_title = True
-
     dont_padx_fields = False
+    _show_title = True
+    _use_parent_pack_padx = False
+    _use_parent_pack_pady = False
 
     # whether the widget is being oriented vertically or horizontally
     _vert_oriented = True
@@ -137,6 +138,10 @@ class FieldWidget(widgets.BinillaWidget):
                                                     self.export_calc_pointers))
         self.dont_padx_fields = kwargs.get('dont_padx_fields',
                                            self.dont_padx_fields)
+        self.use_parent_pack_padx = kwargs.get('use_parent_pack_padx',
+                                               self.use_parent_pack_padx)
+        self.use_parent_pack_pady = kwargs.get('use_parent_pack_pady',
+                                               self.use_parent_pack_pady)
         self.disabled = kwargs.get('disabled', self.disabled)
         if 'EDITABLE' in self.desc:
             self.disabled = not self.desc['EDITABLE']
@@ -155,12 +160,21 @@ class FieldWidget(widgets.BinillaWidget):
                                                  background=self.frame_bg_color)
 
         # if custom padding is given, set it
-        if not self._vert_oriented:
-            self.pack_padx = kwargs.get('pack_padx', self.horizontal_padx)
-            self.pack_pady = kwargs.get('pack_pady', self.horizontal_pady)
-        else:
-            self.pack_padx = self.vertical_padx
-            self.pack_pady = self.vertical_pady
+        if not self.use_parent_pack_padx:
+            if 'pack_padx' in kwargs:
+                self.pack_padx = kwargs['pack_padx']
+            elif self._vert_oriented:
+                self.pack_padx = self.vertical_padx
+            else:
+                self.pack_padx = self.horizontal_padx
+
+        if not self.use_parent_pack_pady:
+            if 'pack_pady' in kwargs:
+                self.pack_pady = kwargs['pack_pady']
+            elif self._vert_oriented:
+                self.pack_pady = self.vertical_pady
+            else:
+                self.pack_pady = self.horizontal_pady
 
         self.f_widget_ids = []
         self.f_widget_ids_map = {}
@@ -298,8 +312,12 @@ class FieldWidget(widgets.BinillaWidget):
         return name
 
     @property
-    def hide_title(self):
-        return self.desc.get('HIDE_TITLE', False)
+    def show_title(self):
+        return self._show_title and not self.desc.get('HIDE_TITLE', False)
+
+    @show_title.setter
+    def show_title(self, new_val):
+        self._show_title = new_val
 
     @property
     def name(self):
@@ -325,6 +343,42 @@ class FieldWidget(widgets.BinillaWidget):
             return self.tag_window.widget_picker
         except AttributeError:
             return widget_picker.def_widget_picker
+
+    @property
+    def pack_padx(self):
+        if self.use_parent_pack_padx:
+            return self.f_widget_parent.pack_padx
+        return self._pack_padx
+
+    @pack_padx.setter
+    def pack_padx(self, new_val):
+        self._pack_padx = new_val
+
+    @property
+    def pack_pady(self):
+        if self.use_parent_pack_pady:
+            return self.f_widget_parent.pack_pady
+        return self._pack_pady
+
+    @pack_pady.setter
+    def pack_pady(self, new_val):
+        self._pack_pady = new_val
+
+    @property
+    def use_parent_pack_padx(self):
+        return bool(self.f_widget_parent) and self._use_parent_pack_padx
+
+    @use_parent_pack_padx.setter
+    def use_parent_pack_padx(self, new_val):
+        self._use_parent_pack_padx = bool(new_val)
+
+    @property
+    def use_parent_pack_pady(self):
+        return bool(self.f_widget_parent) and self._use_parent_pack_pady
+
+    @use_parent_pack_pady.setter
+    def use_parent_pack_pady(self, new_val):
+        self._use_parent_pack_pady = bool(new_val)
 
     def display_comment(self, master=None):
         if not self.show_comments:
@@ -573,18 +627,21 @@ class ContainerFrame(tk.Frame, FieldWidget):
     def __init__(self, *args, **kwargs):
         FieldWidget.__init__(self, *args, **kwargs)
 
+        orient = self.desc.get('ORIENT', 'v')[:1].lower()
+        assert orient in ('v', 'h')
+        self.show_title = kwargs.pop('show_title', orient == 'v' and
+                                     self.f_widget_parent is not None)
+
         # if only one sub-widget being displayed, dont display the title
-        if self.visible_field_count < 2:
-            self.pack_padx = self.pack_pady = 0
-            kwargs['show_title'] = False
+        if not self.show_title or self.visible_field_count < 2:
+            self.show_title = False
+            self.dont_padx_fields = True
+
         if self.f_widget_parent is None:
             self.pack_padx = self.pack_pady = 0
 
-        orient = self.desc.get('ORIENT', 'v')[:1].lower()
         kwargs.update(relief='flat', bd=0, highlightthickness=0,
                       bg=self.default_bg_color)
-
-        assert orient in 'vh'
 
         show_frame = True
         if self.f_widget_parent is not None:
@@ -594,14 +651,12 @@ class ContainerFrame(tk.Frame, FieldWidget):
             except Exception:
                 def_show = False
             show_frame = bool(kwargs.pop('show_frame', def_show))
-        self.show_title = kwargs.pop('show_title', orient == 'v' and
-                                     self.f_widget_parent is not None)
 
         tk.Frame.__init__(self, *args, **fix_kwargs(**kwargs))
         self.show = tk.BooleanVar(self)
 
         # if the orientation is vertical, make a title frame
-        if self.show_title and not self.hide_title:
+        if self.show_title:
             self.show.set(show_frame)
             toggle_text = '-' if show_frame else '+'
 
@@ -712,12 +767,12 @@ class ContainerFrame(tk.Frame, FieldWidget):
         '''Destroys and rebuilds this widgets children.'''
         orient = self.desc.get('ORIENT', 'v')[:1].lower()
         vertical = True
-        assert orient in 'vh'
+        assert orient in ('v', 'h')
 
         content = self
         if hasattr(self, 'content'):
             content = self.content
-        if self.show_title and (not self.hide_title) and content in (None, self):
+        if self.show_title and content in (None, self):
             content = tk.Frame(self, relief="sunken", bd=self.frame_depth,
                                bg=self.default_bg_color)
 
@@ -777,34 +832,25 @@ class ContainerFrame(tk.Frame, FieldWidget):
 
         # if only one sub-widget being displayed, dont
         # display the title of the widget being displayed
-        if all_visible:
-            pass
-        elif hasattr(node, 'STEPTREE'):
-            s_node = node['STEPTREE']
-            s_desc = desc['STEPTREE']
-            if hasattr(s_node, 'desc'):
-                s_desc = s_node.desc
-            if visible_count <= 1:
-                if not (s_desc.get('VISIBLE', 1) or all_visible):
+        if not all_visible:
+            try:
+                s_desc = node['STEPTREE'].desc
+            except AttributeError:
+                s_desc = desc.get('STEPTREE', dict(VISIBLE=False))
+
+            if visible_count < 2:
+                if not s_desc.get('VISIBLE', 1):
                     # only make the title not shown if the only
                     # visible widget will not be the subtree
                     kwargs['show_title'] = False
                 kwargs['dont_padx_fields'] = True
-        elif visible_count <= 1:
-            kwargs['show_title'] = False
-            kwargs['dont_padx_fields'] = True
 
-        w_parent = self.f_widget_parent
-        if w_parent is None:
-            pass
-        elif self.hide_title or not self.show_title:
+        if self.dont_padx_fields:
             kwargs['pack_padx'] = 0
-        elif w_parent.dont_padx_fields and visible_count <= 1:
-            # The parent isnt padding its children and this widget
-            # has only one child and is displaying ONLY that child.
-            # Use this widgets x padding amount so that it appears
-            # where this widget would.
-            kwargs['pack_padx'] = self.pack_padx
+        elif visible_count < 2 and not self.show_title:
+            # Use this widgets x padding amount so that its
+            # singular child appears where this widget would.
+            kwargs['use_parent_pack_padx'] = True
 
         # loop over each field and make its widget
         for i in field_indices:
@@ -909,7 +955,6 @@ class ContainerFrame(tk.Frame, FieldWidget):
         side = 'left' if orient == 'h' else 'top'
         for wid in f_widget_ids:
             w = f_widgets[wid]
-            print(w.name, w.pack_padx)
             w.pack(fill='x', side=side, anchor='nw',
                    padx=w.pack_padx, pady=w.pack_pady)
 
@@ -2709,8 +2754,8 @@ class TextFrame(DataFrame):
         if self.gui_name != '':
             self.title_label.pack(fill="x")
         self.hsb.pack(side="bottom", fill='x', expand=True)
-        self.data_text.pack(side="left", fill="x")
         self.vsb.pack(side="right",  fill='y')
+        self.data_text.pack(side="right", fill="x", expand=True)
         self.content.pack(fill="both", expand=True)
 
         self.build_replace_map()

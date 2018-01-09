@@ -98,7 +98,7 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
-    version = '0.9.51'
+    version = '0.9.52'
     log_filename = 'binilla.log'
     debug = 0
     debug_mode = False
@@ -941,7 +941,11 @@ class Binilla(tk.Tk, BinillaWidget):
             pass
 
     def get_tag_window_by_tag(self, tag):
-        return self.tag_windows[self.tag_id_to_window_id[id(tag)]]
+        try:
+            return self.tag_windows[self.tag_id_to_window_id[id(tag)]]
+        except Exception:
+            print(format_exc())
+            return None
 
     def get_is_tag_loaded(self, filepath, def_id=None):
         if def_id is None:
@@ -986,10 +990,7 @@ class Binilla(tk.Tk, BinillaWidget):
                 # the tag is somehow still loaded.
                 # need to see if there is still a window
                 new_tag = self.get_tag(path, handler.get_def_id(path))
-                try:
-                    w = self.get_tag_window_by_tag(new_tag)
-                except Exception:
-                    w = None
+                w = self.get_tag_window_by_tag(new_tag)
                 if w:
                     print('%s is already loaded' % path)
                     continue
@@ -1179,14 +1180,15 @@ class Binilla(tk.Tk, BinillaWidget):
         if hasattr(tag, "serialize"):
             # make sure the tag has a valid filepath whose directories
             # can be made if they dont already exist(dirname must not be '')
-            if not(hasattr(tag, "filepath") and tag.filepath and
-                   dirname(tag.filepath)):
-                self.save_tag_as(tag)
-                return
+            w = self.get_tag_window_by_tag(tag)
+            if ((w and w.is_new_tag) or (not(hasattr(tag, "filepath") and
+                                             tag.filepath and
+                                             dirname(tag.filepath)))):
+                return self.save_tag_as(tag)
 
             # make sure to flush any changes made using widgets to the tag
             try:
-                self.get_tag_window_by_tag(tag).save()
+                w.save()
             except Exception:
                 print(format_exc())
                 raise IOError("Could not save tag.")

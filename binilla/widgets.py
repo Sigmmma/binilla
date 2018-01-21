@@ -3,8 +3,9 @@ This module contains various widgets which the FieldWidget classes utilize.
 '''
 import gc
 import os
-import tempfile
+import platform
 import random
+import tempfile
 import weakref
 from math import log
 from time import time
@@ -18,6 +19,10 @@ field_widgets = None  # linked to through __init__.py
 
 win_10_pad = 2
 
+is_win = "windows" in platform.system().lower()
+is_mac = "darwin" in platform.system().lower()
+is_lnx = "linux" in platform.system().lower()
+
 
 def import_arbytmap(force=False):
     # dont import it if an import was already attempted
@@ -29,6 +34,17 @@ def import_arbytmap(force=False):
             arbytmap = None
 
     return bool(arbytmap)
+
+
+def get_mouse_delta(e):
+    if is_win:
+        return -1/120 if e.delta < 0 else 1/120
+    elif is_mac:
+        return -1 if e.delta < 0 else 1
+    elif is_lnx:
+        return -1 if e.num == 4 else 1
+    else:
+        return e.delta
 
 
 class BinillaWidget():
@@ -154,7 +170,7 @@ class BinillaWidget():
         '''
         hover = self.winfo_containing(e.x_root, e.y_root)
 
-        if not(hasattr(hover, 'can_scroll') and hover.can_scroll):
+        if not(getattr(hover, 'can_scroll', False)):
             return False
 
         try:
@@ -281,9 +297,17 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         self.option_bar.bind('<Up>', self.decrement_listbox_sel)
         self.option_bar.bind('<Down>', self.increment_listbox_sel)
 
-        self.sel_label.bind('<MouseWheel>', self._mousewheel_scroll)
-        self.button_frame.bind('<MouseWheel>', self._mousewheel_scroll)
-        self.arrow_button.bind('<MouseWheel>', self._mousewheel_scroll)
+        if is_lnx:
+            self.sel_label.bind('<4>', self._mousewheel_scroll)
+            self.sel_label.bind('<5>', self._mousewheel_scroll)
+            self.button_frame.bind('<4>', self._mousewheel_scroll)
+            self.button_frame.bind('<5>', self._mousewheel_scroll)
+            self.arrow_button.bind('<4>', self._mousewheel_scroll)
+            self.arrow_button.bind('<5>', self._mousewheel_scroll)
+        else:
+            self.sel_label.bind('<MouseWheel>', self._mousewheel_scroll)
+            self.button_frame.bind('<MouseWheel>', self._mousewheel_scroll)
+            self.arrow_button.bind('<MouseWheel>', self._mousewheel_scroll)
 
         self.sel_label.bind('<Button-1>', self.click_label)
         self.arrow_button.bind('<ButtonRelease-1>', self.select_option_box)
@@ -339,9 +363,11 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         if not self.should_scroll(e) or (self.option_box_visible or
                                          self.disabled):
             return
-        elif e.delta > 0:
+
+        delta = get_mouse_delta(e)
+        if delta > 0:
             self.decrement_sel()
-        elif e.delta < 0:
+        elif delta < 0:
             self.increment_sel()
 
     def click_outside_option_box(self, e):
@@ -631,7 +657,11 @@ class ToolTipHandler(BinillaWidget):
                 mouse_x + self.tip_offset_x, mouse_y + self.tip_offset_y))
             except Exception: pass
 
-        focus = root.winfo_containing(mouse_x, mouse_y)
+        try:
+            focus = root.winfo_containing(mouse_x, mouse_y)
+        except KeyError:
+            self.app_root.after(self.schedule_rate, self.check_loop)
+            return
 
         # get the widget in focus if nothing is under the mouse
         #if tip_widget is None:
@@ -665,7 +695,6 @@ class ToolTipHandler(BinillaWidget):
                 self.show_tip(mouse_x + self.tip_offset_x,
                               mouse_y + self.tip_offset_y, tip_text)
                 self.curr_tip_text = tip_text
-
         self.app_root.after(self.schedule_rate, self.check_loop)
 
     @property
@@ -873,6 +902,7 @@ class PhotoImageHandler():
 
 
 class BitmapDisplayFrame(BinillaWidget, tk.Frame):
+    app_root = None
     root_frame_id = None
 
     bitmap_index  = None  # index of the bitmap being displayed
@@ -921,6 +951,8 @@ class BitmapDisplayFrame(BinillaWidget, tk.Frame):
         BinillaWidget.__init__(self)
         self.temp_root = kwargs.pop('temp_root', self.temp_root)
         textures = kwargs.pop('textures', ())
+        app_root = kwargs.pop('app_root', ())
+
         self.image_canvas_ids = []
         self.textures = []
         self._image_handlers = {}
@@ -985,13 +1017,19 @@ class BitmapDisplayFrame(BinillaWidget, tk.Frame):
                                 command=self.root_canvas.xview)
         self.vsb = tk.Scrollbar(self, orient="vertical",
                                 command=self.root_canvas.yview)
-        self.root_canvas.config(xscrollcommand=self.hsb.set,
-                                yscrollcommand=self.vsb.set)
+        self.root_canvas.config(xscrollcommand=self.hsb.set, xscrollincrement=1,
+                                yscrollcommand=self.vsb.set, yscrollincrement=1)
         for w in [self.root_frame, self.root_canvas, self.image_canvas,
                   self.controls_frame0, self.controls_frame1,
                   self.controls_frame2] + labels:
-            w.bind('<Shift-MouseWheel>', self.mousewheel_scroll_x)
-            w.bind('<MouseWheel>',       self.mousewheel_scroll_y)
+            if is_lnx:
+                w.bind('<Shift-4>', self.mousewheel_scroll_x)
+                w.bind('<Shift-5>', self.mousewheel_scroll_x)
+                w.bind('<4>',       self.mousewheel_scroll_y)
+                w.bind('<5>',       self.mousewheel_scroll_y)
+            else:
+                w.bind('<Shift-MouseWheel>', self.mousewheel_scroll_x)
+                w.bind('<MouseWheel>',       self.mousewheel_scroll_y)
 
         # pack everything
         # pack in this order so scrollbars aren't shrunk
@@ -1082,14 +1120,18 @@ class BitmapDisplayFrame(BinillaWidget, tk.Frame):
         bbox = self.root_canvas.bbox(tk.ALL)
         if not bbox or (self.root_canvas.winfo_width() >= bbox[2] - bbox[0]):
             return
-        self.root_canvas.xview_scroll(e.delta//60, "units")
+
+        delta = getattr(self.app_root, "scroll_increment_x", 20)
+        self.root_canvas.xview_scroll(int(get_mouse_delta(e) * delta), "units")
 
     def mousewheel_scroll_y(self, e):
         # prevent scrolling if the root_canvas.bbox height >= canvas height
         bbox = self.root_canvas.bbox(tk.ALL)
         if not bbox or (self.root_canvas.winfo_height() >= bbox[3] - bbox[1]):
             return
-        self.root_canvas.yview_scroll(e.delta//-120, "units")
+
+        delta = getattr(self.app_root, "scroll_increment_y", 20)
+        self.root_canvas.yview_scroll(int(get_mouse_delta(e) * delta), "units")
 
     def update_scroll_regions(self):
         if not self.image_canvas_ids and not self.depth_canvas_id:

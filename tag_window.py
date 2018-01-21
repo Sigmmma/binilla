@@ -1,5 +1,5 @@
 import gc
-
+import platform
 import threadsafe_tkinter as tk
 import tkinter.ttk
 
@@ -10,27 +10,31 @@ from traceback import format_exc
 
 from .edit_manager import EditManager
 from .field_widgets import *
-from .widgets import BinillaWidget
+from .widgets import BinillaWidget, get_mouse_delta
 from .widget_picker import *
 
 
 __all__ = ("TagWindow", "ConfigWindow",
-           "make_hotkey_string", "read_hotkey_string",)
+           "make_hotkey_string", "read_hotkey_string", "get_mouse_delta")
 
 
-OS_PAD_X, OS_PAD_Y = 8, 64
+
+
+is_lnx = "linux" in platform.system().lower()
 try:
     from platform import win32_ver
     win_info = win32_ver()
 except Exception:
     win_info = None
 
-if win_info is None:
-    pass
+if win_info is None or win_info[0] == '':
+    OS_PAD_X, OS_PAD_Y = 0, 0
 elif win_info[0] in ('XP', '2000', '2003Server'):
     OS_PAD_X, OS_PAD_Y = 8, 64
 elif win_info[0] in ('Vista', '7', '8.1', '10'):
     OS_PAD_X, OS_PAD_Y = 15, 77
+else:
+    OS_PAD_X, OS_PAD_Y = 8, 64
 
 
 def make_hotkey_string(hotkey):
@@ -153,8 +157,8 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             self, orient='horizontal', command=rc.xview)
         self.root_vsb = tk.Scrollbar(
             self, orient='vertical', command=rc.yview)
-        rc.config(xscrollcommand=self.root_hsb.set, yscrollincrement=yscroll_inc,
-                  yscrollcommand=self.root_vsb.set, xscrollincrement=xscroll_inc)
+        rc.config(xscrollcommand=self.root_hsb.set, xscrollincrement=1,
+                  yscrollcommand=self.root_vsb.set, yscrollincrement=1)
         self.root_frame_id = rc.create_window((0, 0), window=rf, anchor='nw')
 
         # make it so if this window is selected it changes the
@@ -199,12 +203,12 @@ class TagWindow(tk.Toplevel, BinillaWidget):
 
     @property
     def max_height(self):
-        # The -64 accounts for the width of the windows border
+        # OS_PAD_Y accounts for the width of the windows border
         return self.winfo_screenheight() - self.winfo_y() - OS_PAD_Y
 
     @property
     def max_width(self):
-        # The -8 accounts for the width of the windows border
+        # OS_PAD_X accounts for the width of the windows border
         return self.winfo_screenwidth() - self.winfo_x() - OS_PAD_X
 
     def _resize_canvas(self, e):
@@ -263,7 +267,9 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         bbox = self.root_canvas.bbox(tk.ALL)
         if not bbox or (self.root_canvas.winfo_width() >= bbox[2] - bbox[0]):
             return
-        self.root_canvas.xview_scroll(e.delta//60, "units")
+
+        delta = getattr(self.app_root, "scroll_increment_x", 20)
+        self.root_canvas.xview_scroll(int(get_mouse_delta(e) * delta), "units")
 
     def mousewheel_scroll_y(self, e):
         if not self.should_scroll(e):
@@ -272,7 +278,9 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         bbox = self.root_canvas.bbox(tk.ALL)
         if not bbox or (self.root_canvas.winfo_height() >= bbox[3] - bbox[1]):
             return
-        self.root_canvas.yview_scroll(e.delta//-120, "units")
+
+        delta = getattr(self.app_root, "scroll_increment_y", 20)
+        self.root_canvas.yview_scroll(int(get_mouse_delta(e) * delta), "units")
 
     def should_scroll(self, e):
         '''
@@ -317,12 +325,17 @@ class TagWindow(tk.Toplevel, BinillaWidget):
 
         self.new_hotkeys = {}
 
-        for key, func_name in new_hotkeys.items():
+        for hotkey, func_name in new_hotkeys.items():
             try:
-                if hasattr(self, func_name):
-                    self.bind(key, self.__getattribute__(func_name))
+                func = getattr(self, func_name, None)
+                if func is not None:
+                    if is_lnx and "MouseWheel" in hotkey:
+                        self.bind(hotkey.replace("MouseWheel", "4"), func)
+                        self.bind(hotkey.replace("MouseWheel", "5"), func)
+                    else:
+                        self.bind(hotkey, func)
 
-                    curr_hotkeys[key] = func_name
+                    curr_hotkeys[hotkey] = func_name
             except Exception:
                 print(format_exc())
 
@@ -459,9 +472,14 @@ class TagWindow(tk.Toplevel, BinillaWidget):
                 hotkeys[combo] = hotkey.method.enum_name
         if isinstance(hotkeys, dict):
             hotkeys = hotkeys.keys()
-        for key in hotkeys:
+
+        for hotkey in hotkeys:
             try:
-                self.unbind(key)
+                if is_lnx and "MouseWheel" in hotkey:
+                    self.unbind(hotkey.replace("MouseWheel", "4"))
+                    self.unbind(hotkey.replace("MouseWheel", "5"))
+                else:
+                    self.unbind(hotkey)
             except Exception:
                 pass
 

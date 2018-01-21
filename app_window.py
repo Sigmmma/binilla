@@ -1,5 +1,6 @@
 import gc
 import os
+import platform
 import re
 import sys
 import threadsafe_tkinter as tk
@@ -27,6 +28,8 @@ from .widgets import BinillaWidget, ToolTipHandler
 from .handler import Handler
 from .util import *
 
+
+is_lnx = "linux" in platform.system().lower()
 this_curr_dir = dirname(__file__)
 default_config_path = this_curr_dir + '%sbinilla.cfg' % s_c.PATHDIV
 
@@ -98,7 +101,7 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
-    version = '0.9.52'
+    version = '0.9.53'
     log_filename = 'binilla.log'
     debug = 0
     debug_mode = False
@@ -447,8 +450,13 @@ class Binilla(tk.Tk, BinillaWidget):
 
         for hotkey, func_name in new_hotkeys.items():
             try:
-                if hasattr(self, func_name):
-                    self.bind_all(hotkey, self.__getattribute__(func_name))
+                func = getattr(self, func_name, None)
+                if func is not None:
+                    if is_lnx and "MouseWheel" in hotkey:
+                        self.bind_all(hotkey.replace("MouseWheel", "4"), func)
+                        self.bind_all(hotkey.replace("MouseWheel", "5"), func)
+                    else:
+                        self.bind_all(hotkey, func)
             except Exception:
                 print(format_exc())
 
@@ -1364,16 +1372,18 @@ class Binilla(tk.Tk, BinillaWidget):
         self.app_offset_y += dy
 
         # keep a tabs on these so the config file can be updated
-        self.app_width = self.winfo_width()
+        self.app_width  = self.winfo_width()
         self.app_height = self.winfo_height()
 
         if not self.sync_window_movement:
             return
 
         for w in self.tag_windows.values():
+            # use geometry method to get accurate location, even on linux
+            x_base, y_base = w.geometry().split('+')[1:]
             w.geometry('%sx%s+%s+%s' %
                        (w.winfo_width(), w.winfo_height(),
-                        dx + int(w.winfo_x()), dy + int(w.winfo_y())))
+                        dx + int(x_base), dy + int(y_base)))
 
     def tile_vertical(self, e=None):
         windows = self.tag_windows
@@ -1445,9 +1455,13 @@ class Binilla(tk.Tk, BinillaWidget):
         if isinstance(hotkeys, dict):
             hotkeys = hotkeys.keys()
 
-        for key in tuple(hotkeys):
+        for hotkey in tuple(hotkeys):
             try:
-                self.unbind_all(key)
+                if is_lnx and "MouseWheel" in hotkey:
+                    self.unbind_all(hotkey.replace("MouseWheel", "4"))
+                    self.unbind_all(hotkey.replace("MouseWheel", "5"))
+                else:
+                    self.unbind_all(hotkey)
             except Exception:
                 pass
 

@@ -1,3 +1,4 @@
+import platform
 import subprocess
 try:
     import tkinter as tk
@@ -13,6 +14,7 @@ from traceback import format_exc
 
 FLOAT_PREC  = 23*log(2, 10)
 DOUBLE_PREC = 52*log(2, 10)
+IS_LINUX = "linux" in platform.system().lower()
 
 
 def float_to_str(f, max_sig_figs=FLOAT_PREC):
@@ -66,18 +68,24 @@ def do_subprocess(exec_path, cmd_args=(), exec_args=(), **kw):
     result = 1
     proc_controller = kw.pop("proc_controller", ProcController())
     try:
-        cmd_args  = ''.join((" /%s" % a.lower()) for a in cmd_args)
-        exec_args = ''.join(( " %s" % a.lower()) for a in exec_args)
-        cmd_str = '"%s" %s'
-        if cmd_args:
-            # ALWAYS make sure either /c or /k are explicitely supplied when
-            # calling cmd, otherwise default quote handling will be used and
-            # putting quotes around everything won't supply parameters right
-            if '/k' not in cmd_args:
-                cmd_args += ' /c'
-            cmd_str = 'cmd %s "%s"' % (cmd_args, cmd_str)
 
-        with subprocess.Popen(cmd_str % (exec_path, exec_args), **kw) as p:
+        if IS_LINUX:
+            args = (exec_path, ) + exec_args
+        else:
+            cmd_args  = ''.join((" /%s" % a.lower()) for a in cmd_args)
+            cmd_str = '"%s" %s'
+            if cmd_args:
+                # ALWAYS make sure either /c or /k are explicitely supplied when
+                # calling cmd, otherwise default quote handling will be used and
+                # putting quotes around everything won't supply parameters right
+                if '/k' not in cmd_args:
+                    cmd_args += ' /c'
+                cmd_str = 'cmd %s "%s"' % (cmd_args, cmd_str)
+
+            exec_args = ''.join(( " %s" % a.lower()) for a in exec_args)
+            args = cmd_str % (exec_path, exec_args)
+
+        with subprocess.Popen(args, **kw) as p:
             proc_controller.process = p
             while p.poll() is None:
                 if proc_controller.kill:

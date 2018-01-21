@@ -1,3 +1,9 @@
+import platform
+
+IS_WIN = "windows" in platform.system().lower()
+IS_MAC = "darwin" in platform.system().lower()
+IS_LNX = "linux" in platform.system().lower()
+
 # padding to use when packing a widget being oriented vertically
 VERTICAL_PADX = (20, 0)
 VERTICAL_PADY = (0, 5)

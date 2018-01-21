@@ -3,7 +3,6 @@ This module contains various widgets which the FieldWidget classes utilize.
 '''
 import gc
 import os
-import platform
 import random
 import tempfile
 import weakref
@@ -19,10 +18,6 @@ field_widgets = None  # linked to through __init__.py
 
 win_10_pad = 2
 
-is_win = "windows" in platform.system().lower()
-is_mac = "darwin" in platform.system().lower()
-is_lnx = "linux" in platform.system().lower()
-
 
 def import_arbytmap(force=False):
     # dont import it if an import was already attempted
@@ -37,11 +32,11 @@ def import_arbytmap(force=False):
 
 
 def get_mouse_delta(e):
-    if is_win:
+    if e_c.IS_WIN:
         return -1/120 if e.delta < 0 else 1/120
-    elif is_mac:
+    elif e_c.IS_MAC:
         return -1 if e.delta < 0 else 1
-    elif is_lnx:
+    elif e_c.IS_LNX:
         return -1 if e.num == 4 else 1
     else:
         return e.delta
@@ -297,7 +292,7 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         self.option_bar.bind('<Up>', self.decrement_listbox_sel)
         self.option_bar.bind('<Down>', self.increment_listbox_sel)
 
-        if is_lnx:
+        if e_c.IS_LNX:
             self.sel_label.bind('<4>', self._mousewheel_scroll)
             self.sel_label.bind('<5>', self._mousewheel_scroll)
             self.button_frame.bind('<4>', self._mousewheel_scroll)
@@ -365,9 +360,9 @@ class ScrollMenu(tk.Frame, BinillaWidget):
             return
 
         delta = get_mouse_delta(e)
-        if delta > 0:
+        if delta < 0:
             self.decrement_sel()
-        elif delta < 0:
+        elif delta > 0:
             self.increment_sel()
 
     def click_outside_option_box(self, e):
@@ -1022,7 +1017,7 @@ class BitmapDisplayFrame(BinillaWidget, tk.Frame):
         for w in [self.root_frame, self.root_canvas, self.image_canvas,
                   self.controls_frame0, self.controls_frame1,
                   self.controls_frame2] + labels:
-            if is_lnx:
+            if e_c.IS_LNX:
                 w.bind('<Shift-4>', self.mousewheel_scroll_x)
                 w.bind('<Shift-5>', self.mousewheel_scroll_x)
                 w.bind('<4>',       self.mousewheel_scroll_y)

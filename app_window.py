@@ -29,7 +29,6 @@ from .handler import Handler
 from .util import *
 
 
-is_lnx = "linux" in platform.system().lower()
 this_curr_dir = dirname(__file__)
 default_config_path = this_curr_dir + '%sbinilla.cfg' % s_c.PATHDIV
 
@@ -101,7 +100,7 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
-    version = '0.9.53'
+    version = '0.9.54'
     log_filename = 'binilla.log'
     debug = 0
     debug_mode = False
@@ -452,7 +451,7 @@ class Binilla(tk.Tk, BinillaWidget):
             try:
                 func = getattr(self, func_name, None)
                 if func is not None:
-                    if is_lnx and "MouseWheel" in hotkey:
+                    if e_c.IS_LNX and "MouseWheel" in hotkey:
                         self.bind_all(hotkey.replace("MouseWheel", "4"), func)
                         self.bind_all(hotkey.replace("MouseWheel", "5"), func)
                     else:
@@ -1457,7 +1456,7 @@ class Binilla(tk.Tk, BinillaWidget):
 
         for hotkey in tuple(hotkeys):
             try:
-                if is_lnx and "MouseWheel" in hotkey:
+                if e_c.IS_LNX and "MouseWheel" in hotkey:
                     self.unbind_all(hotkey.replace("MouseWheel", "4"))
                     self.unbind_all(hotkey.replace("MouseWheel", "5"))
                 else:

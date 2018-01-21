@@ -32,10 +32,8 @@ def import_arbytmap(force=False):
 
 
 def get_mouse_delta(e):
-    if e_c.IS_WIN:
-        return -1/120 if e.delta < 0 else 1/120
-    elif e_c.IS_MAC:
-        return -1 if e.delta < 0 else 1
+    if e_c.IS_WIN or e_c.IS_MAC:
+        return 1 if e.delta < 0 else -1
     elif e_c.IS_LNX:
         return -1 if e.num == 4 else 1
     else:

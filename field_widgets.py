@@ -3636,12 +3636,19 @@ class BoolFrame(DataFrame):
         self.scrollbar_y = tk.Scrollbar(self.content, orient='vertical',
                                         command=self.check_canvas.yview)
 
-        self.check_canvas.config(yscrollcommand=self.scrollbar_y.set)
+        self.check_canvas.config(yscrollcommand=self.scrollbar_y.set,
+                                 yscrollincrement=1, xscrollincrement=1)
         self.check_frame_id = self.check_canvas.create_window(
             (0, 0), window=self.check_frame, anchor='nw')
 
-        self.check_frame.bind('<MouseWheel>', self.mousewheel_scroll_y)
-        self.check_canvas.bind('<MouseWheel>', self.mousewheel_scroll_y)
+        if e_c.IS_LNX:
+            self.check_frame.bind('<4>', self.mousewheel_scroll_y)
+            self.check_frame.bind('<5>', self.mousewheel_scroll_y)
+            self.check_canvas.bind('<4>', self.mousewheel_scroll_y)
+            self.check_canvas.bind('<5>', self.mousewheel_scroll_y)
+        else:
+            self.check_frame.bind('<MouseWheel>', self.mousewheel_scroll_y)
+            self.check_canvas.bind('<MouseWheel>', self.mousewheel_scroll_y)
 
         self.populate()
         self._initialized = True
@@ -3742,8 +3749,12 @@ class BoolFrame(DataFrame):
                              self._check_bool(b, i, v))
 
             check_btn.pack(anchor='nw', fill='x', expand=True)
-            check_btn.bind('<MouseWheel>', self.mousewheel_scroll_y)
             check_btn.tooltip_string = opt.get('TOOLTIP')
+            if e_c.IS_LNX:
+                check_btn.bind('<4>', self.mousewheel_scroll_y)
+                check_btn.bind('<5>', self.mousewheel_scroll_y)
+            else:
+                check_btn.bind('<MouseWheel>', self.mousewheel_scroll_y)
 
         self.pose_fields()
 
@@ -3801,7 +3812,10 @@ class BoolFrame(DataFrame):
 
     def mousewheel_scroll_y(self, e):
         if self.should_scroll(e):
-            self.check_canvas.yview_scroll(e.delta//-120, "units")
+            delta = (getattr(self.tag_window.app_root,
+                             "scroll_increment_x", 20) *
+                     int(widgets.get_mouse_delta(e)))
+            self.check_canvas.yview_scroll(delta, "units")
 
 
 class BoolSingleFrame(DataFrame):

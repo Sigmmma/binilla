@@ -26,7 +26,7 @@ def is_main_frozen():
 
 
 def get_cwd(module=None):
-   if main_is_frozen():
+   if is_main_frozen():
        return os.path.dirname(sys.executable)
    return os.path.dirname(__file__ if module is None else module)
 

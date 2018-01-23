@@ -29,7 +29,7 @@ from .handler import Handler
 from .util import *
 
 
-this_curr_dir = dirname(__file__)
+this_curr_dir = get_cwd(__file__)
 default_config_path = this_curr_dir + '%sbinilla.cfg' % s_c.PATHDIV
 
 default_hotkeys = {

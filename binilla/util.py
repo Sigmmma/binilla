@@ -1,4 +1,7 @@
+import imp
+import os
 import platform
+import sys
 import subprocess
 try:
     import tkinter as tk
@@ -15,6 +18,17 @@ from traceback import format_exc
 FLOAT_PREC  = 23*log(2, 10)
 DOUBLE_PREC = 52*log(2, 10)
 IS_LINUX = "linux" in platform.system().lower()
+
+
+def is_main_frozen():
+   return (hasattr(sys, "frozen") or hasattr(sys, "importers")
+           or imp.is_frozen("__main__"))
+
+
+def get_cwd(module=None):
+   if main_is_frozen():
+       return os.path.dirname(sys.executable)
+   return os.path.dirname(__file__ if module is None else module)
 
 
 def float_to_str(f, max_sig_figs=FLOAT_PREC):

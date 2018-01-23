@@ -19,7 +19,6 @@ import sys
 
 from datetime import datetime
 from importlib import import_module
-from importlib.machinery import SourceFileLoader
 from os.path import dirname, split, splitext, join, isfile, relpath
 from traceback import format_exc
 from types import ModuleType
@@ -28,8 +27,8 @@ from supyr_struct.tag import Tag
 from supyr_struct.defs.tag_def import TagDef
 
 # make sure the new constants are injected and used
-from .constants import *
-from supyr_struct.defs.util import *
+from binilla.constants import *
+from binilla.util import *
 
 
 ######################################################
@@ -81,10 +80,13 @@ class Handler():
     Read this classes __init__.__doc__ for descriptions of these properties.
     '''
 
+    frozen_imp_paths = ()
+
     # whether or not the case of the path that a tag is keyed by matters.
     # If False, all paths will be converted to lowercase
     # when being stored, retrieved, and deleted
     case_sensitive = True
+
     # whether or not the path that a tag is keyed by is relative
     # to self.tagsdir, where os.path.join(self.tagsdir, path)
     # can be used to obtain the absolute path to the tag.
@@ -511,8 +513,6 @@ class Handler():
         #
         ######################################################
 
-        imp_paths = {}
-
         self.defs.clear()
 
         if not self.defs_path:
@@ -552,25 +552,33 @@ class Handler():
             self.defs_filepath = tuple(defs_module.__path__)[0]
         self.defs_filepath = sanitize_path(self.defs_filepath)
 
-        # Log the location of every python file in the defs root
-        # search for possibly valid definitions in the defs folder
-        for root, directories, files in os.walk(self.defs_filepath):
-            for module_path in files:
-                base, ext = splitext(module_path)
+        if 'imp_paths' in kwargs:
+            imp_paths = kwargs['imp_paths']
+        elif is_main_frozen():
+            imp_paths = self.frozen_imp_paths
+        else:
+            # Log the location of every python file in the defs root
+            # search for possibly valid definitions in the defs folder
+            imp_paths = []
+            for root, directories, files in os.walk(self.defs_filepath):
+                for module_path in files:
+                    base, ext = splitext(module_path)
 
-                # do NOT use relpath here
-                fpath = root.split(self.defs_filepath)[-1]
+                    # do NOT use relpath here
+                    fpath = root.split(self.defs_filepath)[-1]
 
-                # make sure the file name ends with .py and isnt already loaded
-                if ext.lower() in (".py", ".pyw") and base not in imp_paths:
-                    mod_name = (fpath + '.' + base).replace(PATHDIV, '.')
-                    imp_paths[mod_name] = join(root, base + ext)
+                    # make sure the file name ends with .py and isnt already loaded
+                    if ext.lower() in (".py", ".pyw") and base not in imp_paths:
+                        imp_paths.append((fpath + '.' + base)\
+                                         .replace(PATHDIV, '.').lstrip('.'))
 
         # load the defs that were found
         for mod_name in imp_paths:
-            # try to import the Definition module
+            # try to import the definition module
             try:
-                def_module = import_module(self.defs_path + mod_name)
+                def_module = import_module(
+                    join(self.defs_path, mod_name)\
+                    .replace(PATHDIV, '.'))
             except Exception:
                 def_module = None
                 if self.debug >= 1:

@@ -100,7 +100,7 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
-    version = '0.9.55'
+    version = '0.9.57'
     log_filename = 'binilla.log'
     debug = 0
     debug_mode = False
@@ -1011,10 +1011,14 @@ class Binilla(tk.Tk, BinillaWidget):
                     new_tag = handler.build_tag(
                         filepath=abs_path, def_id=def_id,
                         allow_corrupt=handler_flags.allow_corrupt)
+                except PermissionError:
+                    print("This program does not have permission to work in this folder.\n"
+                          "Could not load: %s" % path)
+                    continue
                 except Exception:
                     if handler.debug:
                         print(format_exc())
-                    print("Could not load tag '%s'" % path)
+                    print("Could not load: %s" % path)
                     continue
 
             self.add_tag(new_tag, path)
@@ -1237,9 +1241,13 @@ class Binilla(tk.Tk, BinillaWidget):
             self.add_tag(tag, filepath)
 
             w.save(temp=False)
+        except PermissionError:
+            print("This program does not have permission to save to this folder.\n"
+                  "Could not save: %s" % filepath)
+            return None
         except Exception:
             print(format_exc())
-            raise IOError("Could not save tag.")
+            raise IOError("Could not save: %s" % filepath)
 
         try:
             self.get_tag_window_by_tag(tag).update_title()

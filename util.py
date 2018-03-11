@@ -14,7 +14,8 @@ from time import sleep
 from supyr_struct.defs.util import *
 from traceback import format_exc
 
-
+POS_INF = float("inf")
+NEG_INF = float("-inf")
 FLOAT_PREC  = 23*log(2, 10)
 DOUBLE_PREC = 52*log(2, 10)
 IS_LINUX = "linux" in platform.system().lower()
@@ -32,6 +33,11 @@ def get_cwd(module=None):
 
 
 def float_to_str(f, max_sig_figs=FLOAT_PREC):
+    if f == POS_INF:
+        return "inf"
+    elif f == NEG_INF:
+        return "-inf"
+    
     sig_figs = -1
     if abs(f) > 0:
         sig_figs = int(round(max_sig_figs - log(abs(f), 10)))

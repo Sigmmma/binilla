@@ -1077,6 +1077,10 @@ class ColorPickerFrame(ContainerFrame):
         self.node.b = new_val
 
     def select_color(self):
+        self.flush()
+        if hasattr(self, 'color_btn'):
+            self.color_btn.config(bg=self.get_color()[1])
+
         color, hex_color = askcolor(self.get_color()[1], parent=self)
 
         if None in (color, hex_color):
@@ -2467,6 +2471,10 @@ class EntryFrame(DataFrame):
             if unit_scale is not None and isinstance(node, (int, float)):
                 node *= unit_scale
 
+            highlight = False
+            if self.data_entry.selection_present():
+                highlight = True
+
             # set this to true so the StringVar trace function
             # doesnt think the widget has been edited by the user
             self.needs_flushing = True
@@ -2495,6 +2503,8 @@ class EntryFrame(DataFrame):
 
             self.data_entry.insert(0, self.last_flushed_val)
             self.needs_flushing = False
+            if highlight:
+                self.data_entry.selection_range(0, tk.END) 
         except Exception:
             print(format_exc())
         finally:

@@ -308,7 +308,11 @@ class FieldWidget(widgets.BinillaWidget):
         '''The gui_name of the node of this FieldWidget.'''
         name = self.name.replace('_', ' ')
         if self.use_gui_names:
-            return self.desc.get('GUI_NAME', name)
+            name = self.desc.get('GUI_NAME', name)
+
+        if self.desc.get('TOOLTIP') and name:
+            name += " �"
+
         return name
 
     @property
@@ -1979,10 +1983,12 @@ class NullFrame(DataFrame):
     def flush(self): pass
 
     def populate(self):
+        try: title_font = self.tag_window.app_root.default_font
+        except AttributeError: title_font = None
         self.title_label = tk.Label(
             self, text=self.gui_name, width=self.title_size, anchor='w',
             bg=self.default_bg_color, fg=self.text_normal_color,
-            disabledforeground=self.text_disabled_color)
+            disabledforeground=self.text_disabled_color, font=title_font)
         self.field_type_name = tk.Label(
             self, text='<%s>'%self.desc['TYPE'].name,
             anchor='w', justify='left',
@@ -2055,10 +2061,12 @@ class RawdataFrame(DataFrame):
                 print(format_exc())
 
     def populate(self):
+        try: title_font = self.tag_window.app_root.default_font
+        except AttributeError: title_font = None
         self.title_label = tk.Label(
             self, text=self.gui_name, width=self.title_size, anchor='w',
             bg=self.default_bg_color, fg=self.text_normal_color,
-            disabledforeground=self.text_disabled_color)
+            disabledforeground=self.text_disabled_color, font=title_font)
 
         self.tooltip_string = self.desc.get('TOOLTIP')
         self.title_label.tooltip_string = self.tooltip_string
@@ -2209,10 +2217,12 @@ class VoidFrame(DataFrame):
     def flush(self): pass
 
     def populate(self):
+        try: title_font = self.tag_window.app_root.default_font
+        except AttributeError: title_font = None
         self.title_label = tk.Label(
             self, text=self.gui_name, width=self.title_size, anchor='w',
             bg=self.default_bg_color, fg=self.text_normal_color,
-            disabledforeground=self.text_disabled_color)
+            disabledforeground=self.text_disabled_color, font=title_font)
         self.field_type_name = tk.Label(
             self, text='<VOIDED>', anchor='w', justify='left',
             bg=self.default_bg_color, fg=self.text_normal_color,
@@ -2265,10 +2275,12 @@ class EntryFrame(DataFrame):
         self.entry_string = tk.StringVar(self)
         self.content = tk.Frame(self, relief='flat', bd=0,
                                 bg=self.default_bg_color)
+        try: title_font = self.tag_window.app_root.default_font
+        except AttributeError: title_font = None
 
         self.title_label = tk.Label(
             self.content, text=self.gui_name, justify='left', anchor='w',
-            bg=self.default_bg_color, fg=self.text_normal_color,
+            bg=self.default_bg_color, fg=self.text_normal_color, font=title_font,
             disabledforeground=self.text_disabled_color, width=self.title_size)
 
         self.data_entry = tk.Entry(
@@ -2721,10 +2733,12 @@ class TextFrame(DataFrame):
         # make the widgets
         self.content = tk.Frame(self, relief='flat', bd=0,
                                 bg=self.default_bg_color)
+        try: title_font = self.tag_window.app_root.default_font
+        except AttributeError: title_font = None
 
         self.title_label = tk.Label(
             self.content, text=self.gui_name, justify='left', anchor='w',
-            bg=self.default_bg_color, fg=self.text_normal_color,
+            bg=self.default_bg_color, fg=self.text_normal_color, font=title_font,
             disabledforeground=self.text_disabled_color, width=self.title_size)
 
         self.data_text = tk.Text(
@@ -3335,6 +3349,8 @@ class EnumFrame(DataFrame):
                 label_width = max(label_width, len(s))
 
         # make the widgets
+        try: title_font = self.tag_window.app_root.default_font
+        except AttributeError: title_font = None
         self.content = tk.Frame(self, relief='flat', bd=0,
                                 bg=self.default_bg_color)
 
@@ -3344,7 +3360,7 @@ class EnumFrame(DataFrame):
             self.content, text=self.gui_name,
             justify='left', anchor='w', width=self.title_size,
             bg=self.default_bg_color, fg=self.text_normal_color,
-            disabledforeground=self.text_disabled_color)
+            disabledforeground=self.text_disabled_color, font=title_font)
         self.sel_menu = widgets.ScrollMenu(
             self.content, f_widget_parent=self, menu_width=label_width,
             sel_index=sel_index, max_index=self.desc.get('ENTRIES', 0) - 1,
@@ -3485,10 +3501,12 @@ class DynamicEnumFrame(EnumFrame):
         DataFrame.__init__(self, *args, **kwargs)
 
         # make the widgets
+        try: title_font = self.tag_window.app_root.default_font
+        except AttributeError: title_font = None
         self.content = tk.Frame(self, relief='flat', bd=0,
                                 bg=self.default_bg_color)
         self.title_label = tk.Label(
-            self.content, text=self.gui_name,
+            self.content, text=self.gui_name, font=title_font,
             justify='left', anchor='w', width=self.title_size,
             bg=self.default_bg_color, fg=self.text_normal_color,
             disabledforeground=self.text_disabled_color)
@@ -3624,6 +3642,8 @@ class BoolFrame(DataFrame):
         DataFrame.__init__(self, *args, **kwargs)
         self.checkvars = {}
 
+        try: title_font = self.tag_window.app_root.default_font
+        except AttributeError: title_font = None
         self.content = tk.Frame(
             self, bg=self.default_bg_color, highlightthickness=0)
 
@@ -3632,7 +3652,7 @@ class BoolFrame(DataFrame):
         self.title_label = tk.Label(
             self.content, text=self.gui_name, width=self.title_size, anchor='w',
             bg=self.default_bg_color, fg=self.text_normal_color,
-            disabledforeground=self.text_disabled_color,)
+            disabledforeground=self.text_disabled_color, font=title_font)
 
         if self.gui_name != '':
             self.title_label.pack(side='left')
@@ -3738,6 +3758,9 @@ class BoolFrame(DataFrame):
             opt = bit_opt_map[bit]
 
             name = opt.get('GUI_NAME', opt['NAME'])
+            if opt.get('TOOLTIP'):
+                name += " �"
+
             check_var = tk.IntVar(self.check_frame)
             check_var.set(bool(data & (1 << bit)))
             checkvars[bit] = check_var
@@ -3760,6 +3783,7 @@ class BoolFrame(DataFrame):
 
             check_btn.pack(anchor='nw', fill='x', expand=True)
             check_btn.tooltip_string = opt.get('TOOLTIP')
+
             if e_c.IS_LNX:
                 check_btn.bind('<4>', self.mousewheel_scroll_y)
                 check_btn.bind('<5>', self.mousewheel_scroll_y)
@@ -3833,6 +3857,8 @@ class BoolSingleFrame(DataFrame):
 
     def __init__(self, *args, **kwargs):
         DataFrame.__init__(self, *args, **kwargs)
+        try: title_font = self.tag_window.app_root.default_font
+        except AttributeError: title_font = None
 
         self.checked = tk.IntVar(self)
         self.checkbutton = tk.Checkbutton(
@@ -3845,7 +3871,7 @@ class BoolSingleFrame(DataFrame):
         self.title_label = tk.Label(
             self, text=self.gui_name, width=self.title_size, anchor='w',
             bg=self.default_bg_color, fg=self.text_normal_color,
-            disabledforeground=self.text_disabled_color,)
+            disabledforeground=self.text_disabled_color, font=title_font)
 
         if self.gui_name != '':
             self.title_label.pack(side='left')

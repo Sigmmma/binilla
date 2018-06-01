@@ -213,6 +213,7 @@ class Binilla(tk.Tk, BinillaWidget):
         tk.Tk.__init__(self, *args, **kwargs)
 
         #fonts
+        self.default_font = Font(family="Segoe UI", size=9)
         self.fixed_font = Font(family="Courier", size=8)
         self.container_title_font = Font(
             family="Courier", size=10, weight='bold')

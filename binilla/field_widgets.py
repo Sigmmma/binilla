@@ -184,72 +184,64 @@ class FieldWidget(widgets.BinillaWidget):
     @property
     def enforce_max(self):
         try:
-            return bool(self.tag_window.app_root.config_file\
-                        .data.header.tag_window_flags.enforce_max)
+            return bool(self.tag_window.enforce_max)
         except Exception:
             return True
 
     @property
     def enforce_min(self):
         try:
-            return bool(self.tag_window.app_root.config_file\
-                        .data.header.tag_window_flags.enforce_min)
+            return bool(self.tag_window.enforce_min)
         except Exception:
             return True
 
     @property
     def use_gui_names(self):
         try:
-            return bool(self.tag_window.app_root.config_file\
-                        .data.header.tag_window_flags.use_gui_names)
+            return bool(self.tag_window.use_gui_names)
         except Exception:
             return True
 
     @property
     def all_visible(self):
         try:
-            return bool(self.tag_window.app_root.config_file\
-                        .data.header.tag_window_flags.show_invisible)
+            return bool(self.tag_window.all_visible)
         except Exception:
+            print(format_exc())
             return False
 
     @property
     def all_editable(self):
         try:
-            return bool(self.tag_window.app_root.config_file\
-                        .data.header.tag_window_flags.edit_uneditable)
+            return bool(self.tag_window.all_editable)
         except Exception:
             return False
 
     @property
     def all_bools_visible(self):
         try:
-            return bool(self.tag_window.app_root.config_file\
-                        .data.header.tag_window_flags.show_all_bools)
+            return bool(self.tag_window.all_bools_visible)
         except Exception:
             return False
 
     @property
     def show_comments(self):
         try:
-            return bool(self.tag_window.app_root.config_file\
-                        .data.header.tag_window_flags.show_comments)
+            return bool(self.tag_window.show_comments)
         except Exception:
             return False
 
     @property
     def show_sidetips(self):
         try:
-            return bool(self.tag_window.app_root.config_file\
-                        .data.header.tag_window_flags.show_sidetips)
+            return bool(self.tag_window.show_sidetips)
         except Exception:
             return False
 
     @property
     def max_undos(self):
         try:
-            return bool(self.tag_window.app_root.config_file
-                        .data.header.max_undos)
+            return bool(self.tag_window.max_undos)
         except Exception:
             pass
         return 0

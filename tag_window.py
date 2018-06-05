@@ -202,6 +202,78 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         self.resize_window(width, height)
 
     @property
+    def enforce_max(self):
+        try:
+            return bool(self.app_root.config_file.data.\
+                        header.tag_window_flags.enforce_max)
+        except Exception:
+            return True
+
+    @property
+    def enforce_min(self):
+        try:
+            return bool(self.app_root.config_file.data.\
+                        header.tag_window_flags.enforce_min)
+        except Exception:
+            return True
+
+    @property
+    def use_gui_names(self):
+        try:
+            return bool(self.app_root.config_file.data.\
+                        header.tag_window_flags.use_gui_names)
+        except Exception:
+            return True
+
+    @property
+    def all_visible(self):
+        try:
+            return bool(self.app_root.config_file.data.\
+                        header.tag_window_flags.show_invisible)
+        except Exception:
+            return False
+
+    @property
+    def all_editable(self):
+        try:
+            return bool(self.app_root.config_file.data.\
+                        header.tag_window_flags.edit_uneditable)
+        except Exception:
+            return False
+
+    @property
+    def all_bools_visible(self):
+        try:
+            return bool(self.app_root.config_file.data.\
+                        header.tag_window_flags.show_all_bools)
+        except Exception:
+            return False
+
+    @property
+    def show_comments(self):
+        try:
+            return bool(self.app_root.config_file.data.\
+                        header.tag_window_flags.show_comments)
+        except Exception:
+            return False
+
+    @property
+    def show_sidetips(self):
+        try:
+            return bool(self.app_root.config_file.data.\
+                        header.tag_window_flags.show_sidetips)
+        except Exception:
+            return False
+
+    @property
+    def max_undos(self):
+        try:
+            return bool(self.app_root.config_file.data.header.max_undos)
+        except Exception:
+            pass
+        return 0
+
+    @property
     def max_height(self):
         # OS_PAD_Y accounts for the width of the windows border
         return self.winfo_screenheight() - self.winfo_y() - OS_PAD_Y

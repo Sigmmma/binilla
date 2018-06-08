@@ -949,11 +949,15 @@ class Binilla(tk.Tk, BinillaWidget):
             pass
 
     def get_tag_window_by_tag(self, tag):
-        try:
-            return self.tag_windows[self.tag_id_to_window_id[id(tag)]]
-        except Exception:
-            print(format_exc())
-            return None
+        if hasattr(tag, "filepath"):
+            try:
+                return self.tag_windows[self.tag_id_to_window_id[id(tag)]]
+            except Exception:
+                print(format_exc())
+                print("Could not locate tag window for: %s" % tag.filepath)
+                return
+
+        print("Invalid object supplied for tag.")
 
     def get_is_tag_loaded(self, filepath, def_id=None):
         if def_id is None:

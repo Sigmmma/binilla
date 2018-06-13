@@ -126,11 +126,8 @@ class TagWindow(tk.Toplevel, BinillaWidget):
 
         try:
             max_undos = self.app_root.max_undos
-            xscroll_inc = self.app_root.scroll_increment_x
-            yscroll_inc = self.app_root.scroll_increment_y
         except AttributeError:
             max_undos = 100
-            xscroll_inc = yscroll_inc = 20
 
         try:
             config_data = self.app_root.config_file.data
@@ -147,10 +144,8 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         self.edit_manager = EditManager(max_undos)
 
         # create the root_canvas and the root_frame within the canvas
-        self.root_canvas = rc = tk.Canvas(
-            self, highlightthickness=0, bg=self.default_bg_color)
-        self.root_frame = rf = tk.Frame(
-            rc, highlightthickness=0, bg=self.default_bg_color)
+        self.root_canvas = rc = tk.Canvas(self, highlightthickness=0)
+        self.root_frame = rf = tk.Frame(rc, highlightthickness=0)
 
         # create and set the x and y scrollbars for the root_canvas
         self.root_hsb = tk.Scrollbar(
@@ -171,6 +166,9 @@ class TagWindow(tk.Toplevel, BinillaWidget):
 
         # make the window not show up on the start bar
         self.transient(self.app_root)
+
+        # do this before populating as otherwise it'll call populate again
+        self.apply_style()
 
         # populate the window
         self.populate()
@@ -507,6 +505,16 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             return
         self.geometry('%sx%s' % (new_width, new_height))
 
+    def apply_style(self):
+        if self.field_widget is not None:
+            if self.field_widget.needs_flushing:
+                self.field_widget.flush()
+
+            self.populate()
+
+        self.root_canvas.config(bg=self.default_bg_color)
+        self.root_frame.config(bg=self.default_bg_color)
+
     def populate(self):
         '''
         Destroys the FieldWidget attached to this TagWindow and remakes it.
@@ -515,6 +523,9 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         if hasattr(self.field_widget, 'destroy'):
             self.field_widget.destroy()
             self.field_widget = None
+
+        if self.tag is None:
+            return
 
         # Get the desc of the top block in the tag
         root_block = self.tag.data
@@ -670,6 +681,7 @@ class ConfigWindow(TagWindow):
         tag = self.tag
         self.tag = None
         try:
+            self.field_widget.flush()
             self.app_root.save_config()
         except Exception:
             pass

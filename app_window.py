@@ -763,8 +763,10 @@ class Binilla(tk.Tk, BinillaWidget):
             except IndexError: pass
 
         for w in self.tag_windows.values():
-            try: w.edit_resize(self.max_undos)
-            except Exception: print(format_exc())
+            try:
+                w.edit_resize(self.max_undos)
+            except Exception:
+                print(format_exc())
 
         self.handler.tagsdir = dir_paths.tags_dir.path
 
@@ -868,6 +870,19 @@ class Binilla(tk.Tk, BinillaWidget):
                         '#%02x%02x%02x' % tuple(colors[s]))
             except IndexError:
                 pass
+
+        try:
+            update_tag_windows = self.config_file.data.header.tag_window_flags.\
+                                 apply_config_changes_immediately
+        except Exception:
+            update_tag_windows = True
+
+        if update_tag_windows:
+            for w in self.tag_windows.values():
+                try:
+                    w.apply_style()
+                except Exception:
+                    print(format_exc())
 
         if self._initialized:
             self.update_config()
@@ -1185,6 +1200,7 @@ class Binilla(tk.Tk, BinillaWidget):
     def save_tag(self, tag=None):
         if isinstance(tag, tk.Event):
             tag = None
+
         if tag is None:
             if self.selected_tag is None:
                 return

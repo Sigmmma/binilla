@@ -193,6 +193,75 @@ class BinillaWidget():
             pass
         return True
 
+    def apply_style(self, seen=None):
+        if not isinstance(self, tk.BaseWidget):
+            return
+
+        widgets = (self, )
+        if seen is None:
+            seen = set()
+
+        while widgets:
+            next_widgets = []
+            for w in widgets:
+                if id(w) in seen:
+                    continue
+
+                if isinstance(w, BinillaWidget):
+                    if w is self:
+                        seen.add(id(w))
+
+                    w.apply_style(seen)
+                    next_widgets.extend(w.children.values())
+                    if w is not self:
+                        continue
+                elif w is not self:
+                    seen.add(id(w))
+
+                if isinstance(w, tk.Listbox):
+                    w.config(bg=self.enum_normal_color, fg=self.text_normal_color,
+                        selectbackground=self.enum_highlighted_color,
+                        selectforeground=self.text_highlighted_color)
+                    next_widgets.extend(w.children.values())
+                    continue
+
+                if isinstance(w, tk.LabelFrame):
+                    w.config(fg=self.text_normal_color, bg=self.default_bg_color)
+                    next_widgets.extend(w.children.values())
+                    continue
+
+                if isinstance(w, (tk.Frame, tk.Canvas)):
+                    w.config(bg=self.default_bg_color)
+                    next_widgets.extend(w.children.values())
+                    continue
+
+                if isinstance(w, tk.Checkbutton):
+                    w.config(disabledforeground=self.text_disabled_color,
+                            bg=self.default_bg_color, fg=self.text_normal_color,
+                            activebackground=self.default_bg_color,
+                            activeforeground=self.text_highlighted_color,)
+                    next_widgets.extend(w.children.values())
+                    continue
+
+                if isinstance(w, tk.Button):
+                    w.config(bg=self.button_color, activebackground=self.button_color,
+                             fg=self.text_normal_color, bd=self.button_depth,
+                             disabledforeground=self.text_disabled_color)
+                    next_widgets.extend(w.children.values())
+                    continue
+
+                if isinstance(w, tk.Entry):
+                    w.config(bd=self.entry_depth,
+                        bg=self.entry_normal_color, fg=self.text_normal_color,
+                        disabledbackground=self.entry_disabled_color,
+                        disabledforeground=self.text_disabled_color,
+                        selectbackground=self.entry_highlighted_color,
+                        selectforeground=self.text_highlighted_color)
+                    next_widgets.extend(w.children.values())
+                    continue
+
+            widgets = next_widgets
+
 
 class ScrollMenu(tk.Frame, BinillaWidget):
     '''
@@ -222,6 +291,7 @@ class ScrollMenu(tk.Frame, BinillaWidget):
     def __init__(self, *args, **kwargs):
         BinillaWidget.__init__(self)
         sel_index = kwargs.pop('sel_index', -1)
+        disabled = kwargs.pop('disabled', False)
 
         options = kwargs.pop('options', None)
         self.option_getter = kwargs.pop('option_getter', None)
@@ -233,7 +303,6 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         self.menu_width = kwargs.pop('menu_width', self.menu_width)
         self.options_sane = kwargs.pop('options_sane', False)
         self.default_text = kwargs.pop('default_text', e_c.INVALID_OPTION)
-        disabled = kwargs.pop('disabled', False)
 
         if self.max_height is None:
             self.max_height = self.scroll_menu_max_height
@@ -595,13 +664,12 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         except Exception:
             pass
 
-    def update_label(self):
-        option = ''
+    def update_label(self, text=''):
         if self.sel_index >= 0:
-            option = self.get_options("active")
-            if option is None:
-                option = '%s. %s' % (self.sel_index, self.default_text)
-        self.sel_label.config(text=option, anchor="w")
+            text = self.get_options("active")
+            if text is None:
+                text = '%s. %s' % (self.sel_index, self.default_text)
+        self.sel_label.config(text=text, anchor="w")
 
 
 class ToolTipHandler(BinillaWidget):
@@ -646,9 +714,11 @@ class ToolTipHandler(BinillaWidget):
 
         # move the tip_window to where it needs to be
         if self.tip_window and mouse_dx or mouse_dy:
-            try: self.tip_window.geometry("+%s+%s" % (
-                mouse_x + self.tip_offset_x, mouse_y + self.tip_offset_y))
-            except Exception: pass
+            try:
+                self.tip_window.geometry("+%s+%s" % (mouse_x + self.tip_offset_x,
+                                                     mouse_y + self.tip_offset_y))
+            except Exception:
+                pass
 
         try:
             focus = root.winfo_containing(mouse_x, mouse_y)
@@ -660,8 +730,10 @@ class ToolTipHandler(BinillaWidget):
         #if tip_widget is None:
         #    focus = root.focus_get()
 
-        try: tip_text = focus.tooltip_string
-        except Exception: tip_text = None
+        try:
+            tip_text = focus.tooltip_string
+        except Exception:
+            tip_text = None
 
         curr_time = time()
 

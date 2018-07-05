@@ -1,4 +1,3 @@
-import gc
 import platform
 import threadsafe_tkinter as tk
 import tkinter.ttk
@@ -16,7 +15,6 @@ from .widget_picker import *
 
 __all__ = ("TagWindow", "ConfigWindow",
            "make_hotkey_string", "read_hotkey_string", "get_mouse_delta")
-
 
 
 
@@ -454,7 +452,6 @@ class TagWindow(tk.Toplevel, BinillaWidget):
 
         tk.Toplevel.destroy(self)
         self.delete_all_widget_refs()
-        gc.collect()
 
     def save(self, **kwargs):
         '''Flushes any lingering changes in the widgets to the tag.'''
@@ -505,13 +502,15 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             return
         self.geometry('%sx%s' % (new_width, new_height))
 
-    def apply_style(self):
+    def apply_style(self, seen=None):
         if self.field_widget is not None:
             if self.field_widget.needs_flushing:
                 self.field_widget.flush()
 
             self.populate()
 
+        # enable this when FieldWidgets have their own apply_style methods
+        #BinillaWidget.apply_style(self, seen)
         self.root_canvas.config(bg=self.default_bg_color)
         self.root_frame.config(bg=self.default_bg_color)
 

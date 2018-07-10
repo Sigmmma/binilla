@@ -289,7 +289,7 @@ class Binilla(tk.Tk, BinillaWidget):
             label="Edit config", command=self.show_config_file)
         self.settings_menu.add_separator()
         self.settings_menu.add_command(
-            label="Load style", command=self.apply_style)
+            label="Load style", command=self.load_style)
         self.settings_menu.add_command(
             label="Save current style", command=self.make_style)
 
@@ -336,7 +336,7 @@ class Binilla(tk.Tk, BinillaWidget):
         self.geometry("%sx%s+%s+%s" %
                       (self.app_width, self.app_height,
                        self.app_offset_x, self.app_offset_y))
-        self.update_window_settings()
+        self.apply_style()
         try:
             if self.config_file.data.header.flags.load_last_workspace:
                 self.load_last_workspace()
@@ -786,7 +786,7 @@ class Binilla(tk.Tk, BinillaWidget):
         except Exception:
             self.debug_mode = True
 
-        self.apply_style(style_file=self.config_file)
+        self.load_style(style_file=self.config_file)
 
     def load_config(self, filepath=None):
         if filepath is None:
@@ -822,9 +822,10 @@ class Binilla(tk.Tk, BinillaWidget):
                 continue
             self.curr_tag_window_hotkeys[combo] = hotkey.method.enum_name
 
-    def apply_style(self, filepath=None, style_file=None):
+    def load_style(self, seen=None, filepath=None, style_file=None):
         if isinstance(filepath, tk.Event):
             filepath = None
+
         if style_file is None:
             if filepath is None:
                 filepath = askopenfilename(
@@ -895,7 +896,7 @@ class Binilla(tk.Tk, BinillaWidget):
 
         if self._initialized:
             self.update_config()
-            self.update_window_settings()
+            self.apply_style()
             self.geometry("%sx%s+%s+%s" %
                           (self.app_width, self.app_height,
                            self.app_offset_x, self.app_offset_y))
@@ -1597,11 +1598,8 @@ class Binilla(tk.Tk, BinillaWidget):
             except IndexError:
                 pass
 
-    def update_window_settings(self):
-        for m in (self.main_menu, self.file_menu, self.settings_menu,
-                  self.debug_menu, self.windows_menu, self.recent_tags_menu):
-            m.config(bg=self.default_bg_color, fg=self.text_normal_color)
-        self.config(bg=self.default_bg_color)
+    def apply_style(self, seen=None):
+        BinillaWidget.apply_style(self, seen)
         self.io_text.config(fg=self.io_fg_color, bg=self.io_bg_color)
 
 
@@ -1665,7 +1663,7 @@ class DefSelectorWindow(tk.Toplevel, BinillaWidget):
         self.transient(self.app_root)
         self.grab_set()
 
-        self.apply_style()
+        self.load_style()
         self.cancel_btn.focus_set()
         self.populate_listbox()
 

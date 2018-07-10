@@ -3801,6 +3801,8 @@ class BoolFrame(DataFrame):
         self.content.pack(side='left', anchor='nw')
         self.check_canvas.pack(side='left', fill='both')
         self.update()
+        if not hasattr(self, "check_frame"):
+            return
 
         width  = self.check_frame.winfo_reqwidth()
         height = self.check_frame.winfo_reqheight()

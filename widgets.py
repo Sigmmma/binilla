@@ -194,7 +194,7 @@ class BinillaWidget():
         return True
 
     def apply_style(self, seen=None):
-        if not isinstance(self, tk.BaseWidget):
+        if not isinstance(self, (tk.BaseWidget, tk.Tk)):
             return
 
         widgets = (self, )
@@ -217,6 +217,11 @@ class BinillaWidget():
                         continue
                 elif w is not self:
                     seen.add(id(w))
+
+                if isinstance(w, tk.Menu):
+                    w.config(fg=self.text_normal_color, bg=self.default_bg_color)
+                    next_widgets.extend(w.children.values())
+                    continue
 
                 if isinstance(w, tk.Listbox):
                     w.config(bg=self.enum_normal_color, fg=self.text_normal_color,
@@ -520,11 +525,9 @@ class ScrollMenu(tk.Frame, BinillaWidget):
 
     def deselect_option_box(self, e=None):
         if self.disabled:
-            self.config(bg=self.enum_disabled_color)
             self.sel_label.config(bg=self.enum_disabled_color,
                                   fg=self.text_disabled_color)
         else:
-            self.config(bg=self.enum_normal_color)
             self.sel_label.config(bg=self.enum_normal_color,
                                   fg=self.text_normal_color)
 

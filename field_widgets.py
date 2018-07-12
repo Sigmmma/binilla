@@ -2760,7 +2760,7 @@ class TextFrame(DataFrame):
         self.data_text.f_widget_parent = self
 
         self.data_text.bind('<FocusOut>', self.flush)
-        self.data_text.bind('<Return>', self.flush)
+        self.data_text.bind('<Return>', self.set_modified)
         self.data_text.bind('<Any-KeyPress>', self.set_modified)
         self.data_text.text_undo = self._text_undo
         self.data_text.text_redo = self._text_redo
@@ -2870,7 +2870,7 @@ class TextFrame(DataFrame):
             desc = self.desc
             f_type = desc['TYPE']
             node_cls = desc.get('NODE_CLS', f_type.node_cls)
-            new_node = self.data_text.get(1.0, tk.END)
+            new_node = self.data_text.get(1.0, "%s-1chars" % tk.END)
 
             # NEED TO DO THIS SORTED cause the /x00 we inserted will be janked
             for b in sorted(self.replace_map.keys()):

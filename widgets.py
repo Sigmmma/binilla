@@ -285,7 +285,8 @@ class BinillaWidget():
                         disabledbackground=self.entry_disabled_color,
                         disabledforeground=self.text_disabled_color,
                         selectbackground=self.entry_highlighted_color,
-                        selectforeground=self.text_highlighted_color)
+                        selectforeground=self.text_highlighted_color,
+                        readonlybackground=self.entry_disabled_color,)
                     next_widgets.extend(w.children.values())
                     continue
 
@@ -367,7 +368,7 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         self.option_frame.pack_propagate(0)
         self.option_bar = tk.Scrollbar(self.option_frame, orient="vertical")
         self.option_box = tk.Listbox(
-            self.option_frame, highlightthickness=0,
+            self.option_frame, highlightthickness=0, exportselection=False,
             bg=self.enum_normal_color, fg=self.text_normal_color,
             selectbackground=self.enum_highlighted_color,
             selectforeground=self.text_highlighted_color,
@@ -692,15 +693,16 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         if self.sel_index >= option_cnt:
             self.sel_index = self.max_index
 
-        self.option_box.select_clear(0, tk.END)
         try:
-            self.option_box.select_set(self.sel_index)
-            self.option_box.see(self.sel_index)
+            self.option_box.select_clear(0, tk.END)
+            if self.sel_index >= 0:
+                self.option_box.select_set(self.sel_index)
+                self.option_box.see(self.sel_index)
         except Exception:
             pass
 
     def update_label(self, text=''):
-        if self.sel_index >= 0:
+        if not text and self.sel_index >= 0:
             text = self.get_options("active")
             if text is None:
                 text = '%s. %s' % (self.sel_index, self.default_text)
@@ -1483,9 +1485,9 @@ class BitmapDisplayButton(BinillaWidget, tk.Button):
 
         f = self.display_frame
         if f is not None and f() is not None:
-            f().change_textures(self.get_textures())
+            f().change_textures(self.get_textures(self.bitmap_tag))
 
-    def get_textures(self):
+    def get_textures(self, bitmap_tag):
         raise NotImplementedError("This method must be overloaded.")
 
     def destroy(self, e=None):
@@ -1500,7 +1502,7 @@ class BitmapDisplayButton(BinillaWidget, tk.Button):
             parent = self
         w = tk.Toplevel()
         self.display_frame = weakref.ref(self.display_frame_class(w))
-        self.display_frame().change_textures(self.get_textures())
+        self.display_frame().change_textures(self.get_textures(self.bitmap_tag))
         self.display_frame().pack(expand=True, fill="both")
         w.transient(parent)
         try:

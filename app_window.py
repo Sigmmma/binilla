@@ -822,7 +822,7 @@ class Binilla(tk.Tk, BinillaWidget):
                 continue
             self.curr_tag_window_hotkeys[combo] = hotkey.method.enum_name
 
-    def load_style(self, seen=None, filepath=None, style_file=None):
+    def load_style(self, filepath=None, style_file=None):
         if isinstance(filepath, tk.Event):
             filepath = None
 
@@ -1663,7 +1663,7 @@ class DefSelectorWindow(tk.Toplevel, BinillaWidget):
         self.transient(self.app_root)
         self.grab_set()
 
-        self.load_style()
+        self.apply_style()
         self.cancel_btn.focus_set()
         self.populate_listbox()
 

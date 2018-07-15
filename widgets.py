@@ -420,9 +420,11 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         BinillaWidget.apply_style(self, seen)
         if self.disabled:
             bg = self.entry_disabled_color
+            fg = self.text_disabled_color
         else:
             bg = self.enum_normal_color
-        self.sel_label.config(bg=bg, fg=self.text_normal_color)
+            fg = self.text_normal_color
+        self.sel_label.config(bg=bg, fg=fg)
 
     @property
     def sel_index(self):

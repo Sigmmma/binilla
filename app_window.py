@@ -1626,7 +1626,7 @@ class DefSelectorWindow(tk.Toplevel, BinillaWidget):
 
         #create and set the y scrollbar for the canvas root
         self.def_listbox = tk.Listbox(
-            self.list_canvas, selectmode=SINGLE,
+            self.list_canvas, selectmode=SINGLE, exportselection=False,
             highlightthickness=0, font=app_root.fixed_font)
 
         self.ok_btn = tk.Button(
@@ -1753,8 +1753,10 @@ class TagWindowManager(tk.Toplevel, BinillaWidget):
         self.scrollbar_y = tk.Scrollbar(self.windows_frame, orient="vertical")
         self.scrollbar_x = tk.Scrollbar(self, orient="horizontal")
         self.windows_listbox = tk.Listbox(
-            self.windows_frame, selectmode='single', highlightthickness=0,
-            xscrollcommand=self.scrollbar_x.set, yscrollcommand=self.scrollbar_y.set)
+            self.windows_frame, selectmode='single',
+            exportselection=False, highlightthickness=0,
+            xscrollcommand=self.scrollbar_x.set,
+            yscrollcommand=self.scrollbar_y.set)
 
         # set up the scrollbars
         self.scrollbar_x.config(command=self.windows_listbox.xview)

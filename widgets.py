@@ -268,7 +268,8 @@ class BinillaWidget():
                     w.config(disabledforeground=self.text_disabled_color,
                              bg=self.default_bg_color, fg=self.text_normal_color,
                              activebackground=self.default_bg_color,
-                             activeforeground=self.text_highlighted_color,)
+                             activeforeground=self.text_normal_color,
+                             selectcolor=self.entry_normal_color,)
                     next_widgets.extend(w.children.values())
                     continue
 
@@ -632,6 +633,13 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         # since getting them will force a sanity check
         options = self.get_options()
         option_cnt = self.max_index + 1
+
+
+
+        # TODO:  Fix the options_name not being accurate intermittently
+
+
+
         if not self.options_sane:
             END = tk.END
             self.option_box.delete(0, END)

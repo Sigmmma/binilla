@@ -694,6 +694,17 @@ class ContainerFrame(tk.Frame, FieldWidget):
         self.populate()
         self._initialized = True
 
+    def apply_style(self, seen=None):
+        widgets.BinillaWidget.apply_style(self, seen)
+        w = getattr(self, "title", None)
+        if w is not None:
+            w.config(bd=self.frame_depth, bg=self.frame_bg_color)
+
+        w = getattr(self, "title_label", None)
+        if w is not None:
+            if self.desc.get('ORIENT', 'v')[:1].lower() == 'v':
+                w.config(bd=0, bg=self.frame_bg_color)
+
     @property
     def visible_field_count(self):
         desc = self.desc
@@ -1002,6 +1013,11 @@ class ColorPickerFrame(ContainerFrame):
         self._initialized = True
         self.reload()
 
+    def apply_style(self, seen=None):
+        ContainerFrame.apply_style(self, seen)
+        if hasattr(self, 'color_btn'):
+            self.color_btn.config(bg=self.get_color()[1])
+
     def reload(self):
         ContainerFrame.reload(self)
         if hasattr(self, 'color_btn'):
@@ -1213,6 +1229,11 @@ class ArrayFrame(ContainerFrame):
 
         self.populate()
         self._initialized = True
+
+    def apply_style(self, seen=None):
+        ContainerFrame.apply_style(self, seen)
+        self.controls.config(bd=self.frame_depth, bg=self.frame_bg_color)
+        self.buttons.config(bd=0, bg=self.frame_bg_color)
 
     def destroy(self):
         # These will linger and take up RAM, even if the widget is destroyed.
@@ -3675,6 +3696,17 @@ class BoolFrame(DataFrame):
         self.populate()
         self._initialized = True
 
+    def apply_style(self, seen=None):
+        widgets.BinillaWidget.apply_style(self, seen)
+        self.check_frame.config(bg=self.entry_normal_color,
+                                bd=self.listbox_depth)
+
+        for w in self.check_frame.children.values():
+            if isinstance(w, tk.Checkbutton):
+                w.config(bg=self.entry_normal_color, selectcolor="",
+                         activebackground=self.entry_highlighted_color,
+                         activeforeground=self.text_highlighted_color)
+
     def flush(self): pass
 
     def edit_apply(self=None, *, edit_state, undo=True):
@@ -3873,6 +3905,12 @@ class BoolSingleFrame(DataFrame):
 
         self.reload()
         self._initialized = True
+
+    def apply_style(self, seen=None):
+        widgets.BinillaWidget.apply_style(self, seen)
+        self.checkbutton.config(
+            activebackground=self.entry_highlighted_color,
+            activeforeground=self.text_highlighted_color, selectcolor="")
 
     def flush(self): pass
 

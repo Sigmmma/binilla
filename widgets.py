@@ -309,6 +309,7 @@ class ScrollMenu(tk.Frame, BinillaWidget):
     option_cache = None
     option_getter = None
     options_sane = False
+    options_volatile = False
     selecting = False  # prevents multiple selections at once
 
     can_scroll = True
@@ -333,6 +334,7 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         self.f_widget_parent = kwargs.pop('f_widget_parent', None)
         self.menu_width = kwargs.pop('menu_width', self.menu_width)
         self.options_sane = kwargs.pop('options_sane', False)
+        self.options_volatile = kwargs.pop('options_volatile', False)
         self.default_text = kwargs.pop('default_text', e_c.INVALID_OPTION)
 
         if self.max_height is None:
@@ -634,13 +636,7 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         options = self.get_options()
         option_cnt = self.max_index + 1
 
-
-
-        # TODO:  Fix the options_name not being accurate intermittently
-
-
-
-        if not self.options_sane:
+        if not self.options_sane or self.options_volatile:
             END = tk.END
             self.option_box.delete(0, END)
             insert = self.option_box.insert

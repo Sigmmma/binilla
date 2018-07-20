@@ -503,11 +503,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         self.geometry('%sx%s' % (new_width, new_height))
 
     def apply_style(self, seen=None):
-        if self.field_widget is not None:
-            if self.field_widget.needs_flushing:
-                self.field_widget.flush()
-
-            self.populate()
+        BinillaWidget.apply_style(self, seen)
 
         # enable this when FieldWidgets have their own apply_style methods
         #BinillaWidget.apply_style(self, seen)

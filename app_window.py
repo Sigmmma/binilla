@@ -718,13 +718,7 @@ class Binilla(tk.Tk, BinillaWidget):
         menu = self.recent_tags_menu
         menu.delete(0, "end")  # clear the menu
 
-        i = 1
-        menu.add_command(label="Clear recently opened tags",
-                         command=lambda self=self:
-                         self.recent_tagpaths.__delitem__(
-                             slice(None, None, None))
-                         )
-        menu.add_separator()
+        i = 0
         for tagpath in reversed(self.recent_tagpaths):
             try:
                 menu.add_command(
@@ -733,6 +727,13 @@ class Binilla(tk.Tk, BinillaWidget):
                 i += 1
             except Exception:
                 print(format_exc())
+
+        menu.add_separator()
+        menu.add_command(label="Clear recently opened tags",
+                         command=lambda self=self:
+                         self.recent_tagpaths.__delitem__(
+                             slice(None, None, None))
+                         )
 
     def apply_config(self, e=None):
         config_data = self.config_file.data

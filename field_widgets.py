@@ -181,6 +181,15 @@ class FieldWidget(widgets.BinillaWidget):
         self.f_widget_ids_map_inv = {}
         self.content = self
 
+    def apply_style(self, seen=None):
+        widgets.BinillaWidget.apply_style(self, seen)
+        if getattr(self, "comment_frame", None):
+            self.comment_frame.config(bd=self.comment_depth,
+                                      bg=self.comment_bg_color)
+        if getattr(self, "comment", None):
+            self.comment.config(bg=self.comment_bg_color,
+                                fg=self.text_normal_color)
+
     @property
     def enforce_max(self):
         try:
@@ -398,7 +407,8 @@ class FieldWidget(widgets.BinillaWidget):
 
             self.comment = tk.Label(
                 self.comment_frame, text=comment, anchor='nw',
-                justify='left', font=comment_font, bg=self.comment_bg_color)
+                justify='left', font=comment_font,
+                bg=self.comment_bg_color, fg=self.text_normal_color)
             self.comment.pack(side='left', fill='both', expand=True)
             self.comment_frame.pack(fill='both', expand=True)
 
@@ -695,13 +705,13 @@ class ContainerFrame(tk.Frame, FieldWidget):
         self._initialized = True
 
     def apply_style(self, seen=None):
-        widgets.BinillaWidget.apply_style(self, seen)
+        FieldWidget.apply_style(self, seen)
         w = getattr(self, "title", None)
         if w is not None:
             w.config(bd=self.frame_depth, bg=self.frame_bg_color)
 
         w = getattr(self, "title_label", None)
-        if w is not None:
+        if w:
             if self.desc.get('ORIENT', 'v')[:1].lower() == 'v':
                 w.config(bd=0, bg=self.frame_bg_color)
 
@@ -1901,8 +1911,7 @@ class DynamicArrayFrame(ArrayFrame):
     def __init__(self, *args, **kwargs):
         ArrayFrame.__init__(self, *args, **kwargs)
 
-        self.sel_menu.bind('<FocusIn>', self.set_not_sane)
-        self.sel_menu.arrow_button.bind('<FocusIn>', self.set_not_sane)
+        self.sel_menu.options_volatile = True
 
     def cache_options(self):
         node, desc = self.node, self.desc
@@ -1945,9 +1954,6 @@ class DynamicArrayFrame(ArrayFrame):
         self.options_sane = True
         self.option_cache = options
         self.sel_menu.update_label()
-
-    def set_not_sane(self, e=None):
-        self.options_sane = self.sel_menu.options_sane = False
 
 
 class DataFrame(FieldWidget, tk.Frame):
@@ -3697,7 +3703,7 @@ class BoolFrame(DataFrame):
         self._initialized = True
 
     def apply_style(self, seen=None):
-        widgets.BinillaWidget.apply_style(self, seen)
+        FieldWidget.apply_style(self, seen)
         self.check_frame.config(bg=self.entry_normal_color,
                                 bd=self.listbox_depth)
 
@@ -3907,7 +3913,7 @@ class BoolSingleFrame(DataFrame):
         self._initialized = True
 
     def apply_style(self, seen=None):
-        widgets.BinillaWidget.apply_style(self, seen)
+        FieldWidget.apply_style(self, seen)
         self.checkbutton.config(
             activebackground=self.entry_highlighted_color,
             activeforeground=self.text_highlighted_color, selectcolor="")

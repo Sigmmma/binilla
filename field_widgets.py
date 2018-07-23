@@ -1054,7 +1054,9 @@ class ColorPickerFrame(ContainerFrame):
 
     def get_color(self):
         try:
-            int_color = (self.red, self.green, self.blue)
+            int_color = (int(self.red   * 255.0 + 0.5),
+                         int(self.green * 255.0 + 0.5),
+                         int(self.blue  * 255.0 + 0.5))
             return (int_color, '#%02x%02x%02x' % int_color)
         except Exception:
             return ((0, 0, 0), '#000000')
@@ -1062,40 +1064,58 @@ class ColorPickerFrame(ContainerFrame):
     @property
     def alpha(self):
         if not hasattr(self.node, "a"):
-            return self.color_type()
-        return min(255, int(self.node.a*255)) if\
-               issubclass(self.color_type, float) else self.node.a
+            return 0.0
+        return max(0.0, min(1.0, self.node.a if
+                            issubclass(self.color_type, float)
+                            else self.node.a / 255.0))
 
     @alpha.setter
     def alpha(self, new_val):
+        if issubclass(self.color_type, int):
+            new_val = int(new_val * 255.0 + 0.5)
         if hasattr(self.node, "a"):
             self.node.a = new_val
 
     @property
     def red(self):
-        return min(255, int(self.node.r*255)) if\
-               issubclass(self.color_type, float) else self.node.r
+        if not hasattr(self.node, "r"):
+            return 0.0
+        return max(0.0, min(1.0, self.node.r if
+                            issubclass(self.color_type, float)
+                            else self.node.r / 255.0))
 
     @red.setter
     def red(self, new_val):
+        if issubclass(self.color_type, int):
+            new_val = int(new_val * 255.0 + 0.5)
         self.node.r = new_val
 
     @property
     def green(self):
-        return min(255, int(self.node.g*255)) if\
-               issubclass(self.color_type, float) else self.node.g
+        if not hasattr(self.node, "g"):
+            return 0.0
+        return max(0.0, min(1.0, self.node.g if
+                            issubclass(self.color_type, float)
+                            else self.node.g / 255.0))
 
     @green.setter
     def green(self, new_val):
+        if issubclass(self.color_type, int):
+            new_val = int(new_val * 255.0 + 0.5)
         self.node.g = new_val
 
     @property
     def blue(self):
-        return min(255, int(self.node.b*255)) if\
-               issubclass(self.color_type, float) else self.node.b
+        if not hasattr(self.node, "b"):
+            return 0.0
+        return max(0.0, min(1.0, self.node.b if
+                            issubclass(self.color_type, float)
+                            else self.node.b / 255.0))
 
     @blue.setter
     def blue(self, new_val):
+        if issubclass(self.color_type, int):
+            new_val = int(new_val * 255.0 + 0.5)
         self.node.b = new_val
 
     def select_color(self):
@@ -1108,21 +1128,17 @@ class ColorPickerFrame(ContainerFrame):
         if None in (color, hex_color):
             return
 
-        color = [int(i) for i in color]
+        # NOTE: NEED to make it into an int. Some versions of
+        # tkinter seem to return color values as floats, even
+        # though the documentation specifies they will be ints.
+        color = tuple(int(v) / 255.0 for v in color)
 
-        if issubclass(self.color_type, float):
-            color[0] /= 255
-            color[1] /= 255
-            color[2] /= 255
-
-        alpha = self.alpha
         self.edit_create(
-            attr_index='argb',
-            redo_node=dict(a=alpha, r=color[0], g=color[1],   b=color[2]),
-            undo_node=dict(a=alpha, r=self.red, g=self.green, b=self.blue))
+            attr_index='rgb',
+            redo_node=dict(r=color[0], g=color[1],   b=color[2],  a=self.alpha),
+            undo_node=dict(r=self.red, g=self.green, b=self.blue, a=self.alpha))
 
-        self.red, self.green, self.blue, self.alpha = (
-            color[0], color[1], color[2], alpha)
+        self.red, self.green, self.blue = color
 
         self.set_edited()
         self.reload()

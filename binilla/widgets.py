@@ -1175,18 +1175,6 @@ class BitmapDisplayFrame(BinillaWidget, tk.Frame):
         self.write_trace(self.channel_index, self.settings_changed)
 
         self.apply_style()
- 
-    def apply_style(self):
-        self.config(bg=self.default_bg_color)
-        for w in (self.root_canvas, self.root_frame, self.image_root_frame,
-                  self.controls_frame0, self.controls_frame1,
-                  self.controls_frame2):
-            w.config(bg=self.default_bg_color)
-
-        for w in (self.save_button, ):
-            w.config(bg=self.button_color, activebackground=self.button_color,
-                     fg=self.text_normal_color, bd=self.button_depth,
-                     disabledforeground=self.text_disabled_color)
 
     def destroy(self):
         try:

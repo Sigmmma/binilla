@@ -1,4 +1,18 @@
 from collections import deque
+from threading import Thread
+try:
+    import winsound
+
+    def notify_undo_redo_failed():
+        Thread(target=lambda *a, **kw:
+               winsound.PlaySound("SystemAsterisk", winsound.SND_ALIAS),
+               daemon=True).start()
+        
+
+except Exception:
+    def notify_undo_redo_failed():
+        pass
+
 
 class EditState(object):
     '''
@@ -68,6 +82,7 @@ class EditManager(object):
     def undo(self):
         i = self._edit_index
         if i <= 0 or not len(self._edit_states):
+            notify_undo_redo_failed()
             return
         self._edit_index -= 1
         return self._edit_states[i-1]
@@ -75,6 +90,7 @@ class EditManager(object):
     def redo(self):
         i = self._edit_index
         if i >= len(self._edit_states):
+            notify_undo_redo_failed()
             return
         self._edit_index += 1
         return self._edit_states[i]

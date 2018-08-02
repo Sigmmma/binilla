@@ -1927,6 +1927,8 @@ class DynamicArrayFrame(ArrayFrame):
     def __init__(self, *args, **kwargs):
         ArrayFrame.__init__(self, *args, **kwargs)
 
+        self.sel_menu.bind('<FocusIn>', self.set_not_sane)
+        self.sel_menu.arrow_button.bind('<FocusIn>', self.set_not_sane)
         self.sel_menu.options_volatile = True
 
     def cache_options(self):
@@ -1970,6 +1972,9 @@ class DynamicArrayFrame(ArrayFrame):
         self.options_sane = True
         self.option_cache = options
         self.sel_menu.update_label()
+
+    def set_not_sane(self, e=None):
+        self.options_sane = self.sel_menu.options_sane = False
 
 
 class DataFrame(FieldWidget, tk.Frame):

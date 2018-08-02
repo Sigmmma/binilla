@@ -100,7 +100,7 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
-    version = '0.9.61'
+    version = '0.9.62'
     log_filename = 'binilla.log'
     debug = 0
     debug_mode = False

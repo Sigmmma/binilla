@@ -1,13 +1,9 @@
 from collections import deque
-from threading import Thread
 try:
     import winsound
 
     def notify_undo_redo_failed():
-        Thread(target=lambda *a, **kw:
-               winsound.PlaySound("SystemAsterisk", winsound.SND_ALIAS),
-               daemon=True).start()
-        
+        winsound.PlaySound("SystemAsterisk", winsound.SND_ASYNC)
 
 except Exception:
     def notify_undo_redo_failed():

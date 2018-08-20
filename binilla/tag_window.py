@@ -1,8 +1,10 @@
 import platform
 import threadsafe_tkinter as tk
+import time
 import tkinter.ttk
 
 from os.path import exists
+from threading import Thread
 from tkinter import messagebox
 from tkinter import constants as t_c
 from traceback import format_exc
@@ -462,7 +464,14 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         kwargs.setdefault('temp', handler_flags.write_as_temp)
         kwargs.setdefault('backup', handler_flags.backup_tags)
         kwargs.setdefault('int_test', handler_flags.integrity_test)
-        self.tag.serialize(**kwargs)
+        save_thread = Thread(target=self.tag.serialize, kwargs=kwargs,
+                             daemon=True)
+        save_thread.run()
+        while save_thread.isAlive:
+            # do this threaded so it doesn't freeze the ui
+            time.sleep(0.1)
+            self.update()
+
         self.field_widget.set_edited(False)
 
     def resize_window(self, new_width=None, new_height=None, cap_size=True,

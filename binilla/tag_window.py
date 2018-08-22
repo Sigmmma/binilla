@@ -107,6 +107,8 @@ class TagWindow(tk.Toplevel, BinillaWidget):
     # This exists to prevent trying to apply multiple undos or redos at once
     _applying_edit_state = False
     _resizing_window = False
+    _saving = False
+    _last_saved_edit_index = 0
 
     def __init__(self, master, tag=None, *args, **kwargs):
         self.tag = tag
@@ -198,6 +200,22 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             height = rf.winfo_reqheight() + self.root_hsb.winfo_reqheight() + 2
 
         self.resize_window(width, height)
+
+    @property
+    def needs_flushing(self):
+        return (hasattr(self.field_widget, "needs_flushing") and
+                self.field_widget.needs_flushing)
+
+    @property
+    def has_unsaved_changes(self):
+        if self.edit_manager:
+            if self.edit_manager.len != 0 and (self._last_saved_edit_index <
+                                               self.edit_manager.len - 1):
+                if self._last_saved_edit_index == self.edit_manager.edit_index:
+                    return False
+
+        return (hasattr(self.field_widget, "edited") and
+                self.field_widget.edited)
 
     @property
     def enforce_max(self):
@@ -413,14 +431,18 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         '''
         Handles destroying this Toplevel and removing the tag from app_root
         '''
+        if self._saving:
+            print("Still saving. Please wait.")
+            return True
+
         try:
             app_root = self.app_root
             tag = self.tag
             try:
-                w = self.field_widget
-                if w and w.needs_flushing:
-                    w.flush()
-                if w and w.edited:
+                if self.needs_flushing:
+                    self.field_widget.flush()
+
+                if self.has_unsaved_changes:
                     try:
                         path = tag.filepath
                     except Exception:
@@ -457,22 +479,37 @@ class TagWindow(tk.Toplevel, BinillaWidget):
 
     def save(self, **kwargs):
         '''Flushes any lingering changes in the widgets to the tag.'''
-        if self.field_widget.needs_flushing:
-            self.field_widget.flush()
+        if self._saving:
+            print("Still saving. Please wait.")
+            return
 
-        handler_flags = self.app_root.config_file.data.header.handler_flags
-        kwargs.setdefault('temp', handler_flags.write_as_temp)
-        kwargs.setdefault('backup', handler_flags.backup_tags)
-        kwargs.setdefault('int_test', handler_flags.integrity_test)
-        save_thread = Thread(target=self.tag.serialize, kwargs=kwargs,
-                             daemon=True)
-        save_thread.run()
-        while save_thread.isAlive:
-            # do this threaded so it doesn't freeze the ui
-            time.sleep(0.1)
-            self.update()
+        self._saving = True
+        try:
+            if self.field_widget.needs_flushing:
+                self.field_widget.flush()
 
-        self.field_widget.set_edited(False)
+            handler_flags = self.app_root.config_file.data.header.handler_flags
+            kwargs.setdefault('temp', handler_flags.write_as_temp)
+            kwargs.setdefault('backup', handler_flags.backup_tags)
+            kwargs.setdefault('int_test', handler_flags.integrity_test)
+            save_thread = Thread(target=self.tag.serialize, kwargs=kwargs,
+                                 daemon=True)
+            save_thread.start()
+            while save_thread.join(0.1):
+                # do this threaded so it doesn't freeze the ui
+                if not save_thread.isAlive:
+                    break
+                self.update()
+
+            self.field_widget.set_edited(False)
+            self.title(self.title())
+            self._saving = False
+            self.is_new_tag = False
+            if self.edit_manager:
+                self._last_saved_edit_index = self.edit_manager.edit_index
+        except Exception:
+            self._saving = False
+            raise
 
     def resize_window(self, new_width=None, new_height=None, cap_size=True,
                       dont_shrink_width=True, dont_shrink_height=True):
@@ -589,6 +626,12 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             if state is not None:
                 state.apply_func(edit_state=state, undo=True)
             self._applying_edit_state = False
+
+            is_dirty = self._last_saved_edit_index != self.edit_manager.edit_index
+            if is_dirty != self.field_widget.edited:
+                self.field_widget.set_edited(is_dirty)
+
+            self.title(self.title())
         except Exception:
             self._applying_edit_state = False
             raise
@@ -612,6 +655,12 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             if state is not None:
                 state.apply_func(edit_state=state, undo=False)
             self._applying_edit_state = False
+
+            is_dirty = self._last_saved_edit_index != self.edit_manager.edit_index
+            if is_dirty != self.field_widget.edited:
+                self.field_widget.set_edited(is_dirty)
+
+            self.title(self.title())
         except Exception:
             self._applying_edit_state = False
             raise
@@ -643,6 +692,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
 
             em.add_state(edit_state)
             self._applying_edit_state = False
+            self.title(self.title())
         except Exception:
             self._applying_edit_state = False
             raise
@@ -656,6 +706,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             self.edit_manager.clear()
             self.resize_declined = False
             self._applying_edit_state = False
+            self.title(self.title())
         except Exception:
             self._applying_edit_state = False
             raise
@@ -672,6 +723,16 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         except Exception:
             self._applying_edit_state = False
             raise
+
+    def title(self, new_title=None):
+        if new_title is not None:
+            if self.has_unsaved_changes:
+                new_title = "*" + new_title
+
+            tk.Toplevel.title(self, new_title)
+            return new_title.lstrip("*")
+
+        return tk.Toplevel.title(self).lstrip("*")
 
     def update_title(self, new_title=None):
         if new_title is None:

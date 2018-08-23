@@ -12,6 +12,7 @@ from traceback import format_exc
 from tkinter.filedialog import asksaveasfilename
 
 import threadsafe_tkinter as tk
+import tkinter.ttk as ttk
 from . import editor_constants as e_c
 
 field_widgets = None  # linked to through __init__.py
@@ -221,23 +222,21 @@ class BinillaWidget():
                 if isinstance(w, tk.Menu):
                     w.config(fg=self.text_normal_color, bg=self.default_bg_color)
                     next_widgets.extend(w.children.values())
-                    continue
-
-                if isinstance(w, tk.Listbox):
+                elif isinstance(w, tk.Listbox):
                     w.config(bg=self.enum_normal_color, fg=self.text_normal_color,
                              selectbackground=self.enum_highlighted_color,
                              selectforeground=self.text_highlighted_color)
                     next_widgets.extend(w.children.values())
-                    continue
-
-                if isinstance(w, tk.Text):
+                elif isinstance(w, ttk.Treeview):
+                    w.tag_configure(
+                        'item', background=self.entry_normal_color,
+                        foreground=self.text_normal_color)
+                elif isinstance(w, tk.Text):
                     w.config(bg=self.entry_normal_color, fg=self.text_normal_color,
                              selectbackground=self.entry_highlighted_color,
                              selectforeground=self.text_highlighted_color)
                     next_widgets.extend(w.children.values())
-                    continue
-
-                if isinstance(w, tk.Spinbox):
+                elif isinstance(w, tk.Spinbox):
                     w.config(bg=self.entry_normal_color, fg=self.text_normal_color,
                              disabledbackground=self.entry_disabled_color,
                              disabledforeground=self.text_disabled_color,
@@ -247,40 +246,28 @@ class BinillaWidget():
                              readonlybackground=self.entry_disabled_color,
                              buttonbackground=self.default_bg_color,)
                     next_widgets.extend(w.children.values())
-                    continue
-
-                if isinstance(w, tk.LabelFrame):
+                elif isinstance(w, tk.LabelFrame):
                     w.config(fg=self.text_normal_color, bg=self.default_bg_color)
                     next_widgets.extend(w.children.values())
-                    continue
-
-                if isinstance(w, tk.Label):
+                elif isinstance(w, tk.Label):
                     w.config(fg=self.text_normal_color, bg=self.default_bg_color)
                     next_widgets.extend(w.children.values())
-                    continue
-
-                if isinstance(w, (tk.Frame, tk.Canvas, tk.Toplevel)):
+                elif isinstance(w, (tk.Frame, tk.Canvas, tk.Toplevel)):
                     w.config(bg=self.default_bg_color)
                     next_widgets.extend(w.children.values())
-                    continue
-
-                if isinstance(w, tk.Checkbutton):
+                elif isinstance(w, tk.Checkbutton):
                     w.config(disabledforeground=self.text_disabled_color,
                              bg=self.default_bg_color, fg=self.text_normal_color,
                              activebackground=self.default_bg_color,
                              activeforeground=self.text_normal_color,
                              selectcolor=self.entry_normal_color,)
                     next_widgets.extend(w.children.values())
-                    continue
-
-                if isinstance(w, tk.Button):
+                elif isinstance(w, tk.Button):
                     w.config(bg=self.button_color, activebackground=self.button_color,
                              fg=self.text_normal_color, bd=self.button_depth,
                              disabledforeground=self.text_disabled_color)
                     next_widgets.extend(w.children.values())
-                    continue
-
-                if isinstance(w, tk.Entry):
+                elif isinstance(w, tk.Entry):
                     w.config(bd=self.entry_depth,
                         bg=self.entry_normal_color, fg=self.text_normal_color,
                         disabledbackground=self.entry_disabled_color,
@@ -289,7 +276,6 @@ class BinillaWidget():
                         selectforeground=self.text_highlighted_color,
                         readonlybackground=self.entry_disabled_color,)
                     next_widgets.extend(w.children.values())
-                    continue
 
             widgets = next_widgets
 

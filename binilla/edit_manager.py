@@ -1,4 +1,14 @@
 from collections import deque
+try:
+    import winsound
+
+    def notify_undo_redo_failed():
+        winsound.PlaySound("SystemAsterisk", winsound.SND_ASYNC)
+
+except Exception:
+    def notify_undo_redo_failed():
+        pass
+
 
 class EditState(object):
     '''
@@ -46,7 +56,7 @@ class EditState(object):
         else:
             self.edit_info = None
 
-class EditManager(object):
+class EditManager:
     _edit_states = None
 
     # The index of the edit_states that a new undo will be added into
@@ -62,19 +72,34 @@ class EditManager(object):
         return self._edit_index
 
     @property
+    def len(self):
+        return len(self._edit_states)
+
+    @property
     def maxlen(self):
         return self._edit_states.maxlen
 
+    @property
+    def can_undo(self):
+        return self._edit_index > 0 and len(self._edit_states)
+
+    @property
+    def can_redo(self):
+        return (len(self._edit_states) > self._edit_index and
+                len(self._edit_states))
+
     def undo(self):
         i = self._edit_index
-        if i <= 0 or not len(self._edit_states):
+        if not self.can_undo:
+            notify_undo_redo_failed()
             return
         self._edit_index -= 1
-        return self._edit_states[i-1]
+        return self._edit_states[i - 1]
 
     def redo(self):
         i = self._edit_index
-        if i >= len(self._edit_states):
+        if not self.can_redo:
+            notify_undo_redo_failed()
             return
         self._edit_index += 1
         return self._edit_states[i]

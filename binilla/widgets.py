@@ -12,6 +12,7 @@ from traceback import format_exc
 from tkinter.filedialog import asksaveasfilename
 
 import threadsafe_tkinter as tk
+import tkinter.ttk as ttk
 from . import editor_constants as e_c
 
 field_widgets = None  # linked to through __init__.py
@@ -193,6 +194,91 @@ class BinillaWidget():
             pass
         return True
 
+    def apply_style(self, seen=None):
+        if not isinstance(self, (tk.BaseWidget, tk.Tk)):
+            return
+
+        widgets = (self, )
+        if seen is None:
+            seen = set()
+
+        while widgets:
+            next_widgets = []
+            for w in widgets:
+                if id(w) in seen:
+                    continue
+
+                if isinstance(w, BinillaWidget):
+                    if w is self:
+                        seen.add(id(w))
+
+                    w.apply_style(seen)
+                    next_widgets.extend(w.children.values())
+                    if w is not self:
+                        continue
+                elif w is not self:
+                    seen.add(id(w))
+
+                if isinstance(w, tk.Menu):
+                    w.config(fg=self.text_normal_color, bg=self.default_bg_color)
+                    next_widgets.extend(w.children.values())
+                elif isinstance(w, tk.Listbox):
+                    w.config(bg=self.enum_normal_color, fg=self.text_normal_color,
+                             selectbackground=self.enum_highlighted_color,
+                             selectforeground=self.text_highlighted_color)
+                    next_widgets.extend(w.children.values())
+                elif isinstance(w, ttk.Treeview):
+                    w.tag_configure(
+                        'item', background=self.entry_normal_color,
+                        foreground=self.text_normal_color)
+                elif isinstance(w, tk.Text):
+                    w.config(bg=self.entry_normal_color, fg=self.text_normal_color,
+                             selectbackground=self.entry_highlighted_color,
+                             selectforeground=self.text_highlighted_color)
+                    next_widgets.extend(w.children.values())
+                elif isinstance(w, tk.Spinbox):
+                    w.config(bg=self.entry_normal_color, fg=self.text_normal_color,
+                             disabledbackground=self.entry_disabled_color,
+                             disabledforeground=self.text_disabled_color,
+                             selectbackground=self.entry_highlighted_color,
+                             selectforeground=self.text_highlighted_color,
+                             activebackground=self.default_bg_color,
+                             readonlybackground=self.entry_disabled_color,
+                             buttonbackground=self.default_bg_color,)
+                    next_widgets.extend(w.children.values())
+                elif isinstance(w, tk.LabelFrame):
+                    w.config(fg=self.text_normal_color, bg=self.default_bg_color)
+                    next_widgets.extend(w.children.values())
+                elif isinstance(w, tk.Label):
+                    w.config(fg=self.text_normal_color, bg=self.default_bg_color)
+                    next_widgets.extend(w.children.values())
+                elif isinstance(w, (tk.Frame, tk.Canvas, tk.Toplevel)):
+                    w.config(bg=self.default_bg_color)
+                    next_widgets.extend(w.children.values())
+                elif isinstance(w, tk.Checkbutton):
+                    w.config(disabledforeground=self.text_disabled_color,
+                             bg=self.default_bg_color, fg=self.text_normal_color,
+                             activebackground=self.default_bg_color,
+                             activeforeground=self.text_normal_color,
+                             selectcolor=self.entry_normal_color,)
+                    next_widgets.extend(w.children.values())
+                elif isinstance(w, tk.Button):
+                    w.config(bg=self.button_color, activebackground=self.button_color,
+                             fg=self.text_normal_color, bd=self.button_depth,
+                             disabledforeground=self.text_disabled_color)
+                    next_widgets.extend(w.children.values())
+                elif isinstance(w, tk.Entry):
+                    w.config(bd=self.entry_depth,
+                        bg=self.entry_normal_color, fg=self.text_normal_color,
+                        disabledbackground=self.entry_disabled_color,
+                        disabledforeground=self.text_disabled_color,
+                        selectbackground=self.entry_highlighted_color,
+                        selectforeground=self.text_highlighted_color,
+                        readonlybackground=self.entry_disabled_color,)
+                    next_widgets.extend(w.children.values())
+
+            widgets = next_widgets
+
 
 class ScrollMenu(tk.Frame, BinillaWidget):
     '''
@@ -209,6 +295,7 @@ class ScrollMenu(tk.Frame, BinillaWidget):
     option_cache = None
     option_getter = None
     options_sane = False
+    options_volatile = False
     selecting = False  # prevents multiple selections at once
 
     can_scroll = True
@@ -222,6 +309,7 @@ class ScrollMenu(tk.Frame, BinillaWidget):
     def __init__(self, *args, **kwargs):
         BinillaWidget.__init__(self)
         sel_index = kwargs.pop('sel_index', -1)
+        disabled = kwargs.pop('disabled', False)
 
         options = kwargs.pop('options', None)
         self.option_getter = kwargs.pop('option_getter', None)
@@ -232,8 +320,8 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         self.f_widget_parent = kwargs.pop('f_widget_parent', None)
         self.menu_width = kwargs.pop('menu_width', self.menu_width)
         self.options_sane = kwargs.pop('options_sane', False)
+        self.options_volatile = kwargs.pop('options_volatile', False)
         self.default_text = kwargs.pop('default_text', e_c.INVALID_OPTION)
-        disabled = kwargs.pop('disabled', False)
 
         if self.max_height is None:
             self.max_height = self.scroll_menu_max_height
@@ -258,7 +346,7 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         self.arrow_button = tk.Button(
             self.button_frame, bd=self.button_depth, text="▼", width=1,
             bg=self.button_color, activebackground=self.button_color,
-            fg=self.text_normal_color)
+            fg=self.text_normal_color, disabledforeground=self.text_disabled_color)
         self.sel_label.pack(side="left", fill="both", expand=True)
         self.button_frame.pack(side="left", fill=None, expand=False)
         self.arrow_button.pack(side="left", fill='both', expand=True)
@@ -269,7 +357,7 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         self.option_frame.pack_propagate(0)
         self.option_bar = tk.Scrollbar(self.option_frame, orient="vertical")
         self.option_box = tk.Listbox(
-            self.option_frame, highlightthickness=0,
+            self.option_frame, highlightthickness=0, exportselection=False,
             bg=self.enum_normal_color, fg=self.text_normal_color,
             selectbackground=self.enum_highlighted_color,
             selectforeground=self.text_highlighted_color,
@@ -316,6 +404,16 @@ class ScrollMenu(tk.Frame, BinillaWidget):
 
         if options is not None:
             self.set_options(options)
+
+    def apply_style(self, seen=None):
+        BinillaWidget.apply_style(self, seen)
+        if self.disabled:
+            bg = self.entry_disabled_color
+            fg = self.text_disabled_color
+        else:
+            bg = self.enum_normal_color
+            fg = self.text_normal_color
+        self.sel_label.config(bg=bg, fg=fg)
 
     @property
     def sel_index(self):
@@ -419,11 +517,9 @@ class ScrollMenu(tk.Frame, BinillaWidget):
 
     def deselect_option_box(self, e=None):
         if self.disabled:
-            self.config(bg=self.enum_disabled_color)
             self.sel_label.config(bg=self.enum_disabled_color,
                                   fg=self.text_disabled_color)
         else:
-            self.config(bg=self.enum_normal_color)
             self.sel_label.config(bg=self.enum_normal_color,
                                   fg=self.text_normal_color)
 
@@ -525,7 +621,8 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         # since getting them will force a sanity check
         options = self.get_options()
         option_cnt = self.max_index + 1
-        if not self.options_sane:
+
+        if not self.options_sane or self.options_volatile:
             END = tk.END
             self.option_box.delete(0, END)
             insert = self.option_box.insert
@@ -547,8 +644,8 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         self_height = self.winfo_reqheight()
         root = self.winfo_toplevel()
 
-        pos_x = self.sel_label.winfo_rootx() - root.winfo_x()
-        pos_y = self.winfo_rooty() + self_height - root.winfo_y()
+        pos_x = self.sel_label.winfo_rootx() - root.winfo_rootx()
+        pos_y = self.winfo_rooty() - root.winfo_rooty() + self_height
         height = min(max(option_cnt, 0), self.max_height)*(14 + win_10_pad) + 4
         width = max(self.option_box.winfo_reqwidth(),
                     self.sel_label.winfo_width() +
@@ -568,7 +665,7 @@ class ScrollMenu(tk.Frame, BinillaWidget):
             # there is more space above than below and the space below
             # isnt enough to fit the height, so cap it by the space above
             height = min(height, space_above)
-            pos_y = pos_y - self_height - height + 4
+            pos_y -= self_height + height - 4
 
         # pack the scrollbar is there isnt enough room to display the list
         if option_cnt > self.max_height or (height - 4)//14 < option_cnt:
@@ -577,7 +674,7 @@ class ScrollMenu(tk.Frame, BinillaWidget):
             # place it off the frame so it can still be used for key bindings
             self.option_bar.place(x=pos_x + width, y=pos_y, anchor=tk.NW)
         self.option_bar.focus_set()
-        self.option_frame.place(x=pos_x - 4, y=pos_y - 32, anchor=tk.NW,
+        self.option_frame.place(x=pos_x, y=pos_y, anchor=tk.NW,
                                 height=height, width=width)
         # make a binding to the parent Toplevel to remove the
         # options box if the mouse is clicked outside of it.
@@ -588,20 +685,20 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         if self.sel_index >= option_cnt:
             self.sel_index = self.max_index
 
-        self.option_box.select_clear(0, tk.END)
         try:
-            self.option_box.select_set(self.sel_index)
-            self.option_box.see(self.sel_index)
+            self.option_box.select_clear(0, tk.END)
+            if self.sel_index >= 0:
+                self.option_box.select_set(self.sel_index)
+                self.option_box.see(self.sel_index)
         except Exception:
             pass
 
-    def update_label(self):
-        option = ''
-        if self.sel_index >= 0:
-            option = self.get_options("active")
-            if option is None:
-                option = '%s. %s' % (self.sel_index, self.default_text)
-        self.sel_label.config(text=option, anchor="w")
+    def update_label(self, text=''):
+        if not text and self.sel_index >= 0:
+            text = self.get_options("active")
+            if text is None:
+                text = '%s. %s' % (self.sel_index, self.default_text)
+        self.sel_label.config(text=text, anchor="w")
 
 
 class ToolTipHandler(BinillaWidget):
@@ -646,9 +743,11 @@ class ToolTipHandler(BinillaWidget):
 
         # move the tip_window to where it needs to be
         if self.tip_window and mouse_dx or mouse_dy:
-            try: self.tip_window.geometry("+%s+%s" % (
-                mouse_x + self.tip_offset_x, mouse_y + self.tip_offset_y))
-            except Exception: pass
+            try:
+                self.tip_window.geometry("+%s+%s" % (mouse_x + self.tip_offset_x,
+                                                     mouse_y + self.tip_offset_y))
+            except Exception:
+                pass
 
         try:
             focus = root.winfo_containing(mouse_x, mouse_y)
@@ -660,8 +759,10 @@ class ToolTipHandler(BinillaWidget):
         #if tip_widget is None:
         #    focus = root.focus_get()
 
-        try: tip_text = focus.tooltip_string
-        except Exception: tip_text = None
+        try:
+            tip_text = focus.tooltip_string
+        except Exception:
+            tip_text = None
 
         curr_time = time()
 
@@ -1060,18 +1161,6 @@ class BitmapDisplayFrame(BinillaWidget, tk.Frame):
         self.write_trace(self.channel_index, self.settings_changed)
 
         self.apply_style()
- 
-    def apply_style(self):
-        self.config(bg=self.default_bg_color)
-        for w in (self.root_canvas, self.root_frame, self.image_root_frame,
-                  self.controls_frame0, self.controls_frame1,
-                  self.controls_frame2):
-            w.config(bg=self.default_bg_color)
-
-        for w in (self.save_button, ):
-            w.config(bg=self.button_color, activebackground=self.button_color,
-                     fg=self.text_normal_color, bd=self.button_depth,
-                     disabledforeground=self.text_disabled_color)
 
     def destroy(self):
         try:
@@ -1376,9 +1465,9 @@ class BitmapDisplayButton(BinillaWidget, tk.Button):
 
         f = self.display_frame
         if f is not None and f() is not None:
-            f().change_textures(self.get_textures())
+            f().change_textures(self.get_textures(self.bitmap_tag))
 
-    def get_textures(self):
+    def get_textures(self, bitmap_tag):
         raise NotImplementedError("This method must be overloaded.")
 
     def destroy(self, e=None):
@@ -1393,7 +1482,7 @@ class BitmapDisplayButton(BinillaWidget, tk.Button):
             parent = self
         w = tk.Toplevel()
         self.display_frame = weakref.ref(self.display_frame_class(w))
-        self.display_frame().change_textures(self.get_textures())
+        self.display_frame().change_textures(self.get_textures(self.bitmap_tag))
         self.display_frame().pack(expand=True, fill="both")
         w.transient(parent)
         try:

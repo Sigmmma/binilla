@@ -100,7 +100,7 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
-    version = '0.9.59'
+    version = '0.9.63'
     log_filename = 'binilla.log'
     debug = 0
     debug_mode = False
@@ -213,6 +213,7 @@ class Binilla(tk.Tk, BinillaWidget):
         tk.Tk.__init__(self, *args, **kwargs)
 
         #fonts
+        self.default_font = Font(family="Segoe UI", size=9)
         self.fixed_font = Font(family="Courier", size=8)
         self.container_title_font = Font(
             family="Courier", size=10, weight='bold')
@@ -288,7 +289,7 @@ class Binilla(tk.Tk, BinillaWidget):
             label="Edit config", command=self.show_config_file)
         self.settings_menu.add_separator()
         self.settings_menu.add_command(
-            label="Load style", command=self.apply_style)
+            label="Load style", command=self.load_style)
         self.settings_menu.add_command(
             label="Save current style", command=self.make_style)
 
@@ -335,7 +336,7 @@ class Binilla(tk.Tk, BinillaWidget):
         self.geometry("%sx%s+%s+%s" %
                       (self.app_width, self.app_height,
                        self.app_offset_x, self.app_offset_y))
-        self.update_window_settings()
+        self.apply_style()
         try:
             if self.config_file.data.header.flags.load_last_workspace:
                 self.load_last_workspace()
@@ -501,7 +502,8 @@ class Binilla(tk.Tk, BinillaWidget):
 
         # select the next TagWindow
         try:
-            for w in self.tag_windows.values():
+            for wid in reversed(sorted(self.tag_windows)):
+                w = self.tag_windows[wid]
                 if hasattr(w, 'tag') and w.state() != 'withdrawn':
                     self.select_tag_window(w)
                     self.update()
@@ -570,11 +572,17 @@ class Binilla(tk.Tk, BinillaWidget):
         except Exception:
             print(format_exc())
 
-        windows = ()
-        try: windows += tuple(self.tag_windows.values())
-        except Exception: print(format_exc())
-        try: windows += tuple(self.children.values())
-        except Exception: print(format_exc())
+        widgets = []
+        try:
+            for wid in reversed(sorted(self.tag_windows)):
+                widgets.append(self.tag_windows[wid])
+        except Exception:
+            print(format_exc())
+        try:
+            for wid in sorted(self.children):
+                widgets.append(self.children[wid])
+        except Exception:
+            print(format_exc())
 
         try:
             # need to save before destroying the
@@ -583,7 +591,7 @@ class Binilla(tk.Tk, BinillaWidget):
         except Exception:
             print(format_exc())
 
-        for w in windows:
+        for w in widgets:
             try:
                 not_destroyed = bool(w.destroy())
                 if not_destroyed:
@@ -610,7 +618,8 @@ class Binilla(tk.Tk, BinillaWidget):
             open_tags = config_file.data.open_tags
             del open_tags[:]
 
-            for w in self.tag_windows.values():
+            for wid in sorted(self.tag_windows):
+                w = self.tag_windows[wid]
                 tag = w.tag
 
                 # dont store tags that arent from the current handler
@@ -709,13 +718,7 @@ class Binilla(tk.Tk, BinillaWidget):
         menu = self.recent_tags_menu
         menu.delete(0, "end")  # clear the menu
 
-        i = 1
-        menu.add_command(label="Clear recently opened tags",
-                         command=lambda self=self:
-                         self.recent_tagpaths.__delitem__(
-                             slice(None, None, None))
-                         )
-        menu.add_separator()
+        i = 0
         for tagpath in reversed(self.recent_tagpaths):
             try:
                 menu.add_command(
@@ -724,6 +727,13 @@ class Binilla(tk.Tk, BinillaWidget):
                 i += 1
             except Exception:
                 print(format_exc())
+
+        menu.add_separator()
+        menu.add_command(label="Clear recently opened tags",
+                         command=lambda self=self:
+                         self.recent_tagpaths.__delitem__(
+                             slice(None, None, None))
+                         )
 
     def apply_config(self, e=None):
         config_data = self.config_file.data
@@ -761,9 +771,12 @@ class Binilla(tk.Tk, BinillaWidget):
             try: __osa__(self, s, dir_paths[s].path)
             except IndexError: pass
 
-        for w in self.tag_windows.values():
-            try: w.edit_resize(self.max_undos)
-            except Exception: print(format_exc())
+        for wid in sorted(self.tag_windows):
+            w = self.tag_windows[wid]
+            try:
+                w.edit_resize(self.max_undos)
+            except Exception:
+                print(format_exc())
 
         self.handler.tagsdir = dir_paths.tags_dir.path
 
@@ -774,7 +787,7 @@ class Binilla(tk.Tk, BinillaWidget):
         except Exception:
             self.debug_mode = True
 
-        self.apply_style(style_file=self.config_file)
+        self.load_style(style_file=self.config_file)
 
     def load_config(self, filepath=None):
         if filepath is None:
@@ -810,9 +823,10 @@ class Binilla(tk.Tk, BinillaWidget):
                 continue
             self.curr_tag_window_hotkeys[combo] = hotkey.method.enum_name
 
-    def apply_style(self, filepath=None, style_file=None):
+    def load_style(self, filepath=None, style_file=None):
         if isinstance(filepath, tk.Event):
             filepath = None
+
         if style_file is None:
             if filepath is None:
                 filepath = askopenfilename(
@@ -868,9 +882,22 @@ class Binilla(tk.Tk, BinillaWidget):
             except IndexError:
                 pass
 
+        try:
+            update_tag_windows = self.config_file.data.header.tag_window_flags.\
+                                 apply_config_changes_immediately
+        except Exception:
+            update_tag_windows = True
+
+        if update_tag_windows:
+            for w in self.tag_windows.values():
+                try:
+                    w.apply_style()
+                except Exception:
+                    print(format_exc())
+
         if self._initialized:
             self.update_config()
-            self.update_window_settings()
+            self.apply_style()
             self.geometry("%sx%s+%s+%s" %
                           (self.app_width, self.app_height,
                            self.app_offset_x, self.app_offset_y))
@@ -948,11 +975,15 @@ class Binilla(tk.Tk, BinillaWidget):
             pass
 
     def get_tag_window_by_tag(self, tag):
-        try:
-            return self.tag_windows[self.tag_id_to_window_id[id(tag)]]
-        except Exception:
-            print(format_exc())
-            return None
+        if hasattr(tag, "filepath"):
+            try:
+                return self.tag_windows[self.tag_id_to_window_id[id(tag)]]
+            except Exception:
+                print(format_exc())
+                print("Could not locate tag window for: %s" % tag.filepath)
+                return
+
+        print("Invalid object supplied for tag.")
 
     def get_is_tag_loaded(self, filepath, def_id=None):
         if def_id is None:
@@ -1180,6 +1211,7 @@ class Binilla(tk.Tk, BinillaWidget):
     def save_tag(self, tag=None):
         if isinstance(tag, tk.Event):
             tag = None
+
         if tag is None:
             if self.selected_tag is None:
                 return
@@ -1567,11 +1599,8 @@ class Binilla(tk.Tk, BinillaWidget):
             except IndexError:
                 pass
 
-    def update_window_settings(self):
-        for m in (self.main_menu, self.file_menu, self.settings_menu,
-                  self.debug_menu, self.windows_menu, self.recent_tags_menu):
-            m.config(bg=self.default_bg_color, fg=self.text_normal_color)
-        self.config(bg=self.default_bg_color)
+    def apply_style(self, seen=None):
+        BinillaWidget.apply_style(self, seen)
         self.io_text.config(fg=self.io_fg_color, bg=self.io_bg_color)
 
 
@@ -1593,30 +1622,18 @@ class DefSelectorWindow(tk.Toplevel, BinillaWidget):
         self.sorted_def_ids = []
         self.minsize(width=400, height=300)
 
-        self.list_canvas = tk.Canvas(
-            self, highlightthickness=0, bg=self.default_bg_color)
-        self.button_canvas = tk.Canvas(
-            self, height=50, highlightthickness=0, bg=self.default_bg_color)
+        self.list_canvas = tk.Canvas(self, highlightthickness=0)
+        self.button_canvas = tk.Canvas(self, height=50, highlightthickness=0)
 
         #create and set the y scrollbar for the canvas root
         self.def_listbox = tk.Listbox(
-            self.list_canvas, selectmode=SINGLE, highlightthickness=0,
-            bg=self.enum_normal_color, fg=self.text_normal_color,
-            selectbackground=self.entry_highlighted_color,
-            selectforeground=self.text_highlighted_color,
-            font=app_root.fixed_font)
+            self.list_canvas, selectmode=SINGLE, exportselection=False,
+            highlightthickness=0, font=app_root.fixed_font)
 
-        btn_kwargs = dict(
-            bg=self.button_color, activebackground=self.button_color,
-            fg=self.text_normal_color, bd=self.button_depth,
-            disabledforeground=self.text_disabled_color,
-            )
         self.ok_btn = tk.Button(
-            self.button_canvas, text='OK', command=self.complete_action,
-            width=16, **btn_kwargs)
+            self.button_canvas, text='OK', command=self.complete_action, width=16)
         self.cancel_btn = tk.Button(
-            self.button_canvas, text='Cancel', command=self.destroy,
-            width=16, **btn_kwargs)
+            self.button_canvas, text='Cancel', command=self.destroy, width=16)
         self.hsb = tk.Scrollbar(self.button_canvas, orient='horizontal')
         self.vsb = tk.Scrollbar(self.list_canvas,   orient='vertical')
 
@@ -1647,6 +1664,7 @@ class DefSelectorWindow(tk.Toplevel, BinillaWidget):
         self.transient(self.app_root)
         self.grab_set()
 
+        self.apply_style()
         self.cancel_btn.focus_set()
         self.populate_listbox()
 
@@ -1721,36 +1739,25 @@ class TagWindowManager(tk.Toplevel, BinillaWidget):
         self.minsize(width=400, height=250)
 
         # make the frames
-        self.windows_frame = tk.Frame(self, bg=self.default_bg_color)
-        self.button_frame = tk.Frame(self, bg=self.default_bg_color)
-        self.ok_frame = tk.Frame(
-            self.button_frame, bg=self.default_bg_color)
-        self.cancel_frame = tk.Frame(
-            self.button_frame, bg=self.default_bg_color)
+        self.windows_frame = tk.Frame(self)
+        self.button_frame = tk.Frame(self)
+        self.ok_frame = tk.Frame(self.button_frame)
+        self.cancel_frame = tk.Frame(self.button_frame)
 
-        btn_kwargs = dict(
-            bg=self.button_color, activebackground=self.button_color,
-            fg=self.text_normal_color, bd=self.button_depth,
-            disabledforeground=self.text_disabled_color,
-            )
         # make the buttons
         self.ok_button = tk.Button(
-            self.ok_frame, text='OK', width=15,
-            command=self.select, **btn_kwargs)
+            self.ok_frame, text='OK', width=15, command=self.select)
         self.cancel_button = tk.Button(
-            self.cancel_frame, text='Cancel', width=15,
-            command=self.destroy, **btn_kwargs)
+            self.cancel_frame, text='Cancel', width=15, command=self.destroy)
 
         # make the scrollbars and listbox
         self.scrollbar_y = tk.Scrollbar(self.windows_frame, orient="vertical")
         self.scrollbar_x = tk.Scrollbar(self, orient="horizontal")
         self.windows_listbox = tk.Listbox(
-            self.windows_frame, selectmode='single', highlightthickness=0,
+            self.windows_frame, selectmode='single',
+            exportselection=False, highlightthickness=0,
             xscrollcommand=self.scrollbar_x.set,
-            yscrollcommand=self.scrollbar_y.set,
-            bg=self.enum_normal_color, fg=self.text_normal_color,
-            selectbackground=self.entry_highlighted_color,
-            selectforeground=self.text_highlighted_color,)
+            yscrollcommand=self.scrollbar_y.set)
 
         # set up the scrollbars
         self.scrollbar_x.config(command=self.windows_listbox.xview)
@@ -1790,6 +1797,7 @@ class TagWindowManager(tk.Toplevel, BinillaWidget):
         self.scrollbar_x.pack(fill="x")
         self.button_frame.pack(fill="x")
 
+        self.apply_style()
         self.transient(self.app_root)
         self.ok_button.focus_set()
         self.grab_set()

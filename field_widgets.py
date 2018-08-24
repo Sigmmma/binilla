@@ -181,75 +181,76 @@ class FieldWidget(widgets.BinillaWidget):
         self.f_widget_ids_map_inv = {}
         self.content = self
 
+    def apply_style(self, seen=None):
+        widgets.BinillaWidget.apply_style(self, seen)
+        if getattr(self, "comment_frame", None):
+            self.comment_frame.config(bd=self.comment_depth,
+                                      bg=self.comment_bg_color)
+        if getattr(self, "comment", None):
+            self.comment.config(bg=self.comment_bg_color,
+                                fg=self.text_normal_color)
+
     @property
     def enforce_max(self):
         try:
-            return bool(self.tag_window.app_root.config_file\
-                        .data.header.tag_window_flags.enforce_max)
+            return bool(self.tag_window.enforce_max)
         except Exception:
             return True
 
     @property
     def enforce_min(self):
         try:
-            return bool(self.tag_window.app_root.config_file\
-                        .data.header.tag_window_flags.enforce_min)
+            return bool(self.tag_window.enforce_min)
         except Exception:
             return True
 
     @property
     def use_gui_names(self):
         try:
-            return bool(self.tag_window.app_root.config_file\
-                        .data.header.tag_window_flags.use_gui_names)
+            return bool(self.tag_window.use_gui_names)
         except Exception:
             return True
 
     @property
     def all_visible(self):
         try:
-            return bool(self.tag_window.app_root.config_file\
-                        .data.header.tag_window_flags.show_invisible)
+            return bool(self.tag_window.all_visible)
         except Exception:
+            print(format_exc())
             return False
 
     @property
     def all_editable(self):
         try:
-            return bool(self.tag_window.app_root.config_file\
-                        .data.header.tag_window_flags.edit_uneditable)
+            return bool(self.tag_window.all_editable)
         except Exception:
             return False
 
     @property
     def all_bools_visible(self):
         try:
-            return bool(self.tag_window.app_root.config_file\
-                        .data.header.tag_window_flags.show_all_bools)
+            return bool(self.tag_window.all_bools_visible)
         except Exception:
             return False
 
     @property
     def show_comments(self):
         try:
-            return bool(self.tag_window.app_root.config_file\
-                        .data.header.tag_window_flags.show_comments)
+            return bool(self.tag_window.show_comments)
         except Exception:
             return False
 
     @property
     def show_sidetips(self):
         try:
-            return bool(self.tag_window.app_root.config_file\
-                        .data.header.tag_window_flags.show_sidetips)
+            return bool(self.tag_window.show_sidetips)
         except Exception:
             return False
 
     @property
     def max_undos(self):
         try:
-            return bool(self.tag_window.app_root.config_file
-                        .data.header.max_undos)
+            return bool(self.tag_window.max_undos)
         except Exception:
             pass
         return 0
@@ -308,7 +309,11 @@ class FieldWidget(widgets.BinillaWidget):
         '''The gui_name of the node of this FieldWidget.'''
         name = self.name.replace('_', ' ')
         if self.use_gui_names:
-            return self.desc.get('GUI_NAME', name)
+            name = self.desc.get('GUI_NAME', name)
+
+        if self.desc.get('TOOLTIP') and name:
+            name += " �"
+
         return name
 
     @property
@@ -402,7 +407,8 @@ class FieldWidget(widgets.BinillaWidget):
 
             self.comment = tk.Label(
                 self.comment_frame, text=comment, anchor='nw',
-                justify='left', font=comment_font, bg=self.comment_bg_color)
+                justify='left', font=comment_font,
+                bg=self.comment_bg_color, fg=self.text_normal_color)
             self.comment.pack(side='left', fill='both', expand=True)
             self.comment_frame.pack(fill='both', expand=True)
 
@@ -697,6 +703,17 @@ class ContainerFrame(tk.Frame, FieldWidget):
 
         self.populate()
         self._initialized = True
+
+    def apply_style(self, seen=None):
+        FieldWidget.apply_style(self, seen)
+        w = getattr(self, "title", None)
+        if w is not None:
+            w.config(bd=self.frame_depth, bg=self.frame_bg_color)
+
+        w = getattr(self, "title_label", None)
+        if w:
+            if self.desc.get('ORIENT', 'v')[:1].lower() == 'v':
+                w.config(bd=0, bg=self.frame_bg_color)
 
     @property
     def visible_field_count(self):
@@ -1006,6 +1023,11 @@ class ColorPickerFrame(ContainerFrame):
         self._initialized = True
         self.reload()
 
+    def apply_style(self, seen=None):
+        ContainerFrame.apply_style(self, seen)
+        if hasattr(self, 'color_btn'):
+            self.color_btn.config(bg=self.get_color()[1])
+
     def reload(self):
         ContainerFrame.reload(self)
         if hasattr(self, 'color_btn'):
@@ -1032,7 +1054,9 @@ class ColorPickerFrame(ContainerFrame):
 
     def get_color(self):
         try:
-            int_color = (self.red, self.green, self.blue)
+            int_color = (int(self.red   * 255.0 + 0.5),
+                         int(self.green * 255.0 + 0.5),
+                         int(self.blue  * 255.0 + 0.5))
             return (int_color, '#%02x%02x%02x' % int_color)
         except Exception:
             return ((0, 0, 0), '#000000')
@@ -1040,40 +1064,58 @@ class ColorPickerFrame(ContainerFrame):
     @property
     def alpha(self):
         if not hasattr(self.node, "a"):
-            return self.color_type()
-        return min(255, int(self.node.a*255)) if\
-               issubclass(self.color_type, float) else self.node.a
+            return 0.0
+        return max(0.0, min(1.0, self.node.a if
+                            issubclass(self.color_type, float)
+                            else self.node.a / 255.0))
 
     @alpha.setter
     def alpha(self, new_val):
+        if issubclass(self.color_type, int):
+            new_val = int(new_val * 255.0 + 0.5)
         if hasattr(self.node, "a"):
             self.node.a = new_val
 
     @property
     def red(self):
-        return min(255, int(self.node.r*255)) if\
-               issubclass(self.color_type, float) else self.node.r
+        if not hasattr(self.node, "r"):
+            return 0.0
+        return max(0.0, min(1.0, self.node.r if
+                            issubclass(self.color_type, float)
+                            else self.node.r / 255.0))
 
     @red.setter
     def red(self, new_val):
+        if issubclass(self.color_type, int):
+            new_val = int(new_val * 255.0 + 0.5)
         self.node.r = new_val
 
     @property
     def green(self):
-        return min(255, int(self.node.g*255)) if\
-               issubclass(self.color_type, float) else self.node.g
+        if not hasattr(self.node, "g"):
+            return 0.0
+        return max(0.0, min(1.0, self.node.g if
+                            issubclass(self.color_type, float)
+                            else self.node.g / 255.0))
 
     @green.setter
     def green(self, new_val):
+        if issubclass(self.color_type, int):
+            new_val = int(new_val * 255.0 + 0.5)
         self.node.g = new_val
 
     @property
     def blue(self):
-        return min(255, int(self.node.b*255)) if\
-               issubclass(self.color_type, float) else self.node.b
+        if not hasattr(self.node, "b"):
+            return 0.0
+        return max(0.0, min(1.0, self.node.b if
+                            issubclass(self.color_type, float)
+                            else self.node.b / 255.0))
 
     @blue.setter
     def blue(self, new_val):
+        if issubclass(self.color_type, int):
+            new_val = int(new_val * 255.0 + 0.5)
         self.node.b = new_val
 
     def select_color(self):
@@ -1086,21 +1128,17 @@ class ColorPickerFrame(ContainerFrame):
         if None in (color, hex_color):
             return
 
-        color = [int(i) for i in color]
+        # NOTE: NEED to make it into an int. Some versions of
+        # tkinter seem to return color values as floats, even
+        # though the documentation specifies they will be ints.
+        color = tuple(int(v) / 255.0 for v in color)
 
-        if issubclass(self.color_type, float):
-            color[0] /= 255
-            color[1] /= 255
-            color[2] /= 255
-
-        alpha = self.alpha
         self.edit_create(
-            attr_index='argb',
-            redo_node=dict(a=alpha, r=color[0], g=color[1],   b=color[2]),
-            undo_node=dict(a=alpha, r=self.red, g=self.green, b=self.blue))
+            attr_index='rgb',
+            redo_node=dict(r=color[0], g=color[1],   b=color[2],  a=self.alpha),
+            undo_node=dict(r=self.red, g=self.green, b=self.blue, a=self.alpha))
 
-        self.red, self.green, self.blue, self.alpha = (
-            color[0], color[1], color[2], alpha)
+        self.red, self.green, self.blue = color
 
         self.set_edited()
         self.reload()
@@ -1217,6 +1255,11 @@ class ArrayFrame(ContainerFrame):
 
         self.populate()
         self._initialized = True
+
+    def apply_style(self, seen=None):
+        ContainerFrame.apply_style(self, seen)
+        self.controls.config(bd=self.frame_depth, bg=self.frame_bg_color)
+        self.buttons.config(bd=0, bg=self.frame_bg_color)
 
     def destroy(self):
         # These will linger and take up RAM, even if the widget is destroyed.
@@ -1886,6 +1929,7 @@ class DynamicArrayFrame(ArrayFrame):
 
         self.sel_menu.bind('<FocusIn>', self.set_not_sane)
         self.sel_menu.arrow_button.bind('<FocusIn>', self.set_not_sane)
+        self.sel_menu.options_volatile = True
 
     def cache_options(self):
         node, desc = self.node, self.desc
@@ -1979,10 +2023,12 @@ class NullFrame(DataFrame):
     def flush(self): pass
 
     def populate(self):
+        try: title_font = self.tag_window.app_root.default_font
+        except AttributeError: title_font = None
         self.title_label = tk.Label(
             self, text=self.gui_name, width=self.title_size, anchor='w',
             bg=self.default_bg_color, fg=self.text_normal_color,
-            disabledforeground=self.text_disabled_color)
+            disabledforeground=self.text_disabled_color, font=title_font)
         self.field_type_name = tk.Label(
             self, text='<%s>'%self.desc['TYPE'].name,
             anchor='w', justify='left',
@@ -2055,10 +2101,12 @@ class RawdataFrame(DataFrame):
                 print(format_exc())
 
     def populate(self):
+        try: title_font = self.tag_window.app_root.default_font
+        except AttributeError: title_font = None
         self.title_label = tk.Label(
             self, text=self.gui_name, width=self.title_size, anchor='w',
             bg=self.default_bg_color, fg=self.text_normal_color,
-            disabledforeground=self.text_disabled_color)
+            disabledforeground=self.text_disabled_color, font=title_font)
 
         self.tooltip_string = self.desc.get('TOOLTIP')
         self.title_label.tooltip_string = self.tooltip_string
@@ -2209,10 +2257,12 @@ class VoidFrame(DataFrame):
     def flush(self): pass
 
     def populate(self):
+        try: title_font = self.tag_window.app_root.default_font
+        except AttributeError: title_font = None
         self.title_label = tk.Label(
             self, text=self.gui_name, width=self.title_size, anchor='w',
             bg=self.default_bg_color, fg=self.text_normal_color,
-            disabledforeground=self.text_disabled_color)
+            disabledforeground=self.text_disabled_color, font=title_font)
         self.field_type_name = tk.Label(
             self, text='<VOIDED>', anchor='w', justify='left',
             bg=self.default_bg_color, fg=self.text_normal_color,
@@ -2265,10 +2315,12 @@ class EntryFrame(DataFrame):
         self.entry_string = tk.StringVar(self)
         self.content = tk.Frame(self, relief='flat', bd=0,
                                 bg=self.default_bg_color)
+        try: title_font = self.tag_window.app_root.default_font
+        except AttributeError: title_font = None
 
         self.title_label = tk.Label(
             self.content, text=self.gui_name, justify='left', anchor='w',
-            bg=self.default_bg_color, fg=self.text_normal_color,
+            bg=self.default_bg_color, fg=self.text_normal_color, font=title_font,
             disabledforeground=self.text_disabled_color, width=self.title_size)
 
         self.data_entry = tk.Entry(
@@ -2721,10 +2773,12 @@ class TextFrame(DataFrame):
         # make the widgets
         self.content = tk.Frame(self, relief='flat', bd=0,
                                 bg=self.default_bg_color)
+        try: title_font = self.tag_window.app_root.default_font
+        except AttributeError: title_font = None
 
         self.title_label = tk.Label(
             self.content, text=self.gui_name, justify='left', anchor='w',
-            bg=self.default_bg_color, fg=self.text_normal_color,
+            bg=self.default_bg_color, fg=self.text_normal_color, font=title_font,
             disabledforeground=self.text_disabled_color, width=self.title_size)
 
         self.data_text = tk.Text(
@@ -2754,7 +2808,7 @@ class TextFrame(DataFrame):
         self.data_text.f_widget_parent = self
 
         self.data_text.bind('<FocusOut>', self.flush)
-        self.data_text.bind('<Return>', self.flush)
+        self.data_text.bind('<Return>', self.set_modified)
         self.data_text.bind('<Any-KeyPress>', self.set_modified)
         self.data_text.text_undo = self._text_undo
         self.data_text.text_redo = self._text_redo
@@ -2864,7 +2918,7 @@ class TextFrame(DataFrame):
             desc = self.desc
             f_type = desc['TYPE']
             node_cls = desc.get('NODE_CLS', f_type.node_cls)
-            new_node = self.data_text.get(1.0, tk.END)
+            new_node = self.data_text.get(1.0, "%s-1chars" % tk.END)
 
             # NEED TO DO THIS SORTED cause the /x00 we inserted will be janked
             for b in sorted(self.replace_map.keys()):
@@ -3335,6 +3389,8 @@ class EnumFrame(DataFrame):
                 label_width = max(label_width, len(s))
 
         # make the widgets
+        try: title_font = self.tag_window.app_root.default_font
+        except AttributeError: title_font = None
         self.content = tk.Frame(self, relief='flat', bd=0,
                                 bg=self.default_bg_color)
 
@@ -3344,7 +3400,7 @@ class EnumFrame(DataFrame):
             self.content, text=self.gui_name,
             justify='left', anchor='w', width=self.title_size,
             bg=self.default_bg_color, fg=self.text_normal_color,
-            disabledforeground=self.text_disabled_color)
+            disabledforeground=self.text_disabled_color, font=title_font)
         self.sel_menu = widgets.ScrollMenu(
             self.content, f_widget_parent=self, menu_width=label_width,
             sel_index=sel_index, max_index=self.desc.get('ENTRIES', 0) - 1,
@@ -3485,10 +3541,12 @@ class DynamicEnumFrame(EnumFrame):
         DataFrame.__init__(self, *args, **kwargs)
 
         # make the widgets
+        try: title_font = self.tag_window.app_root.default_font
+        except AttributeError: title_font = None
         self.content = tk.Frame(self, relief='flat', bd=0,
                                 bg=self.default_bg_color)
         self.title_label = tk.Label(
-            self.content, text=self.gui_name,
+            self.content, text=self.gui_name, font=title_font,
             justify='left', anchor='w', width=self.title_size,
             bg=self.default_bg_color, fg=self.text_normal_color,
             disabledforeground=self.text_disabled_color)
@@ -3624,6 +3682,8 @@ class BoolFrame(DataFrame):
         DataFrame.__init__(self, *args, **kwargs)
         self.checkvars = {}
 
+        try: title_font = self.tag_window.app_root.default_font
+        except AttributeError: title_font = None
         self.content = tk.Frame(
             self, bg=self.default_bg_color, highlightthickness=0)
 
@@ -3632,7 +3692,7 @@ class BoolFrame(DataFrame):
         self.title_label = tk.Label(
             self.content, text=self.gui_name, width=self.title_size, anchor='w',
             bg=self.default_bg_color, fg=self.text_normal_color,
-            disabledforeground=self.text_disabled_color,)
+            disabledforeground=self.text_disabled_color, font=title_font)
 
         if self.gui_name != '':
             self.title_label.pack(side='left')
@@ -3662,6 +3722,17 @@ class BoolFrame(DataFrame):
 
         self.populate()
         self._initialized = True
+
+    def apply_style(self, seen=None):
+        FieldWidget.apply_style(self, seen)
+        self.check_frame.config(bg=self.entry_normal_color,
+                                bd=self.listbox_depth)
+
+        for w in self.check_frame.children.values():
+            if isinstance(w, tk.Checkbutton):
+                w.config(bg=self.entry_normal_color, selectcolor="",
+                         activebackground=self.entry_highlighted_color,
+                         activeforeground=self.text_highlighted_color)
 
     def flush(self): pass
 
@@ -3738,6 +3809,9 @@ class BoolFrame(DataFrame):
             opt = bit_opt_map[bit]
 
             name = opt.get('GUI_NAME', opt['NAME'])
+            if opt.get('TOOLTIP'):
+                name += " �"
+
             check_var = tk.IntVar(self.check_frame)
             check_var.set(bool(data & (1 << bit)))
             checkvars[bit] = check_var
@@ -3760,6 +3834,7 @@ class BoolFrame(DataFrame):
 
             check_btn.pack(anchor='nw', fill='x', expand=True)
             check_btn.tooltip_string = opt.get('TOOLTIP')
+
             if e_c.IS_LNX:
                 check_btn.bind('<4>', self.mousewheel_scroll_y)
                 check_btn.bind('<5>', self.mousewheel_scroll_y)
@@ -3785,6 +3860,8 @@ class BoolFrame(DataFrame):
         self.content.pack(side='left', anchor='nw')
         self.check_canvas.pack(side='left', fill='both')
         self.update()
+        if not hasattr(self, "check_frame"):
+            return
 
         width  = self.check_frame.winfo_reqwidth()
         height = self.check_frame.winfo_reqheight()
@@ -3833,6 +3910,8 @@ class BoolSingleFrame(DataFrame):
 
     def __init__(self, *args, **kwargs):
         DataFrame.__init__(self, *args, **kwargs)
+        try: title_font = self.tag_window.app_root.default_font
+        except AttributeError: title_font = None
 
         self.checked = tk.IntVar(self)
         self.checkbutton = tk.Checkbutton(
@@ -3845,7 +3924,7 @@ class BoolSingleFrame(DataFrame):
         self.title_label = tk.Label(
             self, text=self.gui_name, width=self.title_size, anchor='w',
             bg=self.default_bg_color, fg=self.text_normal_color,
-            disabledforeground=self.text_disabled_color,)
+            disabledforeground=self.text_disabled_color, font=title_font)
 
         if self.gui_name != '':
             self.title_label.pack(side='left')
@@ -3853,6 +3932,12 @@ class BoolSingleFrame(DataFrame):
 
         self.reload()
         self._initialized = True
+
+    def apply_style(self, seen=None):
+        FieldWidget.apply_style(self, seen)
+        self.checkbutton.config(
+            activebackground=self.entry_highlighted_color,
+            activeforeground=self.text_highlighted_color, selectcolor="")
 
     def flush(self): pass
 

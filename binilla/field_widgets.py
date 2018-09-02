@@ -1869,7 +1869,8 @@ class ArrayFrame(ContainerFrame):
         if opt_index is None:
             opt_index = curr_index
 
-        if opt_index == curr_index and self.options_sane and not force_reload:
+        #if opt_index == curr_index and self.options_sane and not force_reload:
+        if opt_index == curr_index and not force_reload:
             return
         elif opt_index >= len(node) and len(node):
             opt_index = len(node) - 1

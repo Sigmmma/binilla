@@ -208,7 +208,9 @@ class TagWindow(tk.Toplevel, BinillaWidget):
 
     @property
     def has_unsaved_changes(self):
-        if self.edit_manager:
+        if self.is_new_tag:
+            return True
+        elif self.edit_manager:
             if self.edit_manager.len != 0 and (self._last_saved_edit_index <
                                                self.edit_manager.len - 1):
                 if self._last_saved_edit_index == self.edit_manager.edit_index:

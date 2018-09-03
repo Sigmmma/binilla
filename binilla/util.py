@@ -43,7 +43,8 @@ def float_to_str(f, max_sig_figs=FLOAT_PREC):
         sig_figs = int(round(max_sig_figs - log(abs(f), 10)))
 
     if sig_figs < 0:
-        return str(f).split(".")[0]
+        return ("%f" % f).split(".")[0]
+
     return (("%" + (".%sf" % sig_figs)) % f).rstrip("0").rstrip(".")
 
 

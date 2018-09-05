@@ -507,7 +507,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             self.title(self.title())
             self._saving = False
             self.is_new_tag = False
-            if self.edit_manager:
+            if self.edit_manager and self.edit_manager.maxlen:
                 self._last_saved_edit_index = self.edit_manager.edit_index
         except Exception:
             self._saving = False
@@ -674,23 +674,35 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         self._applying_edit_state = True
         try:
             em = self.edit_manager
+            # if we are adding a new edit state in such a way that
+            # it'll erase our ability to redo to the last point we
+            # saved, we need to make sure the last_saved_edit_index
+            # cannot be equal to the edit_index until a save is done.
+            if em.edit_index < self._last_saved_edit_index:
+                self._last_saved_edit_index = -1
+
             if em.edit_index < em.maxlen:
                 self.resize_declined = False
-            elif em.edit_index == em.maxlen and not self.resize_declined:
-                try:
-                    added = max(self.app_root.max_undos, 100)
-                except AttributeError:
-                    added = 100
-                ans = messagebox.askyesno(
-                    "Edit history maxed.",
-                    "This edit will begin overwriting the edit history!\n" +
-                    "Do you wish to extend the history by %s states first?" %
-                    added, icon='warning', parent=self)
+            elif em.edit_index == em.maxlen:
+                # shift the last edit index down if it's valid
+                if self._last_saved_edit_index >= 0:
+                    self._last_saved_edit_index -= 1
 
-                if ans:
-                    em.resize(em.maxlen + added)
-                else:
-                    self.resize_declined = True
+                if not self.resize_declined and em.maxlen:
+                    try:
+                        added = max(self.app_root.max_undos, 100)
+                    except AttributeError:
+                        added = 100
+                    ans = messagebox.askyesno(
+                        "Edit history maxed.",
+                        "This edit will begin overwriting the edit history!\n" +
+                        "Do you wish to extend the history by %s states first?" %
+                        added, icon='warning', parent=self)
+
+                    if ans:
+                        em.resize(em.maxlen + added)
+                    else:
+                        self.resize_declined = True
 
             em.add_state(edit_state)
             self._applying_edit_state = False

@@ -100,7 +100,7 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
-    version = '0.9.64'
+    version = '0.9.65'
     log_filename = 'binilla.log'
     debug = 0
     debug_mode = False
@@ -166,7 +166,7 @@ class Binilla(tk.Tk, BinillaWidget):
         for s in ('curr_dir', 'config_version', 'window_menu_max_len',
                   'app_width', 'app_height', 'app_offset_x', 'app_offset_y'):
             if s in kwargs:
-                object.__setattr__(self, s, kwargs.pop(s))
+                setattr(self, s, kwargs.pop(s))
 
         self.widget_picker = kwargs.pop('widget_picker', self.widget_picker)
         self.debug = kwargs.pop('debug', self.debug)
@@ -746,9 +746,6 @@ class Binilla(tk.Tk, BinillaWidget):
 
         self.sync_window_movement = header.flags.sync_window_movement
 
-        __osa__ = object.__setattr__
-        __tsa__ = type.__setattr__
-
         if self._initialized:
             self.bind_hotkeys()
         else:
@@ -759,16 +756,16 @@ class Binilla(tk.Tk, BinillaWidget):
                 paths.append(tagpath.path)
 
         for s in app_window.NAME_MAP.keys():
-            try: __osa__(self, s, app_window[s])
+            try: setattr(self, s, app_window[s])
             except IndexError: pass
 
         for s in ('recent_tag_max', 'max_undos'):
-            try: __osa__(self, s, header[s])
+            try: setattr(self, s, header[s])
             except IndexError: pass
 
         for s in ('last_load_dir', 'last_defs_dir', 'last_imp_dir',
                   'curr_dir', 'styles_dir')[:len(dir_paths)]:
-            try: __osa__(self, s, dir_paths[s].path)
+            try: setattr(self, s, dir_paths[s].path)
             except IndexError: pass
 
         for wid in sorted(self.tag_windows):
@@ -851,9 +848,6 @@ class Binilla(tk.Tk, BinillaWidget):
         widget_depths = widgets.depths
         colors = style_data.colors
 
-        __osa__ = object.__setattr__
-        __tsa__ = type.__setattr__
-
         for s in ('title_width', 'scroll_menu_width', 'enum_menu_width',
                   'min_entry_width', 'textbox_width', 'textbox_height',
                   'bool_frame_min_width', 'bool_frame_min_height',
@@ -862,22 +856,22 @@ class Binilla(tk.Tk, BinillaWidget):
                   'def_float_entry_width',  'max_float_entry_width',
                   'def_string_entry_width', 'max_string_entry_width',
                   'scroll_menu_max_width', 'scroll_menu_max_height', ):
-            try: __tsa__(BinillaWidget, s, widgets[s])
+            try: setattr(BinillaWidget, s, widgets[s])
             except IndexError: pass
 
         for s in ('vertical_padx', 'vertical_pady',
                   'horizontal_padx', 'horizontal_pady'):
-            try: __tsa__(BinillaWidget, s, tuple(widgets[s]))
+            try: setattr(BinillaWidget, s, tuple(widgets[s]))
             except IndexError: pass
 
         for s in widget_depth_names[:len(widget_depths)]:
-            try: __tsa__(BinillaWidget, s + '_depth', widget_depths[s])
+            try: setattr(BinillaWidget, s + '_depth', widget_depths[s])
             except IndexError: pass
 
         for s in color_names[:len(colors)]:
             # it has to be a tuple for some reason
             try:
-                __tsa__(BinillaWidget, s + '_color',
+                setattr(BinillaWidget, s + '_color',
                         '#%02x%02x%02x' % tuple(colors[s]))
             except IndexError:
                 pass
@@ -1380,10 +1374,9 @@ class Binilla(tk.Tk, BinillaWidget):
 
         # update the config file's directory paths
         dir_paths = self.config_file.data.directory_paths
-        __oga__ = object.__getattribute__
         for s in ('last_load_dir', 'last_defs_dir', 'last_imp_dir',
                   'curr_dir', 'styles_dir', ):
-            try: dir_paths[s].path = __oga__(self, s)
+            try: dir_paths[s].path = getattr(self, s)
             except IndexError: pass
 
         self.config_window = self.make_tag_window(self.config_file,
@@ -1519,8 +1512,6 @@ class Binilla(tk.Tk, BinillaWidget):
         header.version = self.config_version
         header.flags.sync_window_movement = self.sync_window_movement
 
-        __oga__ = object.__getattribute__
-
         del recent_tags[:]
 
         if self._initialized:
@@ -1530,7 +1521,7 @@ class Binilla(tk.Tk, BinillaWidget):
             self.app_offset_y = self.winfo_y()
 
             for s in app_window.NAME_MAP.keys():
-                try: app_window[s] = __oga__(self, s)
+                try: app_window[s] = getattr(self, s)
                 except IndexError: pass
 
         # make sure there are enough tagsdir entries in the directory_paths
@@ -1542,12 +1533,12 @@ class Binilla(tk.Tk, BinillaWidget):
             recent_tags[-1].path = path
 
         for s in ('recent_tag_max', 'max_undos'):
-            try: header[s] = __oga__(self, s)
+            try: header[s] = getattr(self, s)
             except IndexError: pass
 
         for s in ('last_load_dir', 'last_defs_dir', 'last_imp_dir',
                   'curr_dir', 'styles_dir', ):
-            try: dir_paths[s].path = __oga__(self, s)
+            try: dir_paths[s].path = getattr(self, s)
             except IndexError: pass
 
         dir_paths.tags_dir.path = self.handler.tagsdir
@@ -1566,10 +1557,6 @@ class Binilla(tk.Tk, BinillaWidget):
         colors = style_data.colors
 
         header.parse(attr_index='date_modified')
-
-        __oga__ = object.__getattribute__
-        __tga__ = type.__getattribute__
-
         for s in ('title_width', 'scroll_menu_width', 'enum_menu_width',
                   'min_entry_width', 'textbox_width', 'textbox_height',
                   'bool_frame_min_width', 'bool_frame_min_height',
@@ -1578,21 +1565,21 @@ class Binilla(tk.Tk, BinillaWidget):
                   'def_float_entry_width',  'max_float_entry_width',
                   'def_string_entry_width', 'max_string_entry_width',
                   'scroll_menu_max_width', 'scroll_menu_max_height', ):
-            try: widgets[s] = __tga__(BinillaWidget, s)
+            try: widgets[s] = getattr(BinillaWidget, s)
             except IndexError: pass
 
         for s in ('vertical_padx', 'vertical_pady',
                   'horizontal_padx', 'horizontal_pady'):
-            try: widgets[s][:] = tuple(__tga__(BinillaWidget, s))
+            try: widgets[s][:] = tuple(getattr(BinillaWidget, s))
             except IndexError: pass
 
         for s in widget_depth_names:
-            try: widget_depths[s] = __tga__(BinillaWidget, s + '_depth')
+            try: widget_depths[s] = getattr(BinillaWidget, s + '_depth')
             except IndexError: pass
 
         for s in color_names:
             try:
-                color = __tga__(BinillaWidget, s + '_color')[1:]
+                color = getattr(BinillaWidget, s + '_color')[1:]
                 colors[s][0] = int(color[0:2], 16)
                 colors[s][1] = int(color[2:4], 16)
                 colors[s][2] = int(color[4:6], 16)

@@ -167,7 +167,8 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         rc.bind('<Configure>', self._resize_frame)
 
         # make the window not show up on the start bar
-        self.transient(self.app_root)
+        if self.app_root:
+            self.transient(self.app_root)
 
         # do this before populating as otherwise it'll call populate again
         self.apply_style()
@@ -399,6 +400,9 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         Binds the given hotkeys to the given methods of this class.
         Class methods must be the name of each method as a string.
         '''
+        if not hasattr(self.app_root, 'config_file'):
+            return
+
         if new_hotkeys is None:
             new_hotkeys = {}
             for hotkey in self.app_root.config_file.data.tag_window_hotkeys:
@@ -490,10 +494,12 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             if self.field_widget.needs_flushing:
                 self.field_widget.flush()
 
-            handler_flags = self.app_root.config_file.data.header.handler_flags
-            kwargs.setdefault('temp', handler_flags.write_as_temp)
-            kwargs.setdefault('backup', handler_flags.backup_tags)
-            kwargs.setdefault('int_test', handler_flags.integrity_test)
+            if hasattr(self.app_root, 'config_file'):
+                handler_flags = self.app_root.config_file.data.header.handler_flags
+                kwargs.setdefault('temp', handler_flags.write_as_temp)
+                kwargs.setdefault('backup', handler_flags.backup_tags)
+                kwargs.setdefault('int_test', handler_flags.integrity_test)
+
             save_thread = Thread(target=self.tag.serialize, kwargs=kwargs,
                                  daemon=True)
             save_thread.start()
@@ -586,7 +592,8 @@ class TagWindow(tk.Toplevel, BinillaWidget):
 
     def select_window(self, e):
         '''Makes this windows tag the selected tag in self.app_root'''
-        self.app_root.selected_tag = self.tag
+        if self.app_root:
+            self.app_root.selected_tag = self.tag
 
     def unbind_hotkeys(self, hotkeys=None):
         if hotkeys is None:

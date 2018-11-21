@@ -87,6 +87,7 @@ add_widget(StreamAdapter, StreamAdapterFrame)
 add_widget(Pad, PadFrame)
 add_widget(Void, VoidFrame)
 add_widget(Union, UnionFrame)
+add_widget(Computed, TextFrame)
 add_widget(Bit, BoolSingleFrame)
 
 for f_type in (Array, WhileArray):

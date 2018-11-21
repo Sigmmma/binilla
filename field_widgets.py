@@ -2881,10 +2881,12 @@ class TextFrame(DataFrame):
         desc = self.desc
         enc = desc['TYPE'].enc
         c_size = desc['TYPE'].size
-
         endian = 'big' if desc['TYPE'].endian == '>' else 'little'
 
         self.replace_map = {}
+        if not enc:
+            return
+
         # this is the header of what the first
         # 16 characters will be replaced with.
         hex_head = '\\0x0'
@@ -2919,6 +2921,10 @@ class TextFrame(DataFrame):
             desc = self.desc
             f_type = desc['TYPE']
             node_cls = desc.get('NODE_CLS', f_type.node_cls)
+            if node_cls is type(None):
+                self._flushing = False
+                return
+
             new_node = self.data_text.get(1.0, "%s-1chars" % tk.END)
 
             # NEED TO DO THIS SORTED cause the /x00 we inserted will be janked
@@ -2952,7 +2958,7 @@ class TextFrame(DataFrame):
 
     def reload(self):
         try:
-            new_text = self.node
+            new_text = str(self.node)
             # NEED TO DO THIS SORTED cause the /x00 we insert will be mesed up
             for b in sorted(self.replace_map.keys()):
                 new_text = new_text.replace(b, self.replace_map[b])

@@ -2498,7 +2498,7 @@ class EntryFrame(DataFrame):
             entry_width = max(self.min_entry_width,
                               min(value_width, max_width))
             if isinstance(node, str) and isinstance(f_type.size, int):
-                entry_width = (entry_width - 1 + f_type.size)//f_type.size
+                entry_width = (entry_width - 1 + f_type.size)//max(1, f_type.size)
         return entry_width
 
     def populate(self):

@@ -2452,7 +2452,8 @@ class EntryFrame(DataFrame):
         if self.enforce_max:
             field_max = self.field_max
             sizecalc = desc['TYPE'].sizecalc
-            node_size = sizecalc(new_node)
+            node_size = sizecalc(new_node, parent=self.parent,
+                                 attr_index=self.attr_index)
             if field_max is None:
                 field_max = desc.get('SIZE')
 
@@ -2460,7 +2461,8 @@ class EntryFrame(DataFrame):
                 if self.enforce_max:
                     while node_size > field_max:
                         new_node = new_node[:-1]
-                        node_size = sizecalc(new_node)
+                        node_size = sizecalc(new_node, parent=self.parent,
+                                             attr_index=self.attr_index)
 
         return new_node
 
@@ -2938,7 +2940,8 @@ class TextFrame(DataFrame):
                     field_max = desc.get('SIZE')
 
                 if self.enforce_max and isinstance(field_max, int):
-                    field_size = f_type.sizecalc(new_node)
+                    field_size = f_type.sizecalc(new_node, parent=self.parent,
+                                                 attr_index=self.attr_index)
                     if field_size > field_max:
                         raise ValueError(
                             ("Max size for the '%s' text field is %s bytes, " +

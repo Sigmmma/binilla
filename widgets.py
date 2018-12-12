@@ -840,14 +840,6 @@ class PhotoImageHandler():
             self.load_texture(tex_block, tex_info)
 
     def load_texture(self, tex_block, tex_info):
-        #w = max(tex_info.get("width", 1), 1)
-        #h = max(tex_info.get("height", 1), 1)
-        #d = max(tex_info.get("depth", 1), 1)
-        #if ((2**int(log(w, 2)) != w) or
-        #    (2**int(log(h, 2)) != h) or
-        #    (2**int(log(d, 2)) != d)):
-        #    print("Cannot display non-power of 2 textures.")
-        #    return
         self.arby.load_new_texture(texture_block=tex_block,
                                    texture_info=tex_info)
 
@@ -1250,21 +1242,23 @@ class BitmapDisplayFrame(BinillaWidget, tk.Frame):
             filetypes=(("DirectDraw surface",          "*.dds"),
                        ('Portable network graphics',   '*.png'),
                        ('Truevision graphics adapter', '*.tga'),
-                       ('Raw pixel data',              '*.bin')))
+                       ('Raw pixel data',              '*.bin'))
+            )
 
         fp, ext = os.path.splitext(fp)
         if not fp:
             return
-        if not ext:
+        elif not ext:
             ext = ".dds"
 
-        mip_levels = "all"
-        if ext.lower() != ".dds":
-            mip_levels = self.mipmap_index.get()
+        mip_levels = "all" if ext.lower() == ".dds" else self.mipmap_index.get()
 
-        handler.arby.save_to_file(output_path=fp, ext=ext, overwrite=True,
-                                  mip_levels=mip_levels, bitmap_indexes="all",
-                                  swizzle_mode=False)
+        handler.arby.save_to_file(
+            output_path=fp, ext=ext, overwrite=True, mip_levels=mip_levels,
+            bitmap_indexes="all", keep_alpha=handler.channels.get("A"),
+            swizzle_mode=False, channel_mapping=handler.channel_mapping,
+            target_big_endian=False, tile_mode=False
+            )
 
     def clear_depth_canvas(self):
         self.depth_canvas.delete(tk.ALL)

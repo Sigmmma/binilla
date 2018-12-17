@@ -851,25 +851,30 @@ class PhotoImageHandler():
         channels = self.channels
         channels.update(L=False, R=False, G=False, B=False, A=False)
         if self.channel_count <= 2:
-            if mode in (0, 2):
-                channels.update(L=True)
-        elif mode == 0: channels.update(R=True, G=True, B=True)
-        elif mode == 2: channels.update(R=True, G=True, B=True)
-        elif mode == 3: channels.update(R=True)
-        elif mode == 4: channels.update(G=True)
-        elif mode == 5: channels.update(B=True)
-
-        if mode in (1, 2):
-            channels.update(A=True)
+            channels.update(L=(mode != 1), A=(mode != 0))
+        else:
+            if   mode == 0: channels.update(R=True, G=True, B=True)
+            elif mode == 1: channels.update(A=True)
+            elif mode == 2: channels.update(A=True, R=True, G=True, B=True)
+            elif mode == 3: channels.update(R=True)
+            elif mode == 4: channels.update(G=True)
+            elif mode == 5: channels.update(B=True)
 
         if self.channel_count == 1:
-            chan_map = [0]
-            if   "A" in self.tex_format and not channels["A"]: chan_map[0] = -1
-            elif "L" in self.tex_format and not channels["L"]: chan_map[0] = -1
+            chan_map = [-1]
+            if "A" not in self.tex_format:
+                if channels["L"]:
+                    chan_map = [-1, 0, 0, 0]
+            elif channels["A"]:
+                if channels["L"]:
+                    chan_map = [0, -1, -1, -1]
+                else:
+                    chan_map = [-1, 0, 0, 0]
         elif self.channel_count == 2:
             chan_map = [0, 1, 1, 1]
-            if not channels["A"]: chan_map[0]  = -1
-            if not channels["L"]: chan_map[1:] = (-1, -1, -1)
+            if channels["L"] and channels["A"]: pass
+            elif not channels["A"]: chan_map = [-1, 1, 1, 1]
+            elif not channels["L"]: chan_map = [-1, 0, 0, 0]
         else:
             chan_map = [0, 1, 2, 3]
             if not channels["A"]: chan_map[0] = -1
@@ -879,8 +884,8 @@ class PhotoImageHandler():
             if min(chan_map[1:]) < 0:
                 chan_map[1] = chan_map[2] = chan_map[3] = max(chan_map[1:])
 
-        if len(chan_map) > 1 and max(chan_map[1:]) < 0:
-            chan_map = [-1, 0, 0, 0]
+            if max(chan_map[1:]) < 0:
+                chan_map = [-1, 0, 0, 0]
 
         self.channel_mapping = chan_map
 
@@ -908,9 +913,14 @@ class PhotoImageHandler():
             image_list = self.arby.make_photoimages(
                 self.temp_path, bitmap_indexes=sub_bitmap_indexes,
                 keep_alpha=self.channels.get("A"), mip_levels="all",
-                channel_mapping=self.channel_mapping)
+                channel_mapping=self.channel_mapping, intensity_to_rgb=True)
         except TypeError:
-            # no texture loaded
+            print(format_exc())
+            print("Could not load texture.")
+            # no texture loaded(probably)
+            return {}
+        except:
+            print(format_exc())
             return {}
 
         c = frozenset((k, v) for k, v in self.channels.items())

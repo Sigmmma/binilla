@@ -1065,13 +1065,13 @@ class ColorPickerFrame(ContainerFrame):
     def alpha(self):
         if not hasattr(self.node, "a"):
             return 0.0
-        return max(0.0, min(1.0, self.node.a if
-                            issubclass(self.color_type, float)
-                            else self.node.a / 255.0))
+        return max(0.0, min(1.0, self.node.a / 255.0 if
+                            issubclass(self.color_type, int)
+                            else self.node.a))
 
     @alpha.setter
     def alpha(self, new_val):
-        if issubclass(self.color_type, int):
+        if issubclass(self.color_type, int) and isinstance(new_val, float):
             new_val = int(new_val * 255.0 + 0.5)
         if hasattr(self.node, "a"):
             self.node.a = new_val
@@ -1080,43 +1080,46 @@ class ColorPickerFrame(ContainerFrame):
     def red(self):
         if not hasattr(self.node, "r"):
             return 0.0
-        return max(0.0, min(1.0, self.node.r if
-                            issubclass(self.color_type, float)
-                            else self.node.r / 255.0))
+        return max(0.0, min(1.0, self.node.r / 255.0 if
+                            issubclass(self.color_type, int)
+                            else self.node.r))
 
     @red.setter
     def red(self, new_val):
-        if issubclass(self.color_type, int):
+        if issubclass(self.color_type, int) and isinstance(new_val, float):
             new_val = int(new_val * 255.0 + 0.5)
-        self.node.r = new_val
+        if hasattr(self.node, "r"):
+            self.node.r = new_val
 
     @property
     def green(self):
         if not hasattr(self.node, "g"):
             return 0.0
-        return max(0.0, min(1.0, self.node.g if
-                            issubclass(self.color_type, float)
-                            else self.node.g / 255.0))
+        return max(0.0, min(1.0, self.node.g / 255.0 if
+                            issubclass(self.color_type, int)
+                            else self.node.g))
 
     @green.setter
     def green(self, new_val):
-        if issubclass(self.color_type, int):
+        if issubclass(self.color_type, int) and isinstance(new_val, float):
             new_val = int(new_val * 255.0 + 0.5)
-        self.node.g = new_val
+        if hasattr(self.node, "g"):
+            self.node.g = new_val
 
     @property
     def blue(self):
         if not hasattr(self.node, "b"):
             return 0.0
-        return max(0.0, min(1.0, self.node.b if
-                            issubclass(self.color_type, float)
-                            else self.node.b / 255.0))
+        return max(0.0, min(1.0, self.node.b / 255.0 if
+                            issubclass(self.color_type, int)
+                            else self.node.b))
 
     @blue.setter
     def blue(self, new_val):
-        if issubclass(self.color_type, int):
+        if issubclass(self.color_type, int) and isinstance(new_val, float):
             new_val = int(new_val * 255.0 + 0.5)
-        self.node.b = new_val
+        if hasattr(self.node, "b"):
+            self.node.b = new_val
 
     def select_color(self):
         self.flush()
@@ -1131,14 +1134,18 @@ class ColorPickerFrame(ContainerFrame):
         # NOTE: NEED to make it into an int. Some versions of
         # tkinter seem to return color values as floats, even
         # though the documentation specifies they will be ints.
-        color = tuple(int(v) / 255.0 for v in color)
+        c_color = tuple(int(v) / 255.0 for v in color)
+        n_color = (self.red, self.green, self.blue, self.alpha)
+        if issubclass(self.color_type, int):
+            c_color = tuple(int(v * 255.0 + 0.5) for v in c_color)
+            n_color = tuple(int(v * 255.0 + 0.5) for v in n_color)
 
         self.edit_create(
             attr_index='rgb',
-            redo_node=dict(r=color[0], g=color[1],   b=color[2],  a=self.alpha),
-            undo_node=dict(r=self.red, g=self.green, b=self.blue, a=self.alpha))
+            redo_node=dict(r=c_color[0], g=c_color[1], b=c_color[2], a=n_color[3]),
+            undo_node=dict(r=n_color[0], g=n_color[1], b=n_color[2], a=n_color[3]))
 
-        self.red, self.green, self.blue = color
+        self.red, self.green, self.blue = c_color
 
         self.set_edited()
         self.reload()

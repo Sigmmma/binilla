@@ -909,11 +909,11 @@ class PhotoImageHandler():
 
         new_images = {}
         try:
-            self.arby.swizzle_mode = False
             image_list = self.arby.make_photoimages(
                 self.temp_path, bitmap_indexes=sub_bitmap_indexes,
                 keep_alpha=self.channels.get("A"), mip_levels="all",
-                channel_mapping=self.channel_mapping, intensity_to_rgb=True)
+                channel_mapping=self.channel_mapping, intensity_to_rgb=True,
+                swizzle_mode=False, tile_mode=False)
         except TypeError:
             print(format_exc())
             print("Could not load texture.")
@@ -1022,6 +1022,10 @@ class BitmapDisplayFrame(BinillaWidget, tk.Frame):
     depth_canvas = None
     depth_canvas_id = None
     depth_canvas_image_id = None
+
+    default_bitmap_mapping = (
+        (0,),
+        )
 
     cubemap_cross_mapping = (
         (-1,  2),
@@ -1383,44 +1387,39 @@ class BitmapDisplayFrame(BinillaWidget, tk.Frame):
         self.prev_depth_index   = self.depth_index.get()
         self.prev_cube_display_index = self.cube_display_index.get()
 
-    def _display_cubemap(self, force=False):
+    def _display_cubemap(self, force=False, bitmap_mapping=None):
+        mapping_type = self.cube_display_index.get()
+        if bitmap_mapping is None:
+            if mapping_type == 0:
+                bitmap_mapping = self.cubemap_cross_mapping
+            else:
+                bitmap_mapping = self.cubemap_strip_mapping
+
+        self._display_2d_bitmap(force, bitmap_mapping)
+
+    def _display_2d_bitmap(self, force=False, bitmap_mapping=None):
         images = self.get_images()
         if not images or not(self.should_update or force): return
         w = max(image.width()  for image in images)
         h = max(image.height() for image in images)
-
-        max_column_ct = 0
-        mapping_type = self.cube_display_index.get()
-        if mapping_type == 0:
-            face_mapping = self.cubemap_cross_mapping
-        else:
-            face_mapping = self.cubemap_strip_mapping
+        if bitmap_mapping is None:
+            bitmap_mapping = self.default_bitmap_mapping
 
         self.clear_canvas()
+        # place the bitmaps on the canvas
         y = 0
-        for line in face_mapping:
-            max_column_ct = max(max_column_ct, len(line))
+        for line in bitmap_mapping:
+            max_column_ct = max(0, len(line))
             x = 0
-            for face_index in line:
-                if face_index in range(len(images)):
+            for image_index in line:
+                if image_index in range(len(images)):
                     # place the cube face on the canvas
                     self.image_canvas_ids.append(
                         self.image_canvas.create_image(
-                            (x, y), anchor="nw", image=images[face_index],
-                            tags=("BITMAP", "CUBE_FACE")))
+                            (x, y), anchor="nw", image=images[image_index],
+                            tags=("BITMAP", "2D_BITMAP")))
                 x += w
             y += h
-        self.update_scroll_regions()
-
-    def _display_2d_bitmap(self, force=False):
-        images = self.get_images()
-        if not images or not(self.should_update or force): return
-
-        self.clear_canvas()
-        # place the bitmap on the canvas
-        self.image_canvas_ids.append(
-            self.image_canvas.create_image((0, 0), anchor="nw", image=images[0],
-                                           tags=("BITMAP", "2D_BITMAP")))
         self.update_scroll_regions()
 
     def _display_3d_bitmap(self, force=False):

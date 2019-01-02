@@ -1350,8 +1350,12 @@ class BitmapDisplayFrame(BinillaWidget, tk.Frame):
             return
         self.changing_settings = True
 
+        new_mip_options = range(handler.max_mipmap + 1)
+        if self.mipmap_index.get() not in new_mip_options:
+            self.mipmap_index.set(0)
+
         max_depth = handler.mip_depth(self.mipmap_index.get())
-        self.mipmap_menu.set_options(range(handler.max_mipmap + 1))
+        self.mipmap_menu.set_options(new_mip_options)
         self.depth_menu.set_options(range(max_depth))
         if self.depth_menu.sel_index > max_depth - 1:
             self.depth_menu.sel_index = max_depth - 1

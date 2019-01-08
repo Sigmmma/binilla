@@ -465,11 +465,34 @@ class FieldWidget(widgets.BinillaWidget):
 
         return clear
 
-    def get_widget_and_node(self=None, *, nodepath, tag_window=None):
+    def get_widget(widget=None, *, nodepath, tag_window=None):
+        if tag_window is None:
+            tag_window = widget.tag_window
+
+        if widget is None:
+            widget = tag_window.field_widget
+
+        try:
+            # loop over each attr_index in the nodepath
+            for i in nodepath:
+                if i in widget.node.NAME_MAP:
+                    i = widget.node.NAME_MAP[i]
+                widget = widget.f_widgets[widget.f_widget_ids_map[i]]
+        except (AttributeError, KeyError):
+            pass
+        except Exception:
+            print(format_exc())
+
+        return widget
+
+    def get_widget_and_node(widget=None, *, nodepath, tag_window=None):
         try:
             if tag_window is None:
-                tag_window = self.tag_window
-            widget = tag_window.field_widget
+                tag_window = widget.tag_window
+
+            if widget is None:
+                widget = tag_window.field_widget
+
             node = widget.node
             try:
                 # loop over each attr_index in the nodepath
@@ -488,8 +511,7 @@ class FieldWidget(widgets.BinillaWidget):
                         widget = f_widgets[widget.f_widget_ids_map[i]]
                     except Exception:
                         widget = None
-                        pass
-            except AttributeError:
+            except (AttributeError, KeyError):
                 pass
             except Exception:
                 print(format_exc())
@@ -1028,29 +1050,38 @@ class ColorPickerFrame(ContainerFrame):
         if hasattr(self, 'color_btn'):
             self.color_btn.config(bg=self.get_color()[1])
 
-    def reload(self):
-        ContainerFrame.reload(self)
-        if hasattr(self, 'color_btn'):
-            if self.disabled:
-                self.color_btn.config(state=tk.DISABLED)
-            else:
-                self.color_btn.config(state=tk.NORMAL)
-
-            self.color_btn.config(bg=self.get_color()[1])
-
-    def populate(self):
-        ContainerFrame.populate(self)
-        self.color_btn = tk.Button(
-            self.content, width=4, command=self.select_color,
-            bd=self.button_depth, bg=self.get_color()[1])
-        orient = self.desc.get('ORIENT', 'v')[:1].lower()
-        side = 'left' if orient == 'h' else 'top'
-        self.color_btn.pack(side=side)
+    def update_selector_button(self):
+        if not hasattr(self, 'color_btn'):
+            return
 
         if self.disabled:
             self.color_btn.config(state=tk.DISABLED)
         else:
             self.color_btn.config(state=tk.NORMAL)
+
+        self.color_btn.config(bg=self.get_color()[1])
+
+    def reload(self):
+        ContainerFrame.reload(self)
+        self.update_selector_button()
+
+    def populate(self):
+        ContainerFrame.populate(self)
+        self.color_btn = tk.Button(
+            self.content, width=4, command=self.select_color,
+            bd=self.button_depth)
+        orient = self.desc.get('ORIENT', 'v')[:1].lower()
+        side = 'left' if orient == 'h' else 'top'
+        self.color_btn.pack(side=side)
+        self.update_selector_button()
+
+        for attr_name in "rgb":
+            w = self.get_widget(nodepath=attr_name)
+            var = getattr(w, "entry_string", None)
+            if isinstance(var, tk.StringVar):
+                self.write_trace(var, lambda *a, widget=self, **kw:
+                                 widget.update_selector_button())
+
 
     def get_color(self):
         try:

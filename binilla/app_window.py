@@ -745,6 +745,7 @@ class Binilla(tk.Tk, BinillaWidget):
         dir_paths = config_data.directory_paths
 
         self.sync_window_movement = header.flags.sync_window_movement
+        self.debug = self.handler.debug = header.flags.debug_mode
 
         if self._initialized:
             self.bind_hotkeys()
@@ -875,19 +876,6 @@ class Binilla(tk.Tk, BinillaWidget):
                         '#%02x%02x%02x' % tuple(colors[s]))
             except IndexError:
                 pass
-
-        try:
-            update_tag_windows = self.config_file.data.header.tag_window_flags.\
-                                 apply_config_changes_immediately
-        except Exception:
-            update_tag_windows = True
-
-        if update_tag_windows:
-            for w in self.tag_windows.values():
-                try:
-                    w.apply_style()
-                except Exception:
-                    print(format_exc())
 
         if self._initialized:
             self.update_config()
@@ -1036,6 +1024,10 @@ class Binilla(tk.Tk, BinillaWidget):
                     new_tag = handler.build_tag(
                         filepath=abs_path, def_id=def_id,
                         allow_corrupt=handler_flags.allow_corrupt)
+                except FileNotFoundError:
+                    print("The selected file does not exist.\n"
+                          "Could not load: %s" % path)
+                    continue
                 except PermissionError:
                     print("This program does not have permission to work in this folder.\n"
                           "Could not load: %s" % path)
@@ -1199,7 +1191,9 @@ class Binilla(tk.Tk, BinillaWidget):
                 print(format_exc())
 
     def save_config(self, e=None):
-        self.config_file.serialize(temp=0, backup=0, calc_pointers=0)
+        self.config_file.serialize(temp=False, backup=False)
+        self.config_window.update_config_window()
+
         self.apply_config()
 
     def save_tag(self, tag=None):
@@ -1208,6 +1202,7 @@ class Binilla(tk.Tk, BinillaWidget):
 
         if tag is None:
             if self.selected_tag is None:
+                print("Cannot save(no tag is selected).")
                 return
             tag = self.selected_tag
 
@@ -1240,6 +1235,7 @@ class Binilla(tk.Tk, BinillaWidget):
             tag = None
         if tag is None:
             if self.selected_tag is None:
+                print("Cannot save(no tag is selected).")
                 return
             tag = self.selected_tag
 

@@ -204,8 +204,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
 
     @property
     def needs_flushing(self):
-        return (hasattr(self.field_widget, "needs_flushing") and
-                self.field_widget.needs_flushing)
+        return getattr(self.field_widget, "needs_flushing", False)
 
     @property
     def has_unsaved_changes(self):
@@ -217,8 +216,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
                 if self._last_saved_edit_index == self.edit_manager.edit_index:
                     return False
 
-        return (hasattr(self.field_widget, "edited") and
-                self.field_widget.edited)
+        return getattr(self.field_widget, "edited", False)
 
     @property
     def enforce_max(self):
@@ -503,9 +501,11 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             save_thread = Thread(target=self.tag.serialize, kwargs=kwargs,
                                  daemon=True)
             save_thread.start()
-            while save_thread.join(0.1):
-                # do this threaded so it doesn't freeze the ui
-                if not save_thread.isAlive:
+            # do this threaded so it doesn't freeze the ui
+            while True:
+                save_thread.join(0.05)
+                # NOTE TO SELF: isAlive is a method, NOT a decorated property...
+                if not save_thread.isAlive():
                     break
                 self.update()
 
@@ -777,3 +777,9 @@ class ConfigWindow(TagWindow):
             pass
         tk.Toplevel.destroy(self)
         self.app_root.config_window = None
+
+    def update_config_window(self):
+        self.field_widget.set_edited(False)
+        self.title(self.title())
+        if self.edit_manager and self.edit_manager.maxlen:
+            self._last_saved_edit_index = self.edit_manager.edit_index

@@ -1,5 +1,6 @@
 import platform
 import threadsafe_tkinter as tk
+import string
 import time
 import tkinter.ttk
 
@@ -51,9 +52,9 @@ def make_hotkey_string(hotkey):
 
     combo = '<%s%s>'
     if key[0] == '_': key = key[1:]
-    if key in "1234567890":
+    if key in string.digits:
         combo = '%s%s'
-    elif key in 'abcdefghijklmnopqrstuvwxyz' and 'Shift' in prefix:
+    elif key in string.ascii_lowercase and 'Shift' in prefix:
         key = key.upper()
 
     return combo % (prefix, key)
@@ -108,9 +109,13 @@ class TagWindow(tk.Toplevel, BinillaWidget):
     _applying_edit_state = False
     _resizing_window = False
     _saving = False
+    _scrolling = False
     _last_saved_edit_index = 0
+    _pending_scroll_counts = ()
+    _saving_dialog = None
 
     def __init__(self, master, tag=None, *args, **kwargs):
+        self._pending_scroll_counts = [0, 0]
         self.tag = tag
         self.is_new_tag = kwargs.pop("is_new_tag", self.is_new_tag)
 
@@ -142,6 +147,9 @@ class TagWindow(tk.Toplevel, BinillaWidget):
 
         tk.Toplevel.__init__(self, master, *args, **kwargs)
         self.update_title()
+
+        self._saving_dialog = SavingDialog(self)
+        self.hide_saving_dialog()
 
         self.edit_manager = EditManager(max_undos)
 
@@ -312,8 +320,8 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             rf,   rc   = self.root_frame,     self.root_canvas
             rf_w, rf_h = rf.winfo_reqwidth(), rf.winfo_reqheight()
             rc.config(scrollregion="0 0 %s %s" % (rf_w, rf_h))
-            if rf_w != rc.winfo_reqwidth():  rc.config(width=rf_w)
-            if rf_h != rc.winfo_reqheight(): rc.config(height=rf_h)
+            if rf_w != rc.winfo_reqwidth() or rf_h != rc.winfo_reqheight():
+                rc.config(width=rf_w, height=rf_h)
 
             # account for the size of the scrollbars when resizing the window
             new_window_width  = rf_w + self.root_vsb.winfo_reqwidth()  + 2
@@ -346,30 +354,43 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         rf_id = self.root_frame_id
         rf,   rc   = self.root_frame, self.root_canvas
         rc_w, rc_h = rc.winfo_reqwidth(), rc.winfo_reqheight()
-        if rc_w != rf.winfo_reqwidth():  rc.itemconfigure(rf_id, width=rc_w)
-        if rc_h != rf.winfo_reqheight(): rc.itemconfigure(rf_id, height=rc_h)
+        if rc_w != rf.winfo_reqwidth() or rc_h != rf.winfo_reqheight():
+            rc.itemconfigure(rf_id, width=rc_w, height=rc_h)
 
     def mousewheel_scroll_x(self, e):
-        if not self.should_scroll(e):
-            return
-        # prevent scrolling if the root_canvas.bbox width >= canvas width
-        bbox = self.root_canvas.bbox(tk.ALL)
-        if not bbox or (self.root_canvas.winfo_width() >= bbox[2] - bbox[0]):
-            return
-
-        delta = getattr(self.app_root, "scroll_increment_x", 20)
-        self.root_canvas.xview_scroll(int(get_mouse_delta(e) * delta), "units")
+        if self.should_scroll(e):
+            self.after_idle(
+                lambda func=self.mousewheel_scroll, event=e: func(0, event))
 
     def mousewheel_scroll_y(self, e):
-        if not self.should_scroll(e):
-            return
-        # prevent scrolling if the root_canvas.bbox height >= canvas height
+        if self.should_scroll(e):
+            self.after_idle(
+                lambda func=self.mousewheel_scroll, event=e: func(1, event))
+
+    def mousewheel_scroll(self, axis, event):
         bbox = self.root_canvas.bbox(tk.ALL)
-        if not bbox or (self.root_canvas.winfo_height() >= bbox[3] - bbox[1]):
+        dims = (self.root_canvas.winfo_width(),
+                self.root_canvas.winfo_height())
+        if not bbox or (dims[axis] >= (bbox[2 + axis] - bbox[axis])):
             return
 
-        delta = getattr(self.app_root, "scroll_increment_y", 20)
-        self.root_canvas.yview_scroll(int(get_mouse_delta(e) * delta), "units")
+        self._pending_scroll_counts[axis] += 1
+        if self._scrolling:
+            return
+
+        self._scrolling = True
+        try:
+            axis_char = "xy"[axis]
+            scroll_func = getattr(self.root_canvas, axis_char + "view_scroll")
+            scroll_inc = (getattr(self.app_root, "scroll_increment_" + axis_char, 20) *
+                          self._pending_scroll_counts[axis] * get_mouse_delta(event))
+            self._pending_scroll_counts[axis] = 0
+            scroll_func(int(scroll_inc), "units")
+            self.root_canvas.update()
+            self._scrolling = False
+        except:
+            self._scrolling = False
+            raise
 
     def should_scroll(self, e):
         '''
@@ -481,6 +502,12 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         tk.Toplevel.destroy(self)
         self.delete_all_widget_refs()
 
+    def show_saving_dialog(self):
+        self._saving_dialog.show()
+
+    def hide_saving_dialog(self):
+        self._saving_dialog.hide()
+
     def save(self, **kwargs):
         '''Flushes any lingering changes in the widgets to the tag.'''
         if self._saving:
@@ -488,7 +515,10 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             return
 
         self._saving = True
+        title = self.title()
+        exception = None
         try:
+            self.title("Saving... " + title)
             if self.field_widget.needs_flushing:
                 self.field_widget.flush()
 
@@ -501,23 +531,31 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             save_thread = Thread(target=self.tag.serialize, kwargs=kwargs,
                                  daemon=True)
             save_thread.start()
+            self.show_saving_dialog()
             # do this threaded so it doesn't freeze the ui
             while True:
                 save_thread.join(0.05)
+                self.update()
                 # NOTE TO SELF: isAlive is a method, NOT a decorated property...
                 if not save_thread.isAlive():
                     break
-                self.update()
 
+                self.show_saving_dialog()
+
+            self.hide_saving_dialog()
             self.field_widget.set_edited(False)
-            self.title(self.title())
-            self._saving = False
             self.is_new_tag = False
             if self.edit_manager and self.edit_manager.maxlen:
                 self._last_saved_edit_index = self.edit_manager.edit_index
-        except Exception:
+
+        except Exception as e:
+            exception = e
+        finally:
+            self.title(title)
             self._saving = False
-            raise
+
+        if exception:
+            raise exception
 
     def resize_window(self, new_width=None, new_height=None, cap_size=True,
                       dont_shrink_width=True, dont_shrink_height=True):
@@ -617,7 +655,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
                 pass
 
     def edit_undo(self, e=None):
-        if self.edit_manager is None: return
+        if self.edit_manager is None or self._saving: return
         focus = self.focus_get()
 
         # Text widgets handle their own undo/redo states, and it
@@ -646,7 +684,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             raise
 
     def edit_redo(self, e=None):
-        if self.edit_manager is None: return
+        if self.edit_manager is None or self._saving: return
         focus = self.focus_get()
 
         # Text widgets handle their own undo/redo states, and it
@@ -783,3 +821,54 @@ class ConfigWindow(TagWindow):
         self.title(self.title())
         if self.edit_manager and self.edit_manager.maxlen:
             self._last_saved_edit_index = self.edit_manager.edit_index
+
+
+class SavingDialog(tk.Toplevel, BinillaWidget):
+
+    def __init__(self, master, tag=None, *args, **kwargs):
+        kwargs.update(bg=self.default_bg_color)
+        tk.Toplevel.__init__(self, master, *args, **kwargs)
+
+        self.title('Saving, please wait...')
+        self.minsize(width=300, height=0)
+        self.protocol("WM_DELETE_WINDOW", self.hide)
+
+        self.transient(master)
+        self.apply_style()
+
+        self.geometry('%sx%s' % (300, 0))
+        self.update()
+
+    def show(self):
+        if self.state() == 'withdrawn':
+            self.center_on_master()
+            self.update()
+            self.deiconify()
+            self.grab_set()
+
+    def hide(self):
+        if self.state() != 'withdrawn':
+            self.withdraw()
+            self.grab_release()
+            self.update()
+
+    def center_on_master(self, x=0, y=0):
+        x_base, y_base = self.master.winfo_x(), self.master.winfo_y()
+        m_width, m_height = self.master.geometry().split('+')[0].split('x')[:2]
+        s_width, s_height = self.geometry().split('+')[0].split('x')[:2]
+
+        m_width, m_height = int(m_width), int(m_height)
+        s_width, s_height = int(s_width), int(s_height)
+
+        if m_width == 1 and m_height == 1:
+            m_width, m_height = (self.master.winfo_reqwidth(),
+                                 self.master.winfo_reqheight())
+
+        if s_width == 1 and s_height == 1:
+            s_width, s_height = self.winfo_reqwidth(), self.winfo_reqheight()
+
+        self.geometry('%sx%s+%s+%s' % (
+            s_width, s_height,
+            x_base + ((m_width  - s_width)  // 2),
+            y_base + ((m_height - s_height) // 2)
+            ))

@@ -1,3 +1,4 @@
+import collections
 import gc
 import os
 import platform
@@ -32,39 +33,43 @@ from .util import *
 this_curr_dir = get_cwd(__file__)
 default_config_path = this_curr_dir + '%sbinilla.cfg' % s_c.PATHDIV
 
-default_hotkeys = {
-    '<Control-w>': 'close_selected_window',
-    '<Control-o>': 'load_tags',
-    '<Control-n>': 'new_tag',
-    '<Control-s>': 'save_tag',
-    '<Control-f>': 'show_defs',
-    '<Control-p>': 'print_tag',
+default_hotkeys = collections.OrderedDict()
+for k, v in (
+        ('<Control-w>', 'close_selected_window'),
+        ('<Control-o>', 'load'),
+        ('<Control-n>', 'new'),
+        ('<Control-s>', 'save'),
+        ('<Control-f>', 'show_defs'),
+        ('<Control-p>', 'print_tag'),
 
-    '<Control-BackSpace>': 'clear_console',
-    '<Control-backslash>': 'cascade',
-    '<Control-Shift-bar>': 'tile_vertical',
-    '<Control-Shift-underscore>': 'tile_horizontal',
+        ('<Control-BackSpace>', 'clear_console'),
+        ('<Control-backslash>', 'cascade'),
+        ('<Control-Shift-bar>', 'tile_vertical'),
+        ('<Control-Shift-underscore>', 'tile_horizontal'),
 
-    '<Alt-m>': 'minimize_all',
-    '<Alt-r>': 'restore_all',
-    '<Alt-w>': 'show_window_manager',
-    '<Alt-c>': 'show_config_file',
-    '<Alt-o>': 'load_tag_as',
-    '<Alt-s>': 'save_tag_as',
-    '<Alt-F4>': 'exit',
+        ('<Alt-m>', 'minimize_all'),
+        ('<Alt-r>', 'restore_all'),
+        ('<Alt-w>', 'show_window_manager'),
+        ('<Alt-c>', 'show_config_file'),
+        ('<Alt-o>', 'load_as'),
+        ('<Alt-s>', 'save_as'),
+        ('<Alt-F4>', 'exit'),
 
-    '<Alt-Control-c>': 'apply_config',
+        ('<Alt-Control-c>', 'apply_config'),
 
-    '<Control-Shift-s>': 'save_all',
-    }
+        ('<Control-Shift-s>', 'save_all'),
+        ):
+    default_hotkeys[k] = v
 
 
-default_tag_window_hotkeys = {
-    '<Control-z>': 'edit_undo',
-    '<Control-y>': 'edit_redo',
-    '<MouseWheel>': 'mousewheel_scroll_y',
-    '<Shift-MouseWheel>': 'mousewheel_scroll_x',
-    }
+default_tag_window_hotkeys = collections.OrderedDict()
+for k, v in (
+        ('<Control-z>', 'edit_undo'),
+        ('<Control-y>', 'edit_redo'),
+        ('<MouseWheel>', 'mousewheel_scroll_y'),
+        ('<Shift-MouseWheel>', 'mousewheel_scroll_x'),
+        ):
+    default_tag_window_hotkeys[k] = v
 
 
 class Binilla(tk.Tk, BinillaWidget):
@@ -266,15 +271,15 @@ class Binilla(tk.Tk, BinillaWidget):
 
         #add the commands to the file_menu
         fm_ac = self.file_menu.add_command
-        fm_ac(label="New",        command=self.new_tag)
+        fm_ac(label="New",        command=self.new)
         self.file_menu.add_cascade(label="Recent tags     ",
                                    menu=self.recent_tags_menu)
-        fm_ac(label="Open",       command=self.load_tags)
-        fm_ac(label="Open as...", command=self.load_tag_as)
+        fm_ac(label="Open",       command=self.load)
+        fm_ac(label="Open as...", command=self.load_as)
         fm_ac(label="Close", command=self.close_selected_window)
         self.file_menu.add_separator()
-        fm_ac(label="Save",       command=self.save_tag)
-        fm_ac(label="Save as...", command=self.save_tag_as)
+        fm_ac(label="Save",       command=self.save)
+        fm_ac(label="Save as...", command=self.save_as)
         fm_ac(label="Save all",   command=self.save_all)
         self.file_menu.add_separator()
         fm_ac(label="Exit",       command=self.exit)
@@ -974,8 +979,6 @@ class Binilla(tk.Tk, BinillaWidget):
 
     def load_tags(self, filepaths=None, def_id=None):
         '''Prompts the user for a tag(s) to load and loads it.'''
-        if isinstance(filepaths, tk.Event):
-            filepaths = None
         if filepaths is None:
             filetypes = [('All', '*')]
             defs = self.handler.defs
@@ -1079,7 +1082,7 @@ class Binilla(tk.Tk, BinillaWidget):
         # calculate x and y coordinates for this window
         x_base, y_base = self.winfo_x(), self.winfo_y()
         w, h = window.geometry().split('+')[0].split('x')[:2]
-        if w == h and w == '1':
+        if w == '1' and w == '1':
             w = window.winfo_reqwidth()
             h = window.winfo_reqheight()
         window.geometry('%sx%s+%s+%s' % (w, h, x + x_base, y + y_base))
@@ -1133,7 +1136,7 @@ class Binilla(tk.Tk, BinillaWidget):
             except Exception:
                 print(format_exc())
 
-    def new_tag(self, e=None):
+    def new(self, e=None):
         if self.def_selector_window:
             return
 
@@ -1142,6 +1145,18 @@ class Binilla(tk.Tk, BinillaWidget):
             self.load_tags(filepaths='', def_id=def_id))
         self.def_selector_window = dsw
         self.place_window_relative(self.def_selector_window, 30, 50)
+
+    def load(self, e=None):
+        self.load_tags()
+
+    def load_as(self, e=None):
+        self.load_tag_as()
+
+    def save(self, e=None):
+        self.save_tag()
+
+    def save_as(self, e=None):
+        self.save_tag_as()
 
     def print_tag(self, e=None):
         '''Prints the currently selected tag to the console.'''
@@ -1197,9 +1212,6 @@ class Binilla(tk.Tk, BinillaWidget):
         self.apply_config()
 
     def save_tag(self, tag=None):
-        if isinstance(tag, tk.Event):
-            tag = None
-
         if tag is None:
             if self.selected_tag is None:
                 print("Cannot save(no tag is selected).")
@@ -1218,11 +1230,14 @@ class Binilla(tk.Tk, BinillaWidget):
                                              dirname(tag.filepath)))):
                 return self.save_tag_as(tag)
 
-            # make sure to flush any changes made using widgets to the tag
+            exception = None
             try:
                 w.save()
-            except Exception:
+            except Exception as e:
+                exception = e
                 print(format_exc())
+
+            if exception:
                 raise IOError("Could not save tag.")
 
             path = tag.filepath
@@ -1231,8 +1246,6 @@ class Binilla(tk.Tk, BinillaWidget):
         return tag
 
     def save_tag_as(self, tag=None, filepath=None):
-        if isinstance(tag, tk.Event):
-            tag = None
         if tag is None:
             if self.selected_tag is None:
                 print("Cannot save(no tag is selected).")
@@ -1261,7 +1274,6 @@ class Binilla(tk.Tk, BinillaWidget):
                 filepath = relpath(filepath, tags_dir)
 
             self.add_tag(tag, filepath)
-
             w.save(temp=False)
         except PermissionError:
             print("This program does not have permission to save to this folder.\n"
@@ -1272,7 +1284,7 @@ class Binilla(tk.Tk, BinillaWidget):
             raise IOError("Could not save: %s" % filepath)
 
         try:
-            self.get_tag_window_by_tag(tag).update_title()
+            w.update_title()
         except Exception:
             # this isnt really a big deal
             #print(format_exc())
@@ -1305,7 +1317,7 @@ class Binilla(tk.Tk, BinillaWidget):
             if window.tag is not None:
                 tag = window.tag
                 # if the window IS selected, minimize it
-                if self.selected_tag == tag:
+                if self.selected_tag is tag:
                     self.selected_tag = None
                     return
 

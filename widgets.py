@@ -638,7 +638,11 @@ class ScrollMenu(tk.Frame, BinillaWidget):
             self.options_sane = True
             self.sel_label.config(width=menu_width)
 
-        self.option_box.pack(side='left', expand=True, fill='both')
+        # explicitly forget these so they can be repacked properly
+        self.option_bar.pack_forget()
+        self.option_box.pack_forget()
+        self.option_bar.pack(side='right', fill='y')
+        self.option_box.pack(side='right', expand=True, fill='both')
         self.update()
 
         self_height = self.winfo_reqheight()
@@ -667,11 +671,10 @@ class ScrollMenu(tk.Frame, BinillaWidget):
             height = min(height, space_above)
             pos_y -= self_height + height - 4
 
-        # pack the scrollbar is there isnt enough room to display the list
-        if option_cnt > self.max_height or (height - 4)//14 < option_cnt:
-            self.option_bar.pack(side='left', fill='y')
-        else:
+        # unpack the scrollbar is there is enough room to display the whole list
+        if option_cnt <= self.max_height and (height - 4)//14 >= option_cnt:
             # place it off the frame so it can still be used for key bindings
+            self.option_bar.pack_forget()
             self.option_bar.place(x=pos_x + width, y=pos_y, anchor=tk.NW)
         self.option_bar.focus_set()
         self.option_frame.place(x=pos_x, y=pos_y, anchor=tk.NW,

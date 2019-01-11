@@ -149,7 +149,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         self.update_title()
 
         self._saving_dialog = SavingDialog(self)
-        self.hide_saving_dialog()
+        self._saving_dialog.hide()
 
         self.edit_manager = EditManager(max_undos)
 
@@ -499,14 +499,10 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         except Exception:
             print(format_exc())
 
+        # call pack_forget so destroying doesn't keep redrawing the widgets
+        self.field_widget.pack_forget()
         tk.Toplevel.destroy(self)
         self.delete_all_widget_refs()
-
-    def show_saving_dialog(self):
-        self._saving_dialog.show()
-
-    def hide_saving_dialog(self):
-        self._saving_dialog.hide()
 
     def save(self, **kwargs):
         '''Flushes any lingering changes in the widgets to the tag.'''
@@ -528,10 +524,10 @@ class TagWindow(tk.Toplevel, BinillaWidget):
                 kwargs.setdefault('backup', handler_flags.backup_tags)
                 kwargs.setdefault('int_test', handler_flags.integrity_test)
 
+            self._saving_dialog.show()
             save_thread = Thread(target=self.tag.serialize, kwargs=kwargs,
                                  daemon=True)
             save_thread.start()
-            self.show_saving_dialog()
             # do this threaded so it doesn't freeze the ui
             while True:
                 save_thread.join(0.05)
@@ -540,9 +536,9 @@ class TagWindow(tk.Toplevel, BinillaWidget):
                 if not save_thread.isAlive():
                     break
 
-                self.show_saving_dialog()
+                self._saving_dialog.show()
 
-            self.hide_saving_dialog()
+            self._saving_dialog.hide()
             self.field_widget.set_edited(False)
             self.is_new_tag = False
             if self.edit_manager and self.edit_manager.maxlen:

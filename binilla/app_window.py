@@ -1207,7 +1207,8 @@ class Binilla(tk.Tk, BinillaWidget):
 
     def save_config(self, e=None):
         self.config_file.serialize(temp=False, backup=False)
-        self.config_window.update_config_window()
+        if self.config_window:
+            self.config_window.update_config_window()
 
         self.apply_config()
 

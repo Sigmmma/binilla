@@ -1896,7 +1896,9 @@ class ArrayFrame(ContainerFrame):
         # destroy that something to resize the content frame
         if not f_widgets:
             f = tk.Frame(self.content, width=0, height=0, bd=0)
-            a, b, c = f.pack(), self.content.update_idletasks(), f.destroy()
+            f.pack()
+            self.content.update_idletasks()
+            f.destroy()
 
         self.content.pack(fill='both', side='top', anchor='nw', expand=True)
 
@@ -1907,8 +1909,7 @@ class ArrayFrame(ContainerFrame):
         if opt_index is None:
             opt_index = curr_index
 
-        #if opt_index == curr_index and not force_reload:
-        if opt_index == curr_index and self.options_sane and not force_reload:
+        if opt_index == curr_index and not force_reload:
             return
         elif opt_index >= len(node) and len(node):
             opt_index = len(node) - 1
@@ -3725,6 +3726,7 @@ class BoolFrame(DataFrame):
     children_can_scroll = True
     can_scroll = False
     checkvars = None  # used to know which IntVars to set when undo/redoing
+    prev_bit_opt_map = None
 
     def __init__(self, *args, **kwargs):
         DataFrame.__init__(self, *args, **kwargs)
@@ -3813,14 +3815,8 @@ class BoolFrame(DataFrame):
                 print(format_exc())
 
     def populate(self):
-        del self.checkvars
-
         bit_opt_map = {}
-        checkvars = self.checkvars = {}
-
-        # destroy all the child widgets of the content
-        for c in list(self.check_frame.children.values()):
-            c.destroy()
+        checkvars = {}
 
         desc = self.desc
         data = self.node.data
@@ -3837,7 +3833,7 @@ class BoolFrame(DataFrame):
 
         all_visible = self.all_bools_visible
 
-        # loop over each possible boolean(even unused ones)
+        # make a condensed mapping of all visible flags and their information
         for bit in range(size):
             opt = desc.get(value_index_map.get(1 << bit))
 
@@ -3852,44 +3848,58 @@ class BoolFrame(DataFrame):
                 opt.setdefault('GUI_NAME', defname)
 
             bit_opt_map[bit] = opt
-        
+
+
+        if self.prev_bit_opt_map != bit_opt_map:
+            self.checkvars = checkvars
+
+            # destroy all the child widgets of the content
+            for c in list(self.check_frame.children.values()):
+                c.destroy()
+
+            # loop over each possible boolean(even unused ones)
+            for bit in sorted(bit_opt_map):
+                opt = bit_opt_map[bit]
+
+                name = opt.get('GUI_NAME', opt['NAME'])
+                if opt.get('TOOLTIP'):
+                    name += " �"
+
+                check_var = tk.IntVar(self.check_frame)
+                check_var.set(bool(data & (1 << bit)))
+                checkvars[bit] = check_var
+
+                state = tk.DISABLED
+                if opt.get("EDITABLE", not self.disabled):
+                    state = tk.NORMAL
+
+                check_btn = tk.Checkbutton(
+                    self.check_frame, variable=check_var, padx=0, pady=0,
+                    text=name, anchor='nw', justify='left', borderwidth=0,
+
+                    disabledforeground=self.text_disabled_color, state=state,
+                    bg=self.entry_normal_color, fg=self.text_normal_color,
+                    activebackground=self.entry_highlighted_color,
+                    activeforeground=self.text_highlighted_color,)
+
+                check_btn.config(command=lambda b=check_btn, i=bit, v=check_var:
+                                 self._check_bool(b, i, v))
+
+                check_btn.pack(anchor='nw', fill='x', expand=True)
+                check_btn.tooltip_string = opt.get('TOOLTIP')
+
+                if e_c.IS_LNX:
+                    check_btn.bind('<4>', self.mousewheel_scroll_y)
+                    check_btn.bind('<5>', self.mousewheel_scroll_y)
+                else:
+                    check_btn.bind('<MouseWheel>', self.mousewheel_scroll_y)
+
+            self.pose_fields()
+            self.prev_bit_opt_map = bit_opt_map
+
+        # check/uncheck each flag
         for bit in sorted(bit_opt_map):
-            opt = bit_opt_map[bit]
-
-            name = opt.get('GUI_NAME', opt['NAME'])
-            if opt.get('TOOLTIP'):
-                name += " �"
-
-            check_var = tk.IntVar(self.check_frame)
-            check_var.set(bool(data & (1 << bit)))
-            checkvars[bit] = check_var
-
-            state = tk.DISABLED
-            if opt.get("EDITABLE", not self.disabled):
-                state = tk.NORMAL
-
-            check_btn = tk.Checkbutton(
-                self.check_frame, variable=check_var, padx=0, pady=0,
-                text=name, anchor='nw', justify='left', borderwidth=0,
-
-                disabledforeground=self.text_disabled_color, state=state,
-                bg=self.entry_normal_color, fg=self.text_normal_color,
-                activebackground=self.entry_highlighted_color,
-                activeforeground=self.text_highlighted_color,)
-
-            check_btn.config(command=lambda b=check_btn, i=bit, v=check_var:
-                             self._check_bool(b, i, v))
-
-            check_btn.pack(anchor='nw', fill='x', expand=True)
-            check_btn.tooltip_string = opt.get('TOOLTIP')
-
-            if e_c.IS_LNX:
-                check_btn.bind('<4>', self.mousewheel_scroll_y)
-                check_btn.bind('<5>', self.mousewheel_scroll_y)
-            else:
-                check_btn.bind('<MouseWheel>', self.mousewheel_scroll_y)
-
-        self.pose_fields()
+            self.checkvars[bit].set(bool(data & (1 << bit)))
 
     reload = populate
 

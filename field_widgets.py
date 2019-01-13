@@ -73,19 +73,19 @@ class FieldWidget(widgets.BinillaWidget):
 
     # a mapping of {id(f_widget): f_widget} for each child
     # FieldWidget of this object.
-    f_widgets = None
+    f_widgets = ()
 
     # a list of the id's of the widgets that are parented
     # to this widget, in the order that they were created
-    f_widget_ids = None
+    f_widget_ids = ()
 
     # the mapping is {attr_index: id(f_widget)}
     # a mapping that maps each field widget's id to the attr_index
     # it is under in its parent, which is this widgets node.
-    f_widget_ids_map = None
+    f_widget_ids_map = ()
 
     # an inverse mapping of f_widget_ids_map
-    f_widget_ids_map_inv = None
+    f_widget_ids_map_inv = ()
 
     content = None
 
@@ -126,10 +126,13 @@ class FieldWidget(widgets.BinillaWidget):
 
     def __init__(self, *args, **kwargs):
         widgets.BinillaWidget.__init__(self)
-        self.node = kwargs.get('node', self.node)
+
+        self.f_widget_ids = []
+        self.f_widget_ids_map = {}
+        self.f_widget_ids_map_inv = {}
+        self.content = self
+
         self._desc = kwargs.get('desc', self._desc)
-        self.parent = kwargs.get('parent', self.parent)
-        self.attr_index = kwargs.get('attr_index', self.attr_index)
         self.tag_window = kwargs.get('tag_window', None)
         self.f_widget_parent = kwargs.get('f_widget_parent', None)
         self._vert_oriented = bool(kwargs.get('vert_oriented', True))
@@ -142,16 +145,26 @@ class FieldWidget(widgets.BinillaWidget):
                                                self.use_parent_pack_padx)
         self.use_parent_pack_pady = kwargs.get('use_parent_pack_pady',
                                                self.use_parent_pack_pady)
+
+        self.load_nodes(kwargs.get('parent', None),
+                        kwargs.get('node', None),
+                        kwargs.get('attr_index', None))
+
+        if self._desc is not None:
+            pass
+        elif hasattr(self.node, "desc"):
+            self._desc = self.node.desc
+        elif self.parent.desc['TYPE'].is_array:
+            self._desc = self.parent.desc['SUB_STRUCT']
+        else:
+            self._desc = self.parent.desc[self.attr_index]
+
         self.disabled = kwargs.get('disabled', self.disabled)
         if 'EDITABLE' in self.desc:
             self.disabled = not self.desc['EDITABLE']
 
         if self.all_editable:
             self.disabled = False
-
-        if self.node is None:
-            assert self.parent is not None
-            self.node = self.parent[self.attr_index]
 
         # make sure a button style exists for the 'show' button
         if FieldWidget.show_button_style is None:
@@ -175,11 +188,6 @@ class FieldWidget(widgets.BinillaWidget):
                 self.pack_pady = self.vertical_pady
             else:
                 self.pack_pady = self.horizontal_pady
-
-        self.f_widget_ids = []
-        self.f_widget_ids_map = {}
-        self.f_widget_ids_map_inv = {}
-        self.content = self
 
     def apply_style(self, seen=None):
         widgets.BinillaWidget.apply_style(self, seen)
@@ -559,6 +567,9 @@ class FieldWidget(widgets.BinillaWidget):
     def import_node(self):
         '''Prompts the user for an exported node file.
         Imports data into the node from the file.'''
+        if None in (self.parent, self.node):
+            return
+
         try:
             initialdir = self.tag_window.app_root.last_load_dir
         except AttributeError:
@@ -605,6 +616,17 @@ class FieldWidget(widgets.BinillaWidget):
         '''Resupplies the nodes to the widgets which display them.'''
         raise NotImplementedError("This method must be overloaded")
 
+    def clear_nodes(self):
+        self.node = self.parent = None
+
+    def load_nodes(self, parent, node, attr_index):
+        self.parent = parent
+        self.node = node
+        self.attr_index = attr_index
+        if self.node is None:
+            assert self.parent is not None
+            self.node = self.parent[self.attr_index]
+
     def build_f_widget_cache(self):
         f_widgets = self.f_widgets = {}
         try:
@@ -617,17 +639,19 @@ class FieldWidget(widgets.BinillaWidget):
         self.edited = bool(new_value)
         try:
             if self.edited:
-                # Tell all parents that there are unsaved edits
-                self.f_widget_parent.set_edited()
+                if self.f_widget_parent:
+                    # Tell all parents that there are unsaved edits
+                    self.f_widget_parent.set_edited()
                 return
-
-            # Tell all children that there are no longer unsaved edits
-            f_widgets = self.f_widgets
-            for f_wid in self.f_widget_ids:
-                w = f_widgets.get(f_wid)
-                if w.edited:
-                    w.set_edited(False)
+            else:
+                # Tell all children that there are no longer unsaved edits
+                f_widgets = self.f_widgets
+                for f_wid in self.f_widget_ids:
+                    w = f_widgets.get(f_wid)
+                    if w.edited:
+                        w.set_edited(False)
         except Exception:
+            #print(format_exc())
             pass
 
     def set_needs_flushing(self, new_value=True):
@@ -651,6 +675,8 @@ class FieldWidget(widgets.BinillaWidget):
 
 class ContainerFrame(tk.Frame, FieldWidget):
     show = None
+    import_btn = None
+    export_btn = None
 
     def __init__(self, *args, **kwargs):
         FieldWidget.__init__(self, *args, **kwargs)
@@ -725,6 +751,13 @@ class ContainerFrame(tk.Frame, FieldWidget):
 
         self.populate()
         self._initialized = True
+
+    def load_nodes(self, parent, node, attr_index):
+        FieldWidget.load_nodes(self, parent, node, attr_index)
+
+        for wid in self.f_widgets:
+            w = self.f_widgets[wid]
+            w.load_nodes(self.node, None, self.f_widget_ids_map_inv[wid])
 
     def apply_style(self, seen=None):
         FieldWidget.apply_style(self, seen)
@@ -809,7 +842,7 @@ class ContainerFrame(tk.Frame, FieldWidget):
         assert orient in ('v', 'h')
 
         content = self
-        if hasattr(self, 'content'):
+        if getattr(self, 'content', None):
             content = self.content
         if self.show_title and content in (None, self):
             content = tk.Frame(self, relief="sunken", bd=self.frame_depth,
@@ -853,9 +886,9 @@ class ContainerFrame(tk.Frame, FieldWidget):
 
         for w in (self, self.content):
             w.tooltip_string = self.desc.get('TOOLTIP')
-        if hasattr(self, 'title'):
+        if getattr(self, 'title', None):
             self.title.tooltip_string = self.tooltip_string
-        if hasattr(self, 'title_label'):
+        if getattr(self, 'title_label', None):
             self.title_label.tooltip_string = self.tooltip_string
 
         field_indices = range(len(node))
@@ -925,8 +958,32 @@ class ContainerFrame(tk.Frame, FieldWidget):
         if self.show.get():
             self.pose_fields()
 
+    def clear_nodes(self):
+        FieldWidget.clear_nodes(self)
+        for w in self.f_widgets.values():
+            if hasattr(w, "clear_nodes"):
+                w.clear_nodes()
+
+    def set_disabled(self, disable=True):
+        if self.node is None and not disable:
+            return
+
+        if bool(disable) != self.disabled:
+            for w in (self.import_btn, self.export_btn):
+                if w:
+                    w.config(state=tk.DISABLED if disable else tk.NORMAL)
+
+        for w in self.f_widgets.values():
+            if hasattr(w, "set_disabled"):
+                w.set_disabled(disable)
+
+        FieldWidget.set_disabled(self, disable)
+
     def flush(self):
         '''Flushes values from the widgets to the nodes they are displaying.'''
+        if self.node is None:
+            return
+
         try:
             for w in self.f_widgets.values():
                 if hasattr(w, 'flush'):
@@ -985,11 +1042,15 @@ class ContainerFrame(tk.Frame, FieldWidget):
         orient = self.desc.get('ORIENT', 'v')[:1].lower()
 
         if self.desc.get("PORTABLE", True):
-            if hasattr(self, "import_btn"): self.set_import_disabled(False)
-            if hasattr(self, "export_btn"): self.set_export_disabled(False)
+            if getattr(self, "import_btn", None):
+                self.set_import_disabled(False)
+            if getattr(self, "export_btn", None):
+                self.set_export_disabled(False)
         else:
-            if hasattr(self, "import_btn"): self.set_import_disabled()
-            if hasattr(self, "export_btn"): self.set_export_disabled()
+            if getattr(self, "import_btn", None):
+                self.set_import_disabled()
+            if getattr(self, "export_btn", None):
+                self.set_export_disabled()
 
         side = 'left' if orient == 'h' else 'top'
         for wid in f_widget_ids:
@@ -1004,7 +1065,7 @@ class ContainerFrame(tk.Frame, FieldWidget):
             return
 
         sidetip = self.desc.get('SIDETIP')
-        if orient == 'h' and sidetip and hasattr(self, 'sidetip_label'):
+        if orient == 'h' and sidetip and getattr(self, 'sidetip_label', None):
             self.sidetip_label.config(text=sidetip)
             self.sidetip_label.pack(fill="x", side="left")
 
@@ -1047,11 +1108,11 @@ class ColorPickerFrame(ContainerFrame):
 
     def apply_style(self, seen=None):
         ContainerFrame.apply_style(self, seen)
-        if hasattr(self, 'color_btn'):
+        if getattr(self, 'color_btn', None):
             self.color_btn.config(bg=self.get_color()[1])
 
     def update_selector_button(self):
-        if not hasattr(self, 'color_btn'):
+        if not getattr(self, 'color_btn', None):
             return
 
         if self.disabled:
@@ -1064,6 +1125,15 @@ class ColorPickerFrame(ContainerFrame):
     def reload(self):
         ContainerFrame.reload(self)
         self.update_selector_button()
+
+    def set_disabled(self, disable=True):
+        if self.node is None and not disable:
+            return
+
+        if bool(disable) != self.disabled:
+            self.color_btn.config(state=tk.DISABLED if disable else tk.NORMAL)
+
+        ContainerFrame.set_disabled(self, disable)
 
     def populate(self):
         ContainerFrame.populate(self)
@@ -1081,7 +1151,6 @@ class ColorPickerFrame(ContainerFrame):
             if isinstance(var, tk.StringVar):
                 self.write_trace(var, lambda *a, widget=self, **kw:
                                  widget.update_selector_button())
-
 
     def get_color(self):
         try:
@@ -1154,7 +1223,7 @@ class ColorPickerFrame(ContainerFrame):
 
     def select_color(self):
         self.flush()
-        if hasattr(self, 'color_btn'):
+        if getattr(self, 'color_btn', None):
             self.color_btn.config(bg=self.get_color()[1])
 
         color, hex_color = askcolor(self.get_color()[1], parent=self)
@@ -1294,6 +1363,40 @@ class ArrayFrame(ContainerFrame):
         self.populate()
         self._initialized = True
 
+    def load_nodes(self, parent, node, attr_index):
+        FieldWidget.load_nodes(self, parent, node, attr_index)
+
+        for wid in self.f_widgets:
+            w = self.f_widgets[wid]
+            w.load_nodes(self.node, None, self.f_widget_ids_map_inv[wid])
+
+    def clear_nodes(self):
+        FieldWidget.clear_nodes(self)
+        self.sel_menu.clear_nodes()
+        ContainerFrame.clear_nodes(self)
+
+    def set_disabled(self, disable=True):
+        if self.node is None and not disable:
+            return
+
+        if getattr(self, "sel_menu", None):
+            self.sel_menu.set_disabled(disable)
+
+        if bool(disable) == self.disabled:
+            pass
+        elif not disable:
+            self.set_all_buttons_disabled(False)
+            self.disable_unusable_buttons()
+        else:
+            new_state = tk.DISABLED if disable else tk.NORMAL
+            for w in (self.shift_up_btn, self.shift_down_btn,
+                      self.add_btn, self.insert_btn, self.duplicate_btn,
+                      self.delete_btn, self.delete_all_btn):
+                if w:
+                    w.config(state=new_state)
+
+        ContainerFrame.set_disabled(self, disable)
+
     def apply_style(self, seen=None):
         ContainerFrame.apply_style(self, seen)
         self.controls.config(bd=self.frame_depth, bg=self.frame_bg_color)
@@ -1427,21 +1530,22 @@ class ArrayFrame(ContainerFrame):
             node[i], node[i + 1] = node[i + 1], node[i]
         elif edit_type in ('add', 'insert', 'duplicate'):
             if undo:
+                sel_index = None
                 node.pop(i)
             else:
                 node.insert(i, redo_node)
-                sel_index += 1
         elif edit_type == 'delete':
             if undo:
                 node.insert(i, undo_node)
             else:
+                sel_index = None
                 node.pop(i)
-                sel_index -= 1
         elif edit_type == 'delete_all':
             if undo:
                 node[:] = undo_node
             else:
                 del node[:]
+                sel_index = None
         else:
             raise TypeError('Unknown edit_state type')
 
@@ -1450,9 +1554,11 @@ class ArrayFrame(ContainerFrame):
                 if w.desc is not state.desc:
                     return
 
-                if edit_type in ('add', 'insert', 'duplicate', 'delete'):
+                if sel_index is None:
+                    pass
+                elif edit_type in ('add', 'insert', 'duplicate', 'delete'):
                     w.sel_index = sel_index
-                if edit_type in ('shift_up', 'shift_down'):
+                elif edit_type in ('shift_up', 'shift_down'):
                     w.sel_index = sel_index
                     if undo:
                         pass
@@ -1464,14 +1570,16 @@ class ArrayFrame(ContainerFrame):
                 max_index = len(node) - 1
                 w.sel_menu.max_index = max_index
                 w.options_sane = w.sel_menu.options_sane = False
-                if w.sel_index < 0 or max_index < w.sel_index:
+                if w.sel_index < 0:
                     w.select_option(0, force_reload=True)
+                elif w.sel_index > max_index:
+                    w.select_option(max_index, force_reload=True)
                 else:
                     w.select_option(w.sel_index, force_reload=True)
 
                 w.needs_flushing = False
                 w.sel_menu.update_label()
-                w.enable_all_buttons()
+                w.set_all_buttons_disabled(self.disabled)
                 w.disable_unusable_buttons()
                 w.set_edited()
             except Exception:
@@ -1479,7 +1587,7 @@ class ArrayFrame(ContainerFrame):
 
     def edit_create(self, **kwargs):
         # add own stuff
-        kwargs.update(sel_index=self.sel_index)
+        kwargs.setdefault("sel_index", self.sel_index)
         FieldWidget.edit_create(self, **kwargs)
 
     def shift_entry_up(self):
@@ -1491,13 +1599,14 @@ class ArrayFrame(ContainerFrame):
         if index <= 0:
             return
 
+        self.set_edited() # do this first so the TagWindow detects that
+        #                   the title needs to be updated with an asterisk
         self.edit_create(edit_type='shift_up', attr_index=index)
         node[index], node[index - 1] = node[index - 1], node[index]
 
         self.sel_index = self.sel_menu.sel_index = index - 1
         self.options_sane = self.sel_menu.options_sane = False
         self.sel_menu.update_label()
-        self.set_edited()
 
     def shift_entry_down(self):
         if not hasattr(self.node, '__len__') or len(self.node) < 2:
@@ -1508,13 +1617,14 @@ class ArrayFrame(ContainerFrame):
         if index >= len(node) - 1:
             return
 
+        self.set_edited() # do this first so the TagWindow detects that
+        #                   the title needs to be updated with an asterisk
         self.edit_create(edit_type='shift_down', attr_index=index)
         node[index], node[index + 1] = node[index + 1], node[index]
 
         self.sel_index = self.sel_menu.sel_index = index + 1
         self.options_sane = self.sel_menu.options_sane = False
         self.sel_menu.update_label()
-        self.set_edited()
 
     def add_entry(self):
         if not hasattr(self.node, '__len__'):
@@ -1525,20 +1635,22 @@ class ArrayFrame(ContainerFrame):
             if self.enforce_max:
                 return
 
+        attr_index = len(self.node)
+        self.set_edited() # do this first so the TagWindow detects that
+        #                   the title needs to be updated with an asterisk
         self.node.append()
 
-        attr_index = len(self.node) - 1
         self.edit_create(edit_type='add', attr_index=attr_index,
-                         redo_node=self.node[attr_index])
+                         redo_node=self.node[attr_index], sel_index=attr_index)
 
+        self.sel_menu.sel_index = attr_index
         self.sel_menu.max_index = len(self.node) - 1
         self.options_sane = self.sel_menu.options_sane = False
 
         if self.sel_menu.max_index == 0:
             self.select_option(0)
-        self.enable_all_buttons()
+        self.set_all_buttons_disabled(self.disabled)
         self.disable_unusable_buttons()
-        self.set_edited()
 
     def insert_entry(self):
         if not hasattr(self.node, '__len__'):
@@ -1549,24 +1661,20 @@ class ArrayFrame(ContainerFrame):
             if self.enforce_max:
                 return
 
-        self.sel_index = self.sel_menu.sel_index = max(self.sel_index, 0)
-
-        if self.sel_index < len(self.node):
-            self.node.insert(self.sel_index)
-            attr_index = self.sel_index
-        else:
-            self.node.append()
-            attr_index = len(self.node) - 1
+        attr_index = self.sel_index = max(self.sel_index, 0)
+        self.set_edited() # do this first so the TagWindow detects that
+        #                   the title needs to be updated with an asterisk
+        self.node.insert(attr_index)
 
         self.edit_create(edit_type='insert', attr_index=attr_index,
-                         redo_node=self.node[attr_index])
+                         redo_node=self.node[attr_index], sel_index=attr_index)
 
+        self.sel_menu.sel_index = attr_index
         self.sel_menu.max_index = len(self.node) - 1
         self.options_sane = self.sel_menu.options_sane = False
 
-        self.enable_all_buttons()
+        self.set_all_buttons_disabled(self.disabled)
         self.disable_unusable_buttons()
-        self.set_edited()
         self.select_option()  # select the new entry
 
     def duplicate_entry(self):
@@ -1579,18 +1687,19 @@ class ArrayFrame(ContainerFrame):
                 return
 
         self.sel_index = self.sel_menu.sel_index = max(self.sel_index, 0)
-
+        self.set_edited() # do this first so the TagWindow detects that
+        #                   the title needs to be updated with an asterisk
         new_subnode = deepcopy(self.node[self.sel_index])
 
-        self.edit_create(edit_type='duplicate', attr_index=len(self.node),
-                         redo_node=new_subnode)
+        attr_index = len(self.node)
+        self.edit_create(edit_type='duplicate', attr_index=attr_index,
+                         redo_node=new_subnode, sel_index=attr_index)
 
         self.node.append(new_subnode)
-        self.sel_menu.max_index = len(self.node) - 1
+        self.sel_menu.max_index = attr_index
         self.options_sane = self.sel_menu.options_sane = False
-        self.enable_all_buttons()
+        self.set_all_buttons_disabled(self.disabled)
         self.disable_unusable_buttons()
-        self.set_edited()
         self.select_option(self.sel_menu.max_index)  # select the new entry
 
     def delete_entry(self):
@@ -1604,14 +1713,17 @@ class ArrayFrame(ContainerFrame):
         if len(self.node) <= field_min:
             if self.enforce_min:
                 return
+
         if not len(self.node):
             self.sel_menu.disable()
             return
 
-        self.sel_index = max(self.sel_index, 0)
+        self.sel_index = attr_index = max(self.sel_index, 0)
 
-        self.edit_create(edit_type='delete', attr_index=self.sel_index,
-                         undo_node=self.node[self.sel_index])
+        self.set_edited() # do this first so the TagWindow detects that
+        #                   the title needs to be updated with an asterisk
+        self.edit_create(edit_type='delete', undo_node=self.node[self.sel_index],
+                         attr_index=attr_index, sel_index=attr_index)
 
         del self.node[self.sel_index]
         self.sel_menu.max_index = len(self.node) - 1
@@ -1625,9 +1737,8 @@ class ArrayFrame(ContainerFrame):
 
         self.options_sane = self.sel_menu.options_sane = False
         self.select_option()
-        self.enable_all_buttons()
+        self.set_all_buttons_disabled(self.disabled)
         self.disable_unusable_buttons()
-        self.set_edited()
 
     def delete_all_entries(self):
         if not hasattr(self.node, '__len__') or len(self.node) == 0:
@@ -1645,6 +1756,8 @@ class ArrayFrame(ContainerFrame):
             self.sel_menu.disable()
             return
 
+        self.set_edited() # do this first so the TagWindow detects that
+        #                   the title needs to be updated with an asterisk
         self.edit_create(edit_type='delete_all', undo_node=tuple(self.node[:]))
 
         del self.node[:]
@@ -1653,19 +1766,16 @@ class ArrayFrame(ContainerFrame):
 
         self.options_sane = self.sel_menu.options_sane = False
         self.select_option()
-        self.enable_all_buttons()
+        self.set_all_buttons_disabled(self.disabled)
         self.disable_unusable_buttons()
-        self.set_edited()
 
-    def enable_all_buttons(self):
-        buttons = (self.add_btn, self.insert_btn, self.duplicate_btn,
-                   self.delete_btn, self.delete_all_btn,
-                   self.shift_up_btn, self.shift_down_btn)
-        if self.disabled:
-            for btn in buttons:
+    def set_all_buttons_disabled(self, disable=False):
+        for btn in (self.add_btn, self.insert_btn, self.duplicate_btn,
+                    self.delete_btn, self.delete_all_btn,
+                    self.shift_up_btn, self.shift_down_btn):
+            if disable:
                 btn.config(state=tk.DISABLED)
-        else:
-            for btn in buttons:
+            else:
                 btn.config(state=tk.NORMAL)
 
     def disable_unusable_buttons(self):
@@ -1710,52 +1820,55 @@ class ArrayFrame(ContainerFrame):
             self.content = tk.Frame(self, relief="sunken", bd=self.frame_depth,
                                     bg=self.default_bg_color)
 
-        del self.f_widget_ids[:]
-        del self.f_widget_ids_map
-        del self.f_widget_ids_map_inv
-
-        f_widget_ids = self.f_widget_ids
-        f_widget_ids_map = self.f_widget_ids_map = {}
-        f_widget_ids_map_inv = self.f_widget_ids_map_inv = {}
-
-        # destroy all the child widgets of the content
-        if isinstance(self.f_widgets, dict):
-            for c in list(self.f_widgets.values()):
-                c.destroy()
-
-        self.display_comment(self.content)
-
-        for w in (self, self.content, self.title, self.title_label,
-                  self.controls, self.buttons):
-            w.tooltip_string = self.desc.get('TOOLTIP')
-
         self.populated = False
         sub_desc = desc['SUB_STRUCT']
-        sub_struct_name = sub_desc.get('GUI_NAME')
-
-        # if there is no GUI_NAME or the GUI_NAME is '', use the NAME instead
-        if not sub_struct_name:
-            sub_struct_name = sub_desc['NAME']
+        sub_struct_name = sub_desc.get('GUI_NAME', sub_desc.get('NAME', ""))
 
         self.sel_menu.default_text = sub_struct_name
         self.sel_menu.update_label()
-        if len(node) == 0:
-            self.sel_menu.disable()
-        else:
-            self.sel_menu.enable()
-
         self.disable_unusable_buttons()
 
-        if not hasattr(node, '__len__') or len(node) == 0:
+        is_empty = not hasattr(node, '__len__') or len(node) == 0
+
+        if None in (self.f_widget_ids, self.f_widget_ids_map,
+                    self.f_widget_ids_map_inv) or not is_empty:
+            del self.f_widget_ids[:]
+            del self.f_widget_ids_map
+            del self.f_widget_ids_map_inv
+
+            f_widget_ids = self.f_widget_ids
+            f_widget_ids_map = self.f_widget_ids_map = {}
+            f_widget_ids_map_inv = self.f_widget_ids_map_inv = {}
+
+        if is_empty:
             self.sel_index = -1
             self.sel_menu.max_index = -1
-            self.sel_menu.disable()
+            if self.f_widgets:
+                self.clear_nodes()
+                self.set_disabled(True)
+
             self.build_f_widget_cache()
             if self.show.get():
                 self.pose_fields()
             return
 
+        # destroy all the child widgets of the content
+        if self.f_widgets:
+            for c in list(self.f_widgets.values()):
+                c.destroy()
+
+        for w in (self, self.content, self.title, self.title_label,
+                  self.controls, self.buttons):
+            w.tooltip_string = self.desc.get('TOOLTIP')
+
+        self.sel_menu.enable()
+
         if sel_index >= 0:
+            if self.f_widgets:
+                self.set_disabled(False)
+
+            self.display_comment(self.content)
+
             sub_node = node[sel_index]
             sub_desc = desc['SUB_STRUCT']
             if hasattr(sub_node, 'desc'):
@@ -1795,14 +1908,13 @@ class ArrayFrame(ContainerFrame):
     def reload(self):
         '''Resupplies the nodes to the widgets which display them.'''
         try:
-            self.enable_all_buttons()
-
             node = self.node
             node_empty = (not hasattr(node, '__len__'))
             field_max = self.field_max
             field_min = self.field_min
             if field_min is None: field_min = 0
 
+            self.set_all_buttons_disabled(self.disabled)
             self.disable_unusable_buttons()
 
             if self.disabled == self.sel_menu.disabled:
@@ -2169,9 +2281,22 @@ class RawdataFrame(DataFrame):
         # now that the field widgets are created, position them
         self.pose_fields()
 
+    def set_disabled(self, disable=True):
+        if self.node is None and not disable:
+            return
+
+        if bool(disable) != self.disabled:
+            for w in (self.import_btn, self.export_btn, self.delete_btn):
+                if w:
+                    w.config(state=tk.DISABLED if disable else tk.NORMAL)
+
+        DataFrame.set_disabled(self, disable)
+
     def delete_node(self):
         curr_size = None
         index = self.attr_index
+        if None in (self.parent, self.node):
+            return
 
         try:
             undo_node = self.node
@@ -2216,6 +2341,9 @@ class RawdataFrame(DataFrame):
     def import_node(self):
         '''Prompts the user for an exported node file.
         Imports data into the node from the file.'''
+        if None in (self.parent, self.node):
+            return
+
         try:
             initialdir = self.tag_window.app_root.last_load_dir
         except AttributeError:
@@ -2387,6 +2515,18 @@ class EntryFrame(DataFrame):
         self.populate()
         self._initialized = True
 
+    def clear_nodes(self):
+        FieldWidget.clear_nodes(self)
+        self.entry_string.set("")
+
+    def set_disabled(self, disable=True):
+        if self.node is None and not disable:
+            return
+
+        if bool(disable) != self.disabled and getattr(self, "data_entry", None):
+            self.data_entry.config(state=tk.DISABLED if disable else tk.NORMAL)
+        DataFrame.set_disabled(self, disable)
+
     def edit_apply(self=None, *, edit_state, undo=True):
         attr_index = edit_state.attr_index
 
@@ -2413,14 +2553,16 @@ class EntryFrame(DataFrame):
                 print(format_exc())
 
     def set_modified(self, *args):
-        if self.needs_flushing:
+        if None in (self.parent, self.node) or self.needs_flushing:
             return
         elif self.entry_string.get() != self.last_flushed_val:
             self.set_needs_flushing()
             self.set_edited()
 
     def flush(self, *args):
-        if self._flushing or not self.needs_flushing:
+        if None in (self.parent, self.node):
+            return
+        elif self._flushing or not self.needs_flushing:
             return
 
         try:
@@ -2718,7 +2860,9 @@ class NumberEntryFrame(EntryFrame):
 class TimestampFrame(EntryFrame):
 
     def flush(self, *args):
-        if self._flushing or not self.needs_flushing:
+        if None in (self.parent, self.node):
+            return
+        elif self._flushing or not self.needs_flushing:
             return
 
         try:
@@ -2756,7 +2900,9 @@ class HexEntryFrame(EntryFrame):
             print(format_exc())
 
     def flush(self, *args):
-        if self._flushing or not self.needs_flushing:
+        if None in (self.parent, self.node):
+            return
+        elif self._flushing or not self.needs_flushing:
             return
 
         try:
@@ -2883,6 +3029,24 @@ class TextFrame(DataFrame):
         except Exception:
             pass
 
+    def clear_nodes(self):
+        FieldWidget.clear_nodes(self)
+        self.data_text.config(state=tk.NORMAL)
+        self.data_text.delete(1.0, tk.END)
+        self.data_text.insert(1.0, "")
+        if self.disabled:
+            self.data_text.config(state=tk.DISABLED)
+        else:
+            self.data_text.config(state=tk.NORMAL)
+
+    def set_disabled(self, disable=True):
+        if self.node is None and not disable:
+            return
+
+        if bool(disable) != self.disabled:
+            self.data_text.config(state=tk.DISABLED if disable else tk.NORMAL)
+        DataFrame.set_disabled(self, disable)
+
     def disable_undo_redo(self, *args, **kwargs):
         # disable the undo/redo ability of the text so we can call it ourselves
         self.data_text.config(undo=False)
@@ -2912,7 +3076,7 @@ class TextFrame(DataFrame):
                 print(format_exc())
 
     def set_modified(self, e=None):
-        if self.needs_flushing:
+        if None in (self.parent, self.node) or self.needs_flushing:
             return
 
         self.set_needs_flushing()
@@ -2954,7 +3118,9 @@ class TextFrame(DataFrame):
             self.replace_map[byte_str] = hex_head + hex(i)[2:] + hex_foot
 
     def flush(self, *args):
-        if self._flushing or not self.needs_flushing:
+        if None in (self.parent, self.node):
+            return
+        elif self._flushing or not self.needs_flushing:
             return
 
         try:
@@ -3101,6 +3267,15 @@ class UnionFrame(ContainerFrame):
         self.populate()
         self._initialized = True
 
+    def set_disabled(self, disable=True):
+        if self.node is None and not disable:
+            return
+
+        if bool(disable) != self.disabled and getattr(self, "sel_menu", None):
+            self.sel_menu.set_disabled(disable)
+
+        ContainerFrame.set_disabled(self, disable)
+
     def get_options(self, opt_index=None):
         '''
         Returns a list of the option strings sorted by option index.
@@ -3242,7 +3417,7 @@ class UnionFrame(ContainerFrame):
                 for w in (self.export_btn, self.import_btn):
                     w.pack(side="left", padx=(0, 4), pady=2)
             else:
-                if hasattr(self, 'import_btn'):
+                if getattr(self, 'import_btn', None):
                     del self.import_btn
                     del self.export_btn
 
@@ -3464,6 +3639,19 @@ class EnumFrame(DataFrame):
         self.pose_fields()
         self._initialized = True
 
+    def clear_nodes(self):
+        FieldWidget.clear_nodes(self)
+        self.sel_menu.clear_nodes()
+
+    def set_disabled(self, disable=True):
+        if self.node is None and not disable:
+            return
+
+        if bool(disable) != self.disabled and getattr(self, "sel_menu", None):
+            self.sel_menu.set_disabled(disable)
+
+        DataFrame.set_disabled(self, disable)
+
     def flush(self): pass
 
     def edit_apply(self=None, *, edit_state, undo=True):
@@ -3560,6 +3748,9 @@ class EnumFrame(DataFrame):
     def pose_fields(self): pass
 
     def select_option(self, opt_index=None):
+        if None in (self.parent, self.node):
+            return
+
         node = self.node
         curr_index = self.sel_menu.sel_index
 
@@ -3575,10 +3766,10 @@ class EnumFrame(DataFrame):
 
         # make an edit state
         if undo_node != self.node.data:
+            self.set_edited()
             self.edit_create(undo_node=undo_node, redo_node=self.node.data)
 
         self.sel_menu.update_label()
-        self.set_edited()
 
 
 class DynamicEnumFrame(EnumFrame):
@@ -3705,11 +3896,12 @@ class DynamicEnumFrame(EnumFrame):
             print(format_exc())
 
     def select_option(self, opt_index=None):
-        if opt_index is None:
+        if None in (self.parent, self.node):
             return
 
         # make an edit state
         if self.node != opt_index - 1:
+            self.set_edited()
             self.edit_create(undo_node=self.node, redo_node=opt_index - 1)
 
         self.sel_menu.sel_index = opt_index
@@ -3719,18 +3911,19 @@ class DynamicEnumFrame(EnumFrame):
         # are one less than the entry index they are located in.
         self.node = self.parent[self.attr_index] = opt_index - 1
         self.sel_menu.update_label()
-        self.set_edited()
 
 
 class BoolFrame(DataFrame):
     children_can_scroll = True
     can_scroll = False
     checkvars = None  # used to know which IntVars to set when undo/redoing
+    checkbtns = ()
     prev_bit_opt_map = None
 
     def __init__(self, *args, **kwargs):
         DataFrame.__init__(self, *args, **kwargs)
         self.checkvars = {}
+        self.checkbtns = {}
 
         try: title_font = self.tag_window.app_root.default_font
         except AttributeError: title_font = None
@@ -3772,6 +3965,22 @@ class BoolFrame(DataFrame):
 
         self.populate()
         self._initialized = True
+
+    def clear_nodes(self):
+        FieldWidget.clear_nodes(self)
+        for var in self.checkvars.values():
+            var.set(0)
+
+    def set_disabled(self, disable=True):
+        if self.node is None and not disable:
+            return
+
+        if bool(disable) != self.disabled:
+            new_state = tk.DISABLED if disable else tk.NORMAL
+            for bit in self.checkbtns:
+                self.checkbtns[bit].config(state=new_state)
+
+        DataFrame.set_disabled(self, disable)
 
     def apply_style(self, seen=None):
         FieldWidget.apply_style(self, seen)
@@ -3817,6 +4026,7 @@ class BoolFrame(DataFrame):
     def populate(self):
         bit_opt_map = {}
         checkvars = {}
+        checkbtns = {}
 
         desc = self.desc
         data = self.node.data
@@ -3852,6 +4062,7 @@ class BoolFrame(DataFrame):
 
         if self.prev_bit_opt_map != bit_opt_map:
             self.checkvars = checkvars
+            self.checkbtns = checkbtns
 
             # destroy all the child widgets of the content
             for c in list(self.check_frame.children.values()):
@@ -3865,15 +4076,15 @@ class BoolFrame(DataFrame):
                 if opt.get('TOOLTIP'):
                     name += " �"
 
-                check_var = tk.IntVar(self.check_frame)
+                checkvars[bit] = check_var = tk.IntVar(self.check_frame)
                 check_var.set(bool(data & (1 << bit)))
-                checkvars[bit] = check_var
+                check_var
 
                 state = tk.DISABLED
                 if opt.get("EDITABLE", not self.disabled):
                     state = tk.NORMAL
 
-                check_btn = tk.Checkbutton(
+                checkbtns[bit] = check_btn = tk.Checkbutton(
                     self.check_frame, variable=check_var, padx=0, pady=0,
                     text=name, anchor='nw', justify='left', borderwidth=0,
 
@@ -3908,6 +4119,9 @@ class BoolFrame(DataFrame):
         self.set_bool_to(bit, check_var)
 
     def set_bool_to(self, bit, new_val_var):
+        if self.node is None:
+            return
+
         self.set_edited()
         mask, data, new_val = 1 << bit, self.node.data, bool(new_val_var.get())
 
@@ -3918,7 +4132,7 @@ class BoolFrame(DataFrame):
         self.content.pack(side='left', anchor='nw')
         self.check_canvas.pack(side='left', fill='both')
         self.update()
-        if not hasattr(self, "check_frame"):
+        if not getattr(self, "check_frame", None):
             return
 
         width  = self.check_frame.winfo_reqwidth()
@@ -3991,6 +4205,19 @@ class BoolSingleFrame(DataFrame):
         self.reload()
         self._initialized = True
 
+    def clear_nodes(self):
+        FieldWidget.clear_nodes(self)
+        self.checked.set(0)
+
+    def set_disabled(self, disable=True):
+        if self.node is None and not disable:
+            return
+
+        if bool(disable) != self.disabled:
+            self.checkbutton.config(state=tk.DISABLED if disable else tk.NORMAL)
+
+        DataFrame.set_disabled(self, disable)
+
     def apply_style(self, seen=None):
         FieldWidget.apply_style(self, seen)
         self.checkbutton.config(
@@ -4024,6 +4251,9 @@ class BoolSingleFrame(DataFrame):
                 print(format_exc())
 
     def check(self):
+        if None in (self.parent, self.node):
+            return
+
         try:
             desc = self.desc
             self.set_edited()

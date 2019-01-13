@@ -111,6 +111,7 @@ class BinillaWidget():
     can_scroll = False
     tooltip_string = None
     f_widget_parent = None
+    disabled = False
 
     read_traces = ()
     write_traces = ()
@@ -132,6 +133,12 @@ class BinillaWidget():
     def undefine_trace(self, var, function):
         cb_name = var.trace("u", function)
         self.undefine_traces[cb_name] = var
+
+    def clear_nodes(self):
+        pass
+
+    def set_disabled(self, disable=True):
+        self.disabled = bool(disable)
 
     def delete_all_traces(self, modes="rw"):
         for mode, traces in (("r", self.read_traces),
@@ -285,7 +292,6 @@ class ScrollMenu(tk.Frame, BinillaWidget):
     Used as a menu for certain FieldWidgets, such as when
     selecting an array element or an enumerator option.
     '''
-    disabled = False
     variable = None
     callback = None
     option_box = None
@@ -399,8 +405,7 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         self.option_bar.bind('<space>', self.select_menu)
         self.option_box.bind('<<ListboxSelect>>', self.select_menu)
 
-        if disabled:
-            self.disable()
+        self.set_disabled(disabled)
 
         if options is not None:
             self.set_options(options)
@@ -531,11 +536,19 @@ class ScrollMenu(tk.Frame, BinillaWidget):
 
         self.arrow_button.unbind('<FocusOut>')
 
+    def clear_nodes(self):
+        self.update_label(" ")
+
+    def set_disabled(self, disable=True):
+        if disable:
+            self.disable()
+        else:
+            self.enable()
+
     def disable(self):
         if self.disabled:
             return
-
-        self.disabled = True
+        BinillaWidget.set_disabled(self, True)
         self.config(bg=self.enum_disabled_color)
         self.sel_label.config(bg=self.enum_disabled_color,
                               fg=self.text_disabled_color)
@@ -544,7 +557,8 @@ class ScrollMenu(tk.Frame, BinillaWidget):
     def enable(self):
         if not self.disabled:
             return
-        self.disabled = False
+        BinillaWidget.set_disabled(self, False)
+        self.config(bg=self.default_bg_color)
         self.sel_label.config(bg=self.enum_normal_color,
                               fg=self.text_normal_color)
         self.arrow_button.config(state='normal')
@@ -1468,6 +1482,11 @@ class BitmapDisplayButton(BinillaWidget, tk.Button):
         kwargs.setdefault("disabledforeground", self.text_disabled_color)
         kwargs.setdefault("bd", self.button_depth)
         tk.Button.__init__(self, master, *args, **kwargs)
+
+    def set_disabled(self, disable=True):
+        if bool(disable) != self.disabled:
+            self.config(state='disabled' if disable else 'normal')
+            BinillaWidget.set_disabled(self, disable)
 
     def change_bitmap(self, bitmap_tag):
         if bitmap_tag is not None:

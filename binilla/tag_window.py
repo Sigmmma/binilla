@@ -112,7 +112,6 @@ class TagWindow(tk.Toplevel, BinillaWidget):
     _scrolling = False
     _last_saved_edit_index = 0
     _pending_scroll_counts = ()
-    _saving_dialog = None
 
     def __init__(self, master, tag=None, *args, **kwargs):
         self._pending_scroll_counts = [0, 0]
@@ -147,9 +146,6 @@ class TagWindow(tk.Toplevel, BinillaWidget):
 
         tk.Toplevel.__init__(self, master, *args, **kwargs)
         self.update_title()
-
-        self._saving_dialog = SavingDialog(self)
-        self._saving_dialog.hide()
 
         self.edit_manager = EditManager(max_undos)
 
@@ -524,7 +520,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
                 kwargs.setdefault('backup', handler_flags.backup_tags)
                 kwargs.setdefault('int_test', handler_flags.integrity_test)
 
-            self._saving_dialog.show()
+            self.field_widget.set_disabled(True)
             save_thread = Thread(target=self.tag.serialize, kwargs=kwargs,
                                  daemon=True)
             save_thread.start()
@@ -536,9 +532,6 @@ class TagWindow(tk.Toplevel, BinillaWidget):
                 if not save_thread.isAlive():
                     break
 
-                self._saving_dialog.show()
-
-            self._saving_dialog.hide()
             self.field_widget.set_edited(False)
             self.is_new_tag = False
             if self.edit_manager and self.edit_manager.maxlen:
@@ -547,6 +540,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         except Exception as e:
             exception = e
         finally:
+            self.field_widget.set_disabled(False)
             self.title(title)
             self._saving = False
 
@@ -592,9 +586,6 @@ class TagWindow(tk.Toplevel, BinillaWidget):
 
     def apply_style(self, seen=None):
         BinillaWidget.apply_style(self, seen)
-
-        # enable this when FieldWidgets have their own apply_style methods
-        #BinillaWidget.apply_style(self, seen)
         self.root_canvas.config(bg=self.default_bg_color)
         self.root_frame.config(bg=self.default_bg_color)
 
@@ -817,54 +808,3 @@ class ConfigWindow(TagWindow):
         self.title(self.title())
         if self.edit_manager and self.edit_manager.maxlen:
             self._last_saved_edit_index = self.edit_manager.edit_index
-
-
-class SavingDialog(tk.Toplevel, BinillaWidget):
-
-    def __init__(self, master, tag=None, *args, **kwargs):
-        kwargs.update(bg=self.default_bg_color)
-        tk.Toplevel.__init__(self, master, *args, **kwargs)
-
-        self.title('Saving, please wait...')
-        self.minsize(width=300, height=0)
-        self.protocol("WM_DELETE_WINDOW", self.hide)
-
-        self.transient(master)
-        self.apply_style()
-
-        self.geometry('%sx%s' % (300, 0))
-        self.update()
-
-    def show(self):
-        if self.state() == 'withdrawn':
-            self.center_on_master()
-            self.update()
-            self.deiconify()
-            self.grab_set()
-
-    def hide(self):
-        if self.state() != 'withdrawn':
-            self.withdraw()
-            self.grab_release()
-            self.update()
-
-    def center_on_master(self, x=0, y=0):
-        x_base, y_base = self.master.winfo_x(), self.master.winfo_y()
-        m_width, m_height = self.master.geometry().split('+')[0].split('x')[:2]
-        s_width, s_height = self.geometry().split('+')[0].split('x')[:2]
-
-        m_width, m_height = int(m_width), int(m_height)
-        s_width, s_height = int(s_width), int(s_height)
-
-        if m_width == 1 and m_height == 1:
-            m_width, m_height = (self.master.winfo_reqwidth(),
-                                 self.master.winfo_reqheight())
-
-        if s_width == 1 and s_height == 1:
-            s_width, s_height = self.winfo_reqwidth(), self.winfo_reqheight()
-
-        self.geometry('%sx%s+%s+%s' % (
-            s_width, s_height,
-            x_base + ((m_width  - s_width)  // 2),
-            y_base + ((m_height - s_height) // 2)
-            ))

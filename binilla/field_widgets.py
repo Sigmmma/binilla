@@ -483,8 +483,7 @@ class FieldWidget(widgets.BinillaWidget):
         try:
             # loop over each attr_index in the nodepath
             for i in nodepath:
-                if i in widget.node.NAME_MAP:
-                    i = widget.node.NAME_MAP[i]
+                i = widget.desc.get('NAME_MAP', {}).get(i, i)
                 widget = widget.f_widgets[widget.f_widget_ids_map[i]]
         except (AttributeError, KeyError):
             pass
@@ -529,6 +528,9 @@ class FieldWidget(widgets.BinillaWidget):
             return None, None
 
     def export_node(self):
+        if self.node is None:
+            return
+
         '''Prompts the user for a location to export the node and exports it'''
         try:
             initialdir = self.tag_window.app_root.last_load_dir
@@ -567,7 +569,7 @@ class FieldWidget(widgets.BinillaWidget):
     def import_node(self):
         '''Prompts the user for an exported node file.
         Imports data into the node from the file.'''
-        if None in (self.parent, self.node):
+        if self.node is None:
             return
 
         try:
@@ -776,16 +778,19 @@ class ContainerFrame(tk.Frame, FieldWidget):
         try:
             total = 0
             node = self.node
+            sub_node = None
             entries = tuple(range(desc.get('ENTRIES', 0)))
-            if hasattr(node, 'STEPTREE'):
+            if 'STEPTREE' in desc:
                 entries += ('STEPTREE',)
 
             if self.all_visible:
                 return len(entries)
 
             for i in entries:
-                sub_node = node[i]
                 sub_desc = desc[i]
+                if hasattr(node, "__getitem__"):
+                    sub_node = node[i]
+
                 if hasattr(sub_node, 'desc'):
                     sub_desc = sub_node.desc
 
@@ -864,7 +869,7 @@ class ContainerFrame(tk.Frame, FieldWidget):
                 c.destroy()
 
         node = self.node
-        desc = node.desc
+        desc = self.desc if node is None else node.desc
         picker = self.widget_picker
         tag_window = self.tag_window
 
@@ -891,9 +896,9 @@ class ContainerFrame(tk.Frame, FieldWidget):
         if getattr(self, 'title_label', None):
             self.title_label.tooltip_string = self.tooltip_string
 
-        field_indices = range(len(node))
+        field_indices = range(desc['ENTRIES'])
         # if the node has a steptree node, include its index in the indices
-        if hasattr(node, 'STEPTREE'):
+        if 'STEPTREE' in desc:
             field_indices = tuple(field_indices) + ('STEPTREE',)
 
         kwargs = dict(parent=node, tag_window=tag_window, f_widget_parent=self,
@@ -925,9 +930,12 @@ class ContainerFrame(tk.Frame, FieldWidget):
             kwargs['use_parent_pack_padx'] = True
 
         # loop over each field and make its widget
+        sub_node = None
         for i in field_indices:
-            sub_node = node[i]
             sub_desc = desc[i]
+            if hasattr(node, "__getitem__"):
+                sub_node = node[i]
+
             if hasattr(sub_node, 'desc'):
                 sub_desc = sub_node.desc
 
@@ -999,9 +1007,9 @@ class ContainerFrame(tk.Frame, FieldWidget):
             desc = self.desc
             f_widgets = self.f_widgets
 
-            field_indices = range(len(node))
+            field_indices = range(desc['ENTRIES'])
             # if the node has a steptree node, include its index in the indices
-            if hasattr(node, 'STEPTREE'):
+            if 'STEPTREE' in desc:
                 field_indices = tuple(field_indices) + ('STEPTREE',)
 
             f_widget_ids_map = self.f_widget_ids_map
@@ -1010,9 +1018,12 @@ class ContainerFrame(tk.Frame, FieldWidget):
             # if any of the descriptors are different between
             # the sub-nodes of the previous and new sub-nodes,
             # then this widget will need to be repopulated.
+            sub_node = None
             for i in field_indices:
-                sub_node = node[i]
                 sub_desc = desc[i]
+                if hasattr(node, "__getitem__"):
+                    sub_node = node[i]
+
                 if hasattr(sub_node, 'desc'):
                     sub_desc = sub_node.desc
 
@@ -1027,11 +1038,13 @@ class ContainerFrame(tk.Frame, FieldWidget):
                     self.populate()
                     return
 
-            for wid in self.f_widget_ids:
-                w = f_widgets[wid]
+            if node is not None:
+                for wid in self.f_widget_ids:
+                    w = f_widgets[wid]
 
-                w.parent, w.node = node, node[w.attr_index]
-                w.reload()
+                    w.parent, w.node = node, node[w.attr_index]
+                    w.reload()
+
         except Exception:
             print(format_exc())
 
@@ -1102,7 +1115,12 @@ class ColorPickerFrame(ContainerFrame):
     def __init__(self, *args, **kwargs):
         ContainerFrame.__init__(self, *args, **kwargs)
 
-        self.color_type = self.node.get_desc('TYPE', 'r').node_cls
+        name_map = self.desc['NAME_MAP']
+        for c in 'argb':
+            if c in name_map:
+                self.color_type = self.desc[name_map[c]]['TYPE'].node_cls
+                break
+
         self._initialized = True
         self.reload()
 
@@ -1447,22 +1465,23 @@ class ArrayFrame(ContainerFrame):
         # sort the options by value(values are integers)
         options = {i: n for n, i in self.desc.get('NAME_MAP', {}).items()}
 
-        node, desc = self.node, self.desc
-        sub_desc = desc['SUB_STRUCT']
-        def_struct_name = sub_desc.get('GUI_NAME', sub_desc['NAME'])
+        if self.node:
+            node, desc = self.node, self.desc
+            sub_desc = desc['SUB_STRUCT']
+            def_struct_name = sub_desc.get('GUI_NAME', sub_desc['NAME'])
 
-        for i in range(len(node)):
-            if i in options:
-                continue
-            sub_node = node[i]
-            if not hasattr(sub_node, 'desc'):
-                continue
-            sub_desc = sub_node.desc
-            sub_struct_name = sub_desc.get('GUI_NAME', sub_desc['NAME'])
-            if sub_struct_name == def_struct_name:
-                continue
+            for i in range(len(node)):
+                if i in options:
+                    continue
+                sub_node = node[i]
+                if not hasattr(sub_node, 'desc'):
+                    continue
+                sub_desc = sub_node.desc
+                sub_struct_name = sub_desc.get('GUI_NAME', sub_desc['NAME'])
+                if sub_struct_name == def_struct_name:
+                    continue
 
-            options[i] = sub_struct_name
+                options[i] = sub_struct_name
 
         self.options_sane = True
         self.option_cache = options
@@ -1791,16 +1810,18 @@ class ArrayFrame(ContainerFrame):
         empty_node = not hasattr(node, '__len__')
         field_max = self.field_max
         field_min = self.field_min
+        enforce_min = self.enforce_min or empty_node
+        enforce_max = self.enforce_max or empty_node
         if field_min is None: field_min = 0
 
         if empty_node or (field_max is not None and len(node) >= field_max):
-            if self.enforce_max:
+            if enforce_max:
                 self.set_add_disabled()
                 self.set_insert_disabled()
                 self.set_duplicate_disabled()
 
         if empty_node or len(node) <= field_min:
-            if self.enforce_min or len(node) == 0:
+            if enforce_min or len(node) == 0:
                 self.set_delete_disabled()
                 self.set_delete_all_disabled()
 
@@ -1909,7 +1930,7 @@ class ArrayFrame(ContainerFrame):
         '''Resupplies the nodes to the widgets which display them.'''
         try:
             node = self.node
-            node_empty = (not hasattr(node, '__len__'))
+            is_empty = not hasattr(node, '__len__') or len(node) == 0
             field_max = self.field_max
             field_min = self.field_min
             if field_min is None: field_min = 0
@@ -1919,7 +1940,7 @@ class ArrayFrame(ContainerFrame):
 
             if self.disabled == self.sel_menu.disabled:
                 pass
-            elif self.disabled or node_empty or len(node) == 0:
+            elif self.disabled or is_empty:
                 self.sel_menu.disable()
             else:
                 self.sel_menu.enable()
@@ -1929,7 +1950,7 @@ class ArrayFrame(ContainerFrame):
             f_widget_ids_map = self.f_widget_ids_map = {}
             f_widget_ids_map_inv = self.f_widget_ids_map_inv = {}
 
-            if node_empty or len(node) == 0:
+            if is_empty:
                 self.sel_menu.sel_index = -1
                 self.sel_menu.max_index = -1
                 # if there is no index to select, destroy the content
@@ -2017,18 +2038,19 @@ class ArrayFrame(ContainerFrame):
     def select_option(self, opt_index=None, force_reload=False):
         node = self.node
         desc = self.desc
+        is_empty = not hasattr(node, '__len__') or len(node) == 0
         curr_index = self.sel_index
         if opt_index is None:
             opt_index = curr_index
 
         if opt_index == curr_index and not force_reload:
             return
-        elif opt_index >= len(node) and len(node):
-            opt_index = len(node) - 1
-        elif not len(node):
+        elif is_empty:
             self.sel_index = -1
             self.populate()
             return
+        elif opt_index >= len(node) and len(node):
+            opt_index = len(node) - 1
 
         # flush any lingering changes
         self.flush()
@@ -2086,6 +2108,8 @@ class DynamicArrayFrame(ArrayFrame):
     def cache_options(self):
         node, desc = self.node, self.desc
         dyn_name_path = desc.get('DYN_NAME_PATH')
+        if node is None:
+            dyn_name_path = ""
 
         options = {}
         if dyn_name_path:
@@ -2293,10 +2317,11 @@ class RawdataFrame(DataFrame):
         DataFrame.set_disabled(self, disable)
 
     def delete_node(self):
-        curr_size = None
-        index = self.attr_index
         if None in (self.parent, self.node):
             return
+
+        curr_size = None
+        index = self.attr_index
 
         try:
             undo_node = self.node
@@ -2401,7 +2426,6 @@ class RawdataFrame(DataFrame):
                 self.node.set_size(curr_size)
             else:
                 self.parent.set_size(curr_size, attr_index=index)
-                
 
     def pose_fields(self):
         padx, pady, side= self.horizontal_padx, self.horizontal_pady, 'top'
@@ -2734,6 +2758,8 @@ class EntryFrame(DataFrame):
             elif unit_scale and isinstance(self.node, int):
                 self.last_flushed_val = float_to_str(
                     float(node), -1*ceil(log(abs(unit_scale), 10)))
+            elif node is None:
+                self.last_flushed_val = ""
             else:
                 self.last_flushed_val = str(node)
 
@@ -3229,7 +3255,7 @@ class UnionFrame(ContainerFrame):
         self.show.set(show_frame)
 
         max_u_index = len(self.desc['CASE_MAP'])
-        u_index = self.node.u_index
+        u_index = getattr(self.node, "u_index", None)
         if u_index is None:
             u_index = max_u_index
 
@@ -3283,7 +3309,7 @@ class UnionFrame(ContainerFrame):
         if self.option_cache is None:
             self.cache_options()
 
-        if opt_index is None:
+        if opt_index is None or self.node is None:
             return self.option_cache
         elif opt_index == "active":
             opt_index = self.node.u_index
@@ -3332,6 +3358,9 @@ class UnionFrame(ContainerFrame):
 
     def select_option(self, opt_index=None):
         self.flush()
+        if self.node is None:
+            return
+
         node = self.node
         curr_index = self.sel_menu.sel_index
 
@@ -3349,6 +3378,7 @@ class UnionFrame(ContainerFrame):
             self.node.set_active()
         else:
             self.node.set_active(opt_index)
+
         self.set_edited()
 
         # make an edit state
@@ -3393,7 +3423,7 @@ class UnionFrame(ContainerFrame):
 
             self.display_comment(self.content)
 
-            u_node = node.u_node
+            u_node = getattr(node, "u_node", None)
             if u_node is None:
                 btn_kwargs = dict(
                     bg=self.button_color, fg=self.text_normal_color,
@@ -3549,7 +3579,7 @@ class StreamAdapterFrame(ContainerFrame):
 
             node = self.node
             desc = self.desc
-            data = node.data
+            data = getattr(node, "data", None)
 
             for w in (self, self.content, self.title_label):
                 w.tooltip_string = self.desc.get('TOOLTIP')
@@ -3780,6 +3810,8 @@ class DynamicEnumFrame(EnumFrame):
                       bg=self.default_bg_color)
         DataFrame.__init__(self, *args, **kwargs)
 
+        sel_index = -1 if self.node is None else self.node + 1
+
         # make the widgets
         try: title_font = self.tag_window.app_root.default_font
         except AttributeError: title_font = None
@@ -3792,7 +3824,7 @@ class DynamicEnumFrame(EnumFrame):
             disabledforeground=self.text_disabled_color)
         self.sel_menu = widgets.ScrollMenu(
             self.content, f_widget_parent=self, menu_width=self.widget_width,
-            sel_index=self.node + 1, max_index=0,
+            sel_index=sel_index, max_index=0,
             disabled=self.disabled, default_text="<INVALID>",
             option_getter=self.get_options,  callback=self.select_option)
         self.sel_menu.bind('<FocusIn>', self.set_not_sane)
@@ -3802,7 +3834,7 @@ class DynamicEnumFrame(EnumFrame):
             self.title_label.pack(side="left", fill="x")
         self.content.pack(fill="x", expand=True)
         self.sel_menu.pack(side="left", fill="x")
-        self.reload()
+        self.populate()
         self._initialized = True
 
     def get_options(self, opt_index=None):
@@ -3890,10 +3922,13 @@ class DynamicEnumFrame(EnumFrame):
                 self.sel_menu.enable()
 
             self.cache_options()
-            self.sel_menu.sel_index = self.node + 1
+            if self.node is not None:
+                self.sel_menu.sel_index = self.node + 1
             self.sel_menu.update_label()
         except Exception:
             print(format_exc())
+
+    populate = reload
 
     def select_option(self, opt_index=None):
         if None in (self.parent, self.node):
@@ -4029,7 +4064,7 @@ class BoolFrame(DataFrame):
         checkbtns = {}
 
         desc = self.desc
-        data = self.node.data
+        data = getattr(self.node, "data", 0)
         value_index_map = desc['VALUE_MAP']
 
         # get how many bits there can possibly be
@@ -4058,7 +4093,6 @@ class BoolFrame(DataFrame):
                 opt.setdefault('GUI_NAME', defname)
 
             bit_opt_map[bit] = opt
-
 
         if self.prev_bit_opt_map != bit_opt_map:
             self.checkvars = checkvars
@@ -4202,7 +4236,7 @@ class BoolSingleFrame(DataFrame):
             self.title_label.pack(side='left')
         self.checkbutton.pack(side='left')
 
-        self.reload()
+        self.populate()
         self._initialized = True
 
     def clear_nodes(self):

@@ -19,6 +19,7 @@ from .util import float_to_str, FLOAT_PREC, DOUBLE_PREC
 
 # linked to through __init__.py
 widget_picker = None
+NoneType = type(None)
 
 
 __all__ = (
@@ -127,11 +128,11 @@ class FieldWidget(widgets.BinillaWidget):
     def __init__(self, *args, **kwargs):
         widgets.BinillaWidget.__init__(self)
 
+        self.f_widgets = {}
         self.f_widget_ids = []
         self.f_widget_ids_map = {}
         self.f_widget_ids_map_inv = {}
         self.content = self
-
         self._desc = kwargs.get('desc', self._desc)
         self.tag_window = kwargs.get('tag_window', None)
         self.f_widget_parent = kwargs.get('f_widget_parent', None)
@@ -146,18 +147,10 @@ class FieldWidget(widgets.BinillaWidget):
         self.use_parent_pack_pady = kwargs.get('use_parent_pack_pady',
                                                self.use_parent_pack_pady)
 
-        self.load_nodes(kwargs.get('parent', None),
-                        kwargs.get('node', None),
-                        kwargs.get('attr_index', None))
-
-        if self._desc is not None:
-            pass
-        elif hasattr(self.node, "desc"):
-            self._desc = self.node.desc
-        elif self.parent.desc['TYPE'].is_array:
-            self._desc = self.parent.desc['SUB_STRUCT']
-        else:
-            self._desc = self.parent.desc[self.attr_index]
+        self.load_node_data(kwargs.get('parent', None),
+                            kwargs.get('node', None),
+                            kwargs.get('attr_index', None),
+                            kwargs.get('desc', None))
 
         self.disabled = kwargs.get('disabled', self.disabled)
         if 'EDITABLE' in self.desc:
@@ -514,8 +507,7 @@ class FieldWidget(widgets.BinillaWidget):
                         continue
 
                     try:
-                        f_widgets = widget.f_widgets
-                        widget = f_widgets[widget.f_widget_ids_map[i]]
+                        widget = widget.f_widgets[widget.f_widget_ids_map[i]]
                     except Exception:
                         widget = None
             except (AttributeError, KeyError):
@@ -600,7 +592,7 @@ class FieldWidget(widgets.BinillaWidget):
                 self.parent.parse(filepath=filepath, attr_index=self.attr_index)
                 self.node = self.parent[self.attr_index]
 
-            self.populate()
+            self.reload()
             self.set_edited()
         except Exception:
             print(format_exc())
@@ -618,22 +610,37 @@ class FieldWidget(widgets.BinillaWidget):
         '''Resupplies the nodes to the widgets which display them.'''
         raise NotImplementedError("This method must be overloaded")
 
-    def clear_nodes(self):
+    def unload_node_data(self):
         self.node = self.parent = None
 
-    def load_nodes(self, parent, node, attr_index):
+    def load_node_data(self, parent, node, attr_index, desc=None):
+        '''Returns True if this FieldWidget will need to be repopulated.'''
         self.parent = parent
         self.node = node
         self.attr_index = attr_index
-        if self.node is None:
-            assert self.parent is not None
+        if self.node is None and self.parent:
             self.node = self.parent[self.attr_index]
 
+        prev_desc = self._desc
+        if desc is None:
+            if hasattr(self.node, "desc"):
+                desc = self.node.desc
+            elif self.f_widget_parent:
+                parent_desc = self.f_widget_parent.desc
+                if parent_desc['TYPE'].is_array:
+                    desc = parent_desc['SUB_STRUCT']
+                else:
+                    desc = parent_desc[self.attr_index]
+                
+        self._desc = desc
+        return self._desc != prev_desc
+
     def build_f_widget_cache(self):
-        f_widgets = self.f_widgets = {}
+        self.f_widgets = {}
         try:
             for w in self.content.children.values():
-                f_widgets[id(w)] = w
+                if isinstance(w, FieldWidget):
+                    self.f_widgets[id(w)] = w
         except Exception:
             print(format_exc())
 
@@ -641,7 +648,7 @@ class FieldWidget(widgets.BinillaWidget):
         self.edited = bool(new_value)
         try:
             if self.edited:
-                if self.f_widget_parent:
+                if hasattr(self.f_widget_parent, "set_edited"):
                     # Tell all parents that there are unsaved edits
                     self.f_widget_parent.set_edited()
                 return
@@ -650,11 +657,10 @@ class FieldWidget(widgets.BinillaWidget):
                 f_widgets = self.f_widgets
                 for f_wid in self.f_widget_ids:
                     w = f_widgets.get(f_wid)
-                    if w.edited:
+                    if getattr(w, "edited", False):
                         w.set_edited(False)
         except Exception:
-            #print(format_exc())
-            pass
+            print(format_exc())
 
     def set_needs_flushing(self, new_value=True):
         self.needs_flushing = new_value
@@ -754,12 +760,34 @@ class ContainerFrame(tk.Frame, FieldWidget):
         self.populate()
         self._initialized = True
 
-    def load_nodes(self, parent, node, attr_index):
-        FieldWidget.load_nodes(self, parent, node, attr_index)
+    def load_node_data(self, parent, node, attr_index, desc=None):
+        if FieldWidget.load_node_data(self, parent, node, attr_index, desc):
+            # needs repopulating. can't load child node data
+            return True
 
+        return self.load_child_node_data()
+
+    def load_child_node_data(self):
+        desc = self.desc
+        sub_node = None
         for wid in self.f_widgets:
+            # try and load any existing FieldWidgets with appropriate node data
             w = self.f_widgets[wid]
-            w.load_nodes(self.node, None, self.f_widget_ids_map_inv[wid])
+            attr_index = self.f_widget_ids_map_inv.get(wid)
+            if attr_index is None:
+                return True
+            elif self.node:
+                sub_node = self.node[attr_index]
+
+            if w.load_node_data(self.node, sub_node, attr_index):
+                # descriptor is different. gotta repopulate self
+                return True
+
+        return False
+
+    def unload_child_node_data(self):
+        for wid in self.f_widgets:
+            self.f_widgets[wid].unload_node_data()
 
     def apply_style(self, seen=None):
         FieldWidget.apply_style(self, seen)
@@ -855,21 +883,16 @@ class ContainerFrame(tk.Frame, FieldWidget):
 
         self.content = content
         # clear the f_widget_ids list
-        del self.f_widget_ids[:]
-        del self.f_widget_ids_map
-        del self.f_widget_ids_map_inv
-
-        f_widget_ids = self.f_widget_ids
-        f_widget_ids_map = self.f_widget_ids_map = {}
-        f_widget_ids_map_inv = self.f_widget_ids_map_inv = {}
+        self.f_widget_ids = []
+        self.f_widget_ids_map = {}
+        self.f_widget_ids_map_inv = {}
 
         # destroy all the child widgets of the content
-        if isinstance(self.f_widgets, dict):
-            for c in list(self.f_widgets.values()):
-                c.destroy()
+        for w in self.f_widgets.values():
+            w.destroy()
 
         node = self.node
-        desc = self.desc if node is None else node.desc
+        desc = self.desc
         picker = self.widget_picker
         tag_window = self.tag_window
 
@@ -910,24 +933,20 @@ class ContainerFrame(tk.Frame, FieldWidget):
         # if only one sub-widget being displayed, dont
         # display the title of the widget being displayed
         if not all_visible:
-            try:
-                s_desc = node['STEPTREE'].desc
-            except AttributeError:
-                s_desc = desc.get('STEPTREE', dict(VISIBLE=False))
-
+            s_desc = desc.get('STEPTREE', dict(VISIBLE=False))
             if visible_count < 2:
                 if not s_desc.get('VISIBLE', 1):
                     # only make the title not shown if the only
                     # visible widget will not be the subtree
-                    kwargs['show_title'] = False
-                kwargs['dont_padx_fields'] = True
+                    kwargs.update(show_title=False)
+                kwargs.update(dont_padx_fields=True)
 
         if self.dont_padx_fields:
-            kwargs['pack_padx'] = 0
+            kwargs.update(pack_padx=0)
         elif visible_count < 2 and not self.show_title:
             # Use this widgets x padding amount so that its
             # singular child appears where this widget would.
-            kwargs['use_parent_pack_padx'] = True
+            kwargs.update(use_parent_pack_padx=True)
 
         # loop over each field and make its widget
         sub_node = None
@@ -949,56 +968,22 @@ class ContainerFrame(tk.Frame, FieldWidget):
 
             try:
                 widget = widget_cls(content, node=sub_node,
-                                    attr_index=i, **kwargs)
+                                    attr_index=i, desc=sub_desc, **kwargs)
             except Exception:
                 print(format_exc())
                 widget = NullFrame(content, node=sub_node,
-                                   attr_index=i, **kwargs)
+                                   attr_index=i, desc=sub_desc, **kwargs)
 
             wid = id(widget)
-            f_widget_ids.append(wid)
-            f_widget_ids_map[i] = wid
-            f_widget_ids_map_inv[wid] = i
+            self.f_widget_ids.append(wid)
+            self.f_widget_ids_map[i] = wid
+            self.f_widget_ids_map_inv[wid] = i
 
         self.build_f_widget_cache()
 
         # now that the field widgets are created, position them
         if self.show.get():
             self.pose_fields()
-
-    def clear_nodes(self):
-        FieldWidget.clear_nodes(self)
-        for w in self.f_widgets.values():
-            if hasattr(w, "clear_nodes"):
-                w.clear_nodes()
-
-    def set_disabled(self, disable=True):
-        if self.node is None and not disable:
-            return
-
-        if bool(disable) != self.disabled:
-            for w in (self.import_btn, self.export_btn):
-                if w:
-                    w.config(state=tk.DISABLED if disable else tk.NORMAL)
-
-        for w in self.f_widgets.values():
-            if hasattr(w, "set_disabled"):
-                w.set_disabled(disable)
-
-        FieldWidget.set_disabled(self, disable)
-
-    def flush(self):
-        '''Flushes values from the widgets to the nodes they are displaying.'''
-        if self.node is None:
-            return
-
-        try:
-            for w in self.f_widgets.values():
-                if hasattr(w, 'flush'):
-                    w.flush()
-            self.set_needs_flushing(False)
-        except Exception:
-            print(format_exc())
 
     def reload(self):
         '''Resupplies the nodes to the widgets which display them.'''
@@ -1018,7 +1003,11 @@ class ContainerFrame(tk.Frame, FieldWidget):
             # if any of the descriptors are different between
             # the sub-nodes of the previous and new sub-nodes,
             # then this widget will need to be repopulated.
-            sub_node = None
+            if self.load_child_node_data():
+                self.populate()
+                return
+
+            '''sub_node = None
             for i in field_indices:
                 sub_desc = desc[i]
                 if hasattr(node, "__getitem__"):
@@ -1036,15 +1025,48 @@ class ContainerFrame(tk.Frame, FieldWidget):
                 # if the descriptors are different, gotta repopulate!
                 if not hasattr(w, 'desc') or w.desc is not sub_desc:
                     self.populate()
-                    return
+                    return'''
 
-            if node is not None:
-                for wid in self.f_widget_ids:
-                    w = f_widgets[wid]
+            for wid in self.f_widget_ids:
+                f_widgets[wid].reload()
 
-                    w.parent, w.node = node, node[w.attr_index]
-                    w.reload()
+        except Exception:
+            print(format_exc())
 
+    def unload_node_data(self):
+        FieldWidget.unload_node_data(self)
+        for w in self.f_widgets.values():
+            if hasattr(w, "unload_node_data"):
+                w.unload_node_data()
+
+    def set_disabled(self, disable=True):
+        if self.node is None and not disable:
+            return
+
+        self.set_children_disabled(disable)
+
+        if bool(disable) != self.disabled:
+            for w in (self.import_btn, self.export_btn):
+                if w:
+                    w.config(state=tk.DISABLED if disable else tk.NORMAL)
+
+        FieldWidget.set_disabled(self, disable)
+
+    def set_children_disabled(self, disable=True):
+        for w in self.f_widgets.values():
+            if hasattr(w, "set_disabled"):
+                w.set_disabled(disable)
+
+    def flush(self):
+        '''Flushes values from the widgets to the nodes they are displaying.'''
+        if self.node is None:
+            return
+
+        try:
+            for w in self.f_widgets.values():
+                if hasattr(w, 'flush'):
+                    w.flush()
+            self.set_needs_flushing(False)
         except Exception:
             print(format_exc())
 
@@ -1274,7 +1296,7 @@ class ArrayFrame(ContainerFrame):
     the ArrayBlock represented by it, and contains a combobox
     for selecting which array element is displayed.'''
 
-    sel_index = None
+    sel_index = -1
     populated = False
     option_cache = None
     options_sane = False
@@ -1381,17 +1403,24 @@ class ArrayFrame(ContainerFrame):
         self.populate()
         self._initialized = True
 
-    def load_nodes(self, parent, node, attr_index):
-        FieldWidget.load_nodes(self, parent, node, attr_index)
+    def load_node_data(self, parent, node, attr_index, desc=None):
+        FieldWidget.load_node_data(self, parent, node, attr_index, desc)
 
         for wid in self.f_widgets:
+            # there must be only one entry in self.f_widgets
             w = self.f_widgets[wid]
-            w.load_nodes(self.node, None, self.f_widget_ids_map_inv[wid])
+            sub_node = None
+            if self.node and self.sel_index in range(len(self.node)):
+                sub_node = self.node[self.sel_index]
 
-    def clear_nodes(self):
-        FieldWidget.clear_nodes(self)
-        self.sel_menu.clear_nodes()
-        ContainerFrame.clear_nodes(self)
+            if w.load_node_data(self.node, sub_node, self.sel_index):
+                return True
+
+        return False
+
+    def unload_node_data(self):
+        self.sel_menu.update_label(" ")
+        ContainerFrame.unload_node_data(self)
 
     def set_disabled(self, disable=True):
         if self.node is None and not disable:
@@ -1595,11 +1624,9 @@ class ArrayFrame(ContainerFrame):
                     w.select_option(max_index, force_reload=True)
                 else:
                     w.select_option(w.sel_index, force_reload=True)
+                #w.reload()
 
                 w.needs_flushing = False
-                w.sel_menu.update_label()
-                w.set_all_buttons_disabled(self.disabled)
-                w.disable_unusable_buttons()
                 w.set_edited()
             except Exception:
                 print(format_exc())
@@ -1662,14 +1689,10 @@ class ArrayFrame(ContainerFrame):
         self.edit_create(edit_type='add', attr_index=attr_index,
                          redo_node=self.node[attr_index], sel_index=attr_index)
 
-        self.sel_menu.sel_index = attr_index
-        self.sel_menu.max_index = len(self.node) - 1
         self.options_sane = self.sel_menu.options_sane = False
-
-        if self.sel_menu.max_index == 0:
-            self.select_option(0)
         self.set_all_buttons_disabled(self.disabled)
-        self.disable_unusable_buttons()
+        self.disable_unusable_buttons() 
+        self.select_option(len(self.node) - 1, True)
 
     def insert_entry(self):
         if not hasattr(self.node, '__len__'):
@@ -1688,13 +1711,10 @@ class ArrayFrame(ContainerFrame):
         self.edit_create(edit_type='insert', attr_index=attr_index,
                          redo_node=self.node[attr_index], sel_index=attr_index)
 
-        self.sel_menu.sel_index = attr_index
-        self.sel_menu.max_index = len(self.node) - 1
         self.options_sane = self.sel_menu.options_sane = False
-
         self.set_all_buttons_disabled(self.disabled)
         self.disable_unusable_buttons()
-        self.select_option()  # select the new entry
+        self.select_option(attr_index, True)  # select the new entry
 
     def duplicate_entry(self):
         if not hasattr(self.node, '__len__') or len(self.node) < 1:
@@ -1709,17 +1729,17 @@ class ArrayFrame(ContainerFrame):
         self.set_edited() # do this first so the TagWindow detects that
         #                   the title needs to be updated with an asterisk
         new_subnode = deepcopy(self.node[self.sel_index])
+        attr_index = len(self.node) - 1
 
-        attr_index = len(self.node)
         self.edit_create(edit_type='duplicate', attr_index=attr_index,
                          redo_node=new_subnode, sel_index=attr_index)
 
         self.node.append(new_subnode)
-        self.sel_menu.max_index = attr_index
+
         self.options_sane = self.sel_menu.options_sane = False
         self.set_all_buttons_disabled(self.disabled)
         self.disable_unusable_buttons()
-        self.select_option(self.sel_menu.max_index)  # select the new entry
+        self.select_option(attr_index + 1, True)
 
     def delete_entry(self):
         if not hasattr(self.node, '__len__') or len(self.node) == 0:
@@ -1737,25 +1757,18 @@ class ArrayFrame(ContainerFrame):
             self.sel_menu.disable()
             return
 
-        self.sel_index = attr_index = max(self.sel_index, 0)
+        attr_index = max(self.sel_index, 0)
 
         self.set_edited() # do this first so the TagWindow detects that
         #                   the title needs to be updated with an asterisk
-        self.edit_create(edit_type='delete', undo_node=self.node[self.sel_index],
+        self.edit_create(edit_type='delete', undo_node=self.node[attr_index],
                          attr_index=attr_index, sel_index=attr_index)
 
-        del self.node[self.sel_index]
-        self.sel_menu.max_index = len(self.node) - 1
-        if not len(self.node):
-            self.sel_index = -1
-        elif self.sel_index > self.sel_menu.max_index:
-            self.sel_index -= 1
-
-        self.sel_menu.sel_index = self.sel_index
-        self.sel_menu.update_label()
+        del self.node[attr_index]
+        attr_index = max(-1, min(len(self.node) - 1, attr_index))
 
         self.options_sane = self.sel_menu.options_sane = False
-        self.select_option()
+        self.select_option(attr_index, True)
         self.set_all_buttons_disabled(self.disabled)
         self.disable_unusable_buttons()
 
@@ -1780,17 +1793,16 @@ class ArrayFrame(ContainerFrame):
         self.edit_create(edit_type='delete_all', undo_node=tuple(self.node[:]))
 
         del self.node[:]
-        self.sel_index = self.sel_menu.sel_index = self.sel_menu.max_index = -1
-        self.sel_menu.update_label()
 
         self.options_sane = self.sel_menu.options_sane = False
-        self.select_option()
         self.set_all_buttons_disabled(self.disabled)
         self.disable_unusable_buttons()
+        self.select_option(self.sel_index, True)
 
     def set_all_buttons_disabled(self, disable=False):
         for btn in (self.add_btn, self.insert_btn, self.duplicate_btn,
                     self.delete_btn, self.delete_all_btn,
+                    self.import_btn, self.export_btn,
                     self.shift_up_btn, self.shift_down_btn):
             if disable:
                 btn.config(state=tk.DISABLED)
@@ -1826,6 +1838,7 @@ class ArrayFrame(ContainerFrame):
                 self.set_delete_all_disabled()
 
         if empty_node or not len(node):
+            self.set_export_disabled()
             self.set_duplicate_disabled()
 
         if empty_node or len(node) < 2:
@@ -1835,102 +1848,93 @@ class ArrayFrame(ContainerFrame):
     def populate(self):
         node = self.node
         desc = self.desc
-        sel_index = self.sel_index
+        sub_node = None
+        sub_desc = desc['SUB_STRUCT']
+
+        if node and self.sel_index in range(len(node)):
+            sub_node = node[self.sel_index]
+            sub_desc = desc['SUB_STRUCT']
+            if hasattr(sub_node, 'desc'):
+                sub_desc = sub_node.desc
 
         if self.content in (None, self):
             self.content = tk.Frame(self, relief="sunken", bd=self.frame_depth,
                                     bg=self.default_bg_color)
 
-        self.populated = False
-        sub_desc = desc['SUB_STRUCT']
-        sub_struct_name = sub_desc.get('GUI_NAME', sub_desc.get('NAME', ""))
-
-        self.sel_menu.default_text = sub_struct_name
+        self.sel_menu.default_text = sub_desc.get(
+            'GUI_NAME', sub_desc.get('NAME', ""))
         self.sel_menu.update_label()
         self.disable_unusable_buttons()
 
-        is_empty = not hasattr(node, '__len__') or len(node) == 0
-
-        if None in (self.f_widget_ids, self.f_widget_ids_map,
-                    self.f_widget_ids_map_inv) or not is_empty:
-            del self.f_widget_ids[:]
-            del self.f_widget_ids_map
-            del self.f_widget_ids_map_inv
-
-            f_widget_ids = self.f_widget_ids
-            f_widget_ids_map = self.f_widget_ids_map = {}
-            f_widget_ids_map_inv = self.f_widget_ids_map_inv = {}
-
-        if is_empty:
+        rebuild = not bool(self.f_widgets)
+        if hasattr(node, '__len__') and len(node) == 0:
+            # disabling existing widgets
             self.sel_index = -1
             self.sel_menu.max_index = -1
             if self.f_widgets:
-                self.clear_nodes()
-                self.set_disabled(True)
+                self.unload_child_node_data()
+        else:
+            for w in self.f_widgets:
+                if getattr(w, "desc", None) != sub_desc:
+                    rebuild = True
+                    break
 
-            self.build_f_widget_cache()
-            if self.show.get():
-                self.pose_fields()
-            return
+        if rebuild:
+            # destroy existing widgets and make new ones
+            self.populated = False
+            self.f_widget_ids = []
+            self.f_widget_ids_map = {}
+            self.f_widget_ids_map_inv = {}
 
-        # destroy all the child widgets of the content
-        if self.f_widgets:
+            # destroy any child widgets of the content
             for c in list(self.f_widgets.values()):
                 c.destroy()
 
-        for w in (self, self.content, self.title, self.title_label,
-                  self.controls, self.buttons):
-            w.tooltip_string = self.desc.get('TOOLTIP')
-
-        self.sel_menu.enable()
-
-        if sel_index >= 0:
-            if self.f_widgets:
-                self.set_disabled(False)
+            for w in (self, self.content, self.title, self.title_label,
+                      self.controls, self.buttons):
+                w.tooltip_string = self.desc.get('TOOLTIP')
 
             self.display_comment(self.content)
-
-            sub_node = node[sel_index]
-            sub_desc = desc['SUB_STRUCT']
-            if hasattr(sub_node, 'desc'):
-                sub_desc = sub_node.desc
 
             widget_cls = self.widget_picker.get_widget(sub_desc)
             try:
                 widget = widget_cls(
-                    self.content, node=sub_node, parent=node, show_title=False,
-                    attr_index=sel_index, tag_window=self.tag_window,
-                    f_widget_parent=self, disabled=self.disabled,
-                    dont_padx_fields=True)
+                    self.content, node=sub_node, parent=node,
+                    show_title=False, dont_padx_fields=True,
+                    attr_index=self.sel_index, tag_window=self.tag_window,
+                    f_widget_parent=self, disabled=self.disabled)
             except Exception:
                 print(format_exc())
                 widget = NullFrame(
-                    self.content, node=sub_node, parent=node, show_title=False,
-                    attr_index=sel_index, tag_window=self.tag_window,
-                    f_widget_parent=self, disabled=self.disabled,
-                    dont_padx_fields=True)
+                    self.content, node=sub_node, parent=node,
+                    show_title=False, dont_padx_fields=True,
+                    attr_index=self.sel_index, tag_window=self.tag_window,
+                    f_widget_parent=self, disabled=self.disabled)
 
             wid = id(widget)
-            f_widget_ids.append(wid)
-            f_widget_ids_map[sel_index] = wid
-            f_widget_ids_map_inv[wid] = sel_index
+            self.f_widget_ids.append(wid)
+            self.f_widget_ids_map[self.sel_index] = wid
+            self.f_widget_ids_map_inv[wid] = self.sel_index
 
             self.populated = True
+            self.build_f_widget_cache()
 
-        self.build_f_widget_cache()
+            # now that the field widgets are created, position them
+            if self.show.get():
+                self.pose_fields()
 
-        if self.populated:
-            self.reload()
-
-        # now that the field widgets are created, position them
-        if self.show.get():
-            self.pose_fields()
+        if self.node is None:
+            self.set_disabled(True)
+        else:
+            self.set_children_disabled(not self.node)
 
     def reload(self):
         '''Resupplies the nodes to the widgets which display them.'''
         try:
-            node = self.node
-            is_empty = not hasattr(node, '__len__') or len(node) == 0
+            node = self.node if self.node else ()
+            desc = self.desc
+
+            is_empty = len(node) == 0
             field_max = self.field_max
             field_min = self.field_min
             if field_min is None: field_min = 0
@@ -1938,76 +1942,53 @@ class ArrayFrame(ContainerFrame):
             self.set_all_buttons_disabled(self.disabled)
             self.disable_unusable_buttons()
 
-            if self.disabled == self.sel_menu.disabled:
-                pass
-            elif self.disabled or is_empty:
-                self.sel_menu.disable()
-            else:
-                self.sel_menu.enable()
-
-            del self.f_widget_ids_map
-            del self.f_widget_ids_map_inv
-            f_widget_ids_map = self.f_widget_ids_map = {}
-            f_widget_ids_map_inv = self.f_widget_ids_map_inv = {}
-
             if is_empty:
                 self.sel_menu.sel_index = -1
                 self.sel_menu.max_index = -1
                 # if there is no index to select, destroy the content
                 if self.sel_index != -1:
                     self.sel_index = -1
-                    self.populate()
-                return
 
-            # reset the selected index to zero if it's -1
-            # or if its greater than the length of the node
-            curr_index = self.sel_index
-            if curr_index < 0 or curr_index >= len(node):
-                curr_index = self.sel_index = 0
+                self.unload_child_node_data()
+            else:
+                self.f_widget_ids_map = {}
+                self.f_widget_ids_map_inv = {}
 
-            self.sel_menu.sel_index = curr_index
+            self.sel_menu.sel_index = self.sel_index
             self.sel_menu.max_index = len(node) - 1
 
-            # if the widget is unpopulated we need to populate it
-            if not self.populated:
-                self.populate()
-                return
-
-            sub_node = node[curr_index]
-            sub_desc = self.desc['SUB_STRUCT']
-            if hasattr(sub_node, 'desc'):
-                sub_desc = sub_node.desc
+            sub_node = None
+            sub_desc = desc['SUB_STRUCT']
+            if node and self.sel_index in range(len(node)):
+                sub_node = node[self.sel_index]
+                sub_desc = desc['SUB_STRUCT']
+                if hasattr(sub_node, 'desc'):
+                    sub_desc = sub_node.desc
 
             for wid in self.f_widget_ids:
                 w = self.f_widgets[wid]
+                wid = id(w)
+                self.f_widget_ids_map[self.sel_index] = wid
+                self.f_widget_ids_map_inv[wid] = self.sel_index
 
                 # if the descriptors are different, gotta repopulate!
-                if w.desc is not sub_desc:
+                if w.load_node_data(node, sub_node, self.sel_index, sub_desc):
                     self.populate()
                     return
-                    
-                w.parent, w.node, w.attr_index = node, sub_node, curr_index
-                w.f_widget_parent = self
-                w.reload()
 
-                if w.desc.get("PORTABLE", True):
+                w.reload()
+                if w.desc.get("PORTABLE", True) and self.node:
                     self.set_import_disabled(False)
                     self.set_export_disabled(False)
                 else:
                     self.set_import_disabled()
                     self.set_export_disabled()
 
-                wid = id(w)
-                f_widget_ids_map[curr_index] = wid
-                f_widget_ids_map_inv[wid] = curr_index
-
-            if len(node) == 0:
-                self.sel_menu.disable()
-            else:
-                self.sel_menu.enable()
-
             self.sel_menu.update_label()
-
+            if self.node is None:
+                self.set_disabled(True)
+            else:
+                self.set_children_disabled(not self.node)
         except Exception:
             print(format_exc())
 
@@ -2036,60 +2017,25 @@ class ArrayFrame(ContainerFrame):
         self.content.pack(fill='both', side='top', anchor='nw', expand=True)
 
     def select_option(self, opt_index=None, force_reload=False):
-        node = self.node
-        desc = self.desc
-        is_empty = not hasattr(node, '__len__') or len(node) == 0
+        node = self.node if self.node else ()
         curr_index = self.sel_index
         if opt_index is None:
             opt_index = curr_index
 
         if opt_index == curr_index and not force_reload:
             return
-        elif is_empty:
-            self.sel_index = -1
-            self.populate()
-            return
-        elif opt_index >= len(node) and len(node):
+        elif not node:
+            opt_index = -1
+        elif opt_index not in range(len(node)):
             opt_index = len(node) - 1
 
         # flush any lingering changes
         self.flush()
-
-        if opt_index < 0 or opt_index is None:
-            self.sel_index = -1
-            self.populate()
-            return
-
         self.sel_index = opt_index
-
-        if curr_index >= len(node):
-            self.populate()
-            return
-
-        sub_node = node[curr_index]
-        new_sub_node = node[opt_index]
-
-        # if neither of the sub-nodes being switched between have descriptors
-        # then dont worry about repopulating as the descriptors are the same.
-        if not(hasattr(sub_node, 'desc') or hasattr(new_sub_node, 'desc')):
-            self.reload()
-            return
-
-        # get the descs to compare them
-        sub_desc = new_sub_desc = desc['SUB_STRUCT']
-        if hasattr(sub_node, 'desc'):
-            sub_desc = sub_node.desc
-
-        if hasattr(new_sub_node, 'desc'):
-            new_sub_desc = new_sub_node.desc
-
-        # if the sub-descs are the same, dont repopulate either, just reload
-        if sub_desc is new_sub_desc:
-            self.reload()
-            return
-
-        # if there is no way around it, repopulate the widget
-        self.populate()
+        self.sel_menu.sel_index = opt_index
+        self.sel_menu.max_index = len(node) - 1
+        self.reload()
+        self.sel_menu.update_label()
 
     @property
     def visible_field_count(self):
@@ -2539,8 +2485,8 @@ class EntryFrame(DataFrame):
         self.populate()
         self._initialized = True
 
-    def clear_nodes(self):
-        FieldWidget.clear_nodes(self)
+    def unload_node_data(self):
+        FieldWidget.unload_node_data(self)
         self.entry_string.set("")
 
     def set_disabled(self, disable=True):
@@ -2674,18 +2620,20 @@ class EntryFrame(DataFrame):
     @property
     def entry_width(self):
         entry_width = self.widget_width
-
-        if entry_width:
+        if self.widget_width:
             return entry_width
 
         desc = self.desc
         node = self.node
         f_type = desc['TYPE']
+        if f_type.data_cls is not NoneType:
+            d_type = f_type.data_cls
+        else:
+            d_type = f_type.node_cls
 
         node_size = 0
-        parent = self.parent
-        if parent is not None:
-            node_size = parent.get_size(self.attr_index)
+        if self.parent is not None:
+            node_size = self.parent.get_size(self.attr_index)
 
         value_max = desc.get('MAX', f_type.max)
         value_min = desc.get('MIN', f_type.min)
@@ -2704,7 +2652,7 @@ class EntryFrame(DataFrame):
             value_width = max(abs(value_max), abs(value_min), node_size)
             entry_width = max(self.min_entry_width,
                               min(value_width, max_width))
-            if isinstance(node, str) and isinstance(f_type.size, int):
+            if issubclass(d_type, str) and isinstance(f_type.size, int):
                 entry_width = (entry_width - 1 + f_type.size)//max(1, f_type.size)
         return entry_width
 
@@ -2738,8 +2686,9 @@ class EntryFrame(DataFrame):
             # set this to true so the StringVar trace function
             # doesnt think the widget has been edited by the user
             self.needs_flushing = True
-            self.data_entry.config(state=tk.NORMAL)
             self.data_entry.config(width=self.entry_width)
+            self.data_entry.config(state=tk.NORMAL)
+            
             self.data_entry.delete(0, tk.END)
             if isinstance(node, float):
                 # find the precision of the float
@@ -2829,26 +2778,28 @@ class NumberEntryFrame(EntryFrame):
         desc = self.desc
         node = self.node
         f_type = desc['TYPE']
+        if f_type.data_cls is not NoneType:
+            d_type = f_type.data_cls
+        else:
+            d_type = f_type.node_cls
         unit_scale = self.unit_scale
         node_size = 0
 
-        if unit_scale is not None and isinstance(node, (int, float)):
+        if None not in (unit_scale, node) and issubclass(d_type, (int, float)):
             node *= unit_scale
 
-        parent = self.parent
         fixed_size = isinstance(desc.get('SIZE', f_type.size), int)
-        if self.parent is not None:
-            node_size = parent.get_size(self.attr_index)
+        if hasattr(self.parent, "get_size"):
+            node_size = self.parent.get_size(self.attr_index)
 
         value_max = desc.get('MAX', f_type.max)
         value_min = desc.get('MIN', f_type.min)
 
-        if isinstance(node, float):
+        if issubclass(d_type, float):
             # floats are hard to choose a reasonable entry width for
             max_width = self.max_float_entry_width
             value_width = max(int(ceil(node_size * 5/2)),
                               self.def_float_entry_width)
-            node = round(node, node_size*2 - 2)
         else:
             max_width = self.max_int_entry_width
             if not f_type.is_bit_based:
@@ -3055,8 +3006,8 @@ class TextFrame(DataFrame):
         except Exception:
             pass
 
-    def clear_nodes(self):
-        FieldWidget.clear_nodes(self)
+    def unload_node_data(self):
+        FieldWidget.unload_node_data(self)
         self.data_text.config(state=tk.NORMAL)
         self.data_text.delete(1.0, tk.END)
         self.data_text.insert(1.0, "")
@@ -3669,9 +3620,9 @@ class EnumFrame(DataFrame):
         self.pose_fields()
         self._initialized = True
 
-    def clear_nodes(self):
-        FieldWidget.clear_nodes(self)
-        self.sel_menu.clear_nodes()
+    def unload_node_data(self):
+        FieldWidget.unload_node_data(self)
+        self.sel_menu.update_label(" ")
 
     def set_disabled(self, disable=True):
         if self.node is None and not disable:
@@ -3882,7 +3833,9 @@ class DynamicEnumFrame(EnumFrame):
         options = {0: "-1: NONE"}
 
         dyn_name_path = desc.get('DYN_NAME_PATH')
-        if not dyn_name_path:
+        if self.node is None:
+            return
+        elif not dyn_name_path:
             print("Missing DYN_NAME_PATH path in dynamic enumerator.")
             print(self.parent.get_root().def_id, self.name)
             self.option_cache = options
@@ -4001,8 +3954,8 @@ class BoolFrame(DataFrame):
         self.populate()
         self._initialized = True
 
-    def clear_nodes(self):
-        FieldWidget.clear_nodes(self)
+    def unload_node_data(self):
+        FieldWidget.unload_node_data(self)
         for var in self.checkvars.values():
             var.set(0)
 
@@ -4067,11 +4020,6 @@ class BoolFrame(DataFrame):
         data = getattr(self.node, "data", 0)
         value_index_map = desc['VALUE_MAP']
 
-        # get how many bits there can possibly be
-        size = self.parent.get_size(self.attr_index)
-        if not desc['TYPE'].is_bit_based:
-            size *= 8
-
         for w in (self, self.content, self.check_canvas,
                   self.check_frame, self.title_label):
             w.tooltip_string = self.desc.get('TOOLTIP')
@@ -4079,8 +4027,9 @@ class BoolFrame(DataFrame):
         all_visible = self.all_bools_visible
 
         # make a condensed mapping of all visible flags and their information
-        for bit in range(size):
-            opt = desc.get(value_index_map.get(1 << bit))
+        for mask in sorted(value_index_map):
+            bit = int(log(mask, 2.0))
+            opt = desc.get(value_index_map[mask])
 
             if opt is None or not opt.get("VISIBLE", True):
                 if not all_visible:
@@ -4239,8 +4188,8 @@ class BoolSingleFrame(DataFrame):
         self.populate()
         self._initialized = True
 
-    def clear_nodes(self):
-        FieldWidget.clear_nodes(self)
+    def unload_node_data(self):
+        FieldWidget.unload_node_data(self)
         self.checked.set(0)
 
     def set_disabled(self, disable=True):

@@ -134,9 +134,6 @@ class BinillaWidget():
         cb_name = var.trace("u", function)
         self.undefine_traces[cb_name] = var
 
-    def clear_nodes(self):
-        pass
-
     def set_disabled(self, disable=True):
         self.disabled = bool(disable)
 
@@ -535,9 +532,6 @@ class ScrollMenu(tk.Frame, BinillaWidget):
             self.click_outside_funcid = None
 
         self.arrow_button.unbind('<FocusOut>')
-
-    def clear_nodes(self):
-        self.update_label(" ")
 
     def set_disabled(self, disable=True):
         if disable:

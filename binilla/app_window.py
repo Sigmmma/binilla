@@ -528,7 +528,23 @@ class Binilla(tk.Tk, BinillaWidget):
         try:
             if tag is None:
                 return
-            elif tag is self.config_file:
+
+            if destroy_window or forget_window:
+                tid = id(tag)
+                def_id = tag.def_id
+                tid_to_wid = self.tag_id_to_window_id
+
+                if tid in tid_to_wid:
+                    wid = tid_to_wid[tid]
+                    t_window = self.tag_windows[wid]
+                    if destroy_window and t_window.destroy():
+                        # couldn't destroy window, it's saving or something
+                        return
+                    
+                    del tid_to_wid[tid]
+                    del self.tag_windows[wid]
+
+            if tag is self.config_file:
                 pass
             elif hasattr(tag, "rel_filepath"):
                 # remove the tag from the handlers tag library.
@@ -540,20 +556,6 @@ class Binilla(tk.Tk, BinillaWidget):
                 tag.handler.delete_tag(filepath=tag.rel_filepath)
             else:
                 tag.handler.delete_tag(filepath=tag.filepath)
-
-            if destroy_window or forget_window:
-                tid = id(tag)
-                def_id = tag.def_id
-                tid_to_wid = self.tag_id_to_window_id
-
-                if tid in tid_to_wid:
-                    wid = tid_to_wid[tid]
-                    t_window = self.tag_windows[wid]
-                    del tid_to_wid[tid]
-                    del self.tag_windows[wid]
-
-                    if destroy_window:
-                        t_window.destroy()
 
             if self.selected_tag is tag:
                 self.selected_tag = None

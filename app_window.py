@@ -567,29 +567,25 @@ class Binilla(tk.Tk, BinillaWidget):
     def exit(self, e=None):
         '''Exits the program.'''
         try:
-            sys.stdout = self.orig_stdout
-            if self.log_file:
-                self.log_file.close()
-        except Exception:
-            print(format_exc())
-
-        try:
             self.record_open_tags()
             self.update_config()
         except Exception:
             print(format_exc())
 
-        widgets = []
+        windows = []
         try:
             for wid in reversed(sorted(self.tag_windows)):
-                widgets.append(self.tag_windows[wid])
+                windows.append(self.tag_windows[wid])
         except Exception:
             print(format_exc())
-        try:
-            for wid in sorted(self.children):
-                widgets.append(self.children[wid])
-        except Exception:
-            print(format_exc())
+
+        for w in windows:
+            try:
+                if w.destroy():
+                    # couldn't destroy. window is saving or something
+                    return
+            except Exception:
+                pass
 
         try:
             # need to save before destroying the
@@ -598,13 +594,12 @@ class Binilla(tk.Tk, BinillaWidget):
         except Exception:
             print(format_exc())
 
-        for w in widgets:
-            try:
-                not_destroyed = bool(w.destroy())
-                if not_destroyed:
-                    return
-            except Exception:
-                pass
+        try:
+            sys.stdout = self.orig_stdout
+            if self.log_file:
+                self.log_file.close()
+        except Exception:
+            print(format_exc())
 
         try: self.destroy()  # wont close if a listener is open without this
         except Exception: pass

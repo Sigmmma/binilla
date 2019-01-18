@@ -785,9 +785,14 @@ class ContainerFrame(tk.Frame, FieldWidget):
 
         return False
 
+    def unload_node_data(self):
+        FieldWidget.unload_node_data(self)
+        self.unload_child_node_data()
+
     def unload_child_node_data(self):
-        for wid in self.f_widgets:
-            self.f_widgets[wid].unload_node_data()
+        for w in self.f_widgets.values():
+            if hasattr(w, "unload_node_data"):
+                w.unload_node_data()
 
     def apply_style(self, seen=None):
         FieldWidget.apply_style(self, seen)
@@ -1007,37 +1012,11 @@ class ContainerFrame(tk.Frame, FieldWidget):
                 self.populate()
                 return
 
-            '''sub_node = None
-            for i in field_indices:
-                sub_desc = desc[i]
-                if hasattr(node, "__getitem__"):
-                    sub_node = node[i]
-
-                if hasattr(sub_node, 'desc'):
-                    sub_desc = sub_node.desc
-
-                w = f_widgets.get(f_widget_ids_map.get(i))
-
-                # if neither would be visible, dont worry about checking it
-                if not(sub_desc.get('VISIBLE', 1) or all_visible) and w is None:
-                    continue
-
-                # if the descriptors are different, gotta repopulate!
-                if not hasattr(w, 'desc') or w.desc is not sub_desc:
-                    self.populate()
-                    return'''
-
             for wid in self.f_widget_ids:
                 f_widgets[wid].reload()
 
         except Exception:
             print(format_exc())
-
-    def unload_node_data(self):
-        FieldWidget.unload_node_data(self)
-        for w in self.f_widgets.values():
-            if hasattr(w, "unload_node_data"):
-                w.unload_node_data()
 
     def set_disabled(self, disable=True):
         if self.node is None and not disable:
@@ -2927,13 +2906,12 @@ class TextFrame(DataFrame):
     _flushing = False
 
     replace_map = None
+    data_text = None
 
     def __init__(self, *args, **kwargs):
         kwargs.update(relief='flat', bd=0, highlightthickness=0,
                       bg=self.default_bg_color)
         DataFrame.__init__(self, *args, **kwargs)
-
-        size = self.parent.get_size(self.attr_index)
 
         # make the widgets
         self.content = tk.Frame(self, relief='flat', bd=0,
@@ -2950,6 +2928,7 @@ class TextFrame(DataFrame):
             self.content, bd=self.entry_depth, wrap=tk.NONE,
             height=self.textbox_height, width=self.textbox_width,
             maxundo=self.max_undos, undo=True,
+            state=tk.DISABLED if self.disabled else tk.NORMAL,
             bg=self.entry_normal_color, fg=self.text_normal_color,
             selectbackground=self.entry_highlighted_color,
             selectforeground=self.text_highlighted_color,)
@@ -2993,6 +2972,7 @@ class TextFrame(DataFrame):
         self._initialized = True
 
     def _text_undo(self):
+        if not self.data_text: return
         self.data_text.config(undo=True)
         try:
             self.data_text.edit_undo()
@@ -3000,6 +2980,7 @@ class TextFrame(DataFrame):
             pass
 
     def _text_redo(self):
+        if not self.data_text: return
         self.data_text.config(undo=True)
         try:
             self.data_text.edit_redo()
@@ -3008,6 +2989,7 @@ class TextFrame(DataFrame):
 
     def unload_node_data(self):
         FieldWidget.unload_node_data(self)
+        if not self.data_text: return
         self.data_text.config(state=tk.NORMAL)
         self.data_text.delete(1.0, tk.END)
         self.data_text.insert(1.0, "")
@@ -3020,11 +3002,12 @@ class TextFrame(DataFrame):
         if self.node is None and not disable:
             return
 
-        if bool(disable) != self.disabled:
+        if self.data_text and bool(disable) != self.disabled:
             self.data_text.config(state=tk.DISABLED if disable else tk.NORMAL)
         DataFrame.set_disabled(self, disable)
 
     def disable_undo_redo(self, *args, **kwargs):
+        if not self.data_text: return
         # disable the undo/redo ability of the text so we can call it ourselves
         self.data_text.config(undo=False)
 
@@ -3143,7 +3126,7 @@ class TextFrame(DataFrame):
 
     def reload(self):
         try:
-            new_text = str(self.node)
+            new_text = "" if self.node is None else str(self.node)
             # NEED TO DO THIS SORTED cause the /x00 we insert will be mesed up
             for b in sorted(self.replace_map.keys()):
                 new_text = new_text.replace(b, self.replace_map[b])
@@ -3906,12 +3889,13 @@ class BoolFrame(DataFrame):
     can_scroll = False
     checkvars = None  # used to know which IntVars to set when undo/redoing
     checkbtns = ()
-    prev_bit_opt_map = None
+    bit_opt_map = None
 
     def __init__(self, *args, **kwargs):
-        DataFrame.__init__(self, *args, **kwargs)
+        self.bit_opt_map = {}
         self.checkvars = {}
         self.checkbtns = {}
+        DataFrame.__init__(self, *args, **kwargs)
 
         try: title_font = self.tag_window.app_root.default_font
         except AttributeError: title_font = None
@@ -4013,13 +3997,8 @@ class BoolFrame(DataFrame):
 
     def populate(self):
         bit_opt_map = {}
-        checkvars = {}
-        checkbtns = {}
 
         desc = self.desc
-        data = getattr(self.node, "data", 0)
-        value_index_map = desc['VALUE_MAP']
-
         for w in (self, self.content, self.check_canvas,
                   self.check_frame, self.title_label):
             w.tooltip_string = self.desc.get('TOOLTIP')
@@ -4027,9 +4006,9 @@ class BoolFrame(DataFrame):
         all_visible = self.all_bools_visible
 
         # make a condensed mapping of all visible flags and their information
-        for mask in sorted(value_index_map):
+        for mask in sorted(desc['VALUE_MAP']):
             bit = int(log(mask, 2.0))
-            opt = desc.get(value_index_map[mask])
+            opt = desc.get(desc['VALUE_MAP'][mask])
 
             if opt is None or not opt.get("VISIBLE", True):
                 if not all_visible:
@@ -4043,9 +4022,9 @@ class BoolFrame(DataFrame):
 
             bit_opt_map[bit] = opt
 
-        if self.prev_bit_opt_map != bit_opt_map:
-            self.checkvars = checkvars
-            self.checkbtns = checkbtns
+        if self.bit_opt_map != bit_opt_map:
+            self.checkvars = {}
+            self.checkbtns = {}
 
             # destroy all the child widgets of the content
             for c in list(self.check_frame.children.values()):
@@ -4059,15 +4038,12 @@ class BoolFrame(DataFrame):
                 if opt.get('TOOLTIP'):
                     name += " �"
 
-                checkvars[bit] = check_var = tk.IntVar(self.check_frame)
-                check_var.set(bool(data & (1 << bit)))
-                check_var
-
+                self.checkvars[bit] = check_var = tk.IntVar(self.check_frame)
                 state = tk.DISABLED
                 if opt.get("EDITABLE", not self.disabled):
                     state = tk.NORMAL
 
-                checkbtns[bit] = check_btn = tk.Checkbutton(
+                self.checkbtns[bit] = check_btn = tk.Checkbutton(
                     self.check_frame, variable=check_var, padx=0, pady=0,
                     text=name, anchor='nw', justify='left', borderwidth=0,
 
@@ -4089,13 +4065,16 @@ class BoolFrame(DataFrame):
                     check_btn.bind('<MouseWheel>', self.mousewheel_scroll_y)
 
             self.pose_fields()
-            self.prev_bit_opt_map = bit_opt_map
+            self.bit_opt_map = bit_opt_map
+
+        self.reload()
+
+    def reload(self):
+        data = getattr(self.node, "data", 0)
 
         # check/uncheck each flag
-        for bit in sorted(bit_opt_map):
+        for bit in sorted(self.bit_opt_map):
             self.checkvars[bit].set(bool(data & (1 << bit)))
-
-    reload = populate
 
     def _check_bool(self, check_btn, bit, check_var):
         check_btn.focus_set()

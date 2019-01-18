@@ -156,9 +156,6 @@ class FieldWidget(widgets.BinillaWidget):
         if 'EDITABLE' in self.desc:
             self.disabled = not self.desc['EDITABLE']
 
-        if self.all_editable:
-            self.disabled = False
-
         # make sure a button style exists for the 'show' button
         if FieldWidget.show_button_style is None:
             FieldWidget.show_btn_style = ttk.Style()
@@ -211,6 +208,13 @@ class FieldWidget(widgets.BinillaWidget):
             return bool(self.tag_window.use_gui_names)
         except Exception:
             return True
+
+    @property
+    def editable(self):
+        try:
+            return self.desc.get('EDITABLE', True) or self.all_editable
+        except Exception:
+            return self.all_editable
 
     @property
     def all_visible(self):
@@ -1019,11 +1023,11 @@ class ContainerFrame(tk.Frame, FieldWidget):
             print(format_exc())
 
     def set_disabled(self, disable=True):
+        disable = disable or not self.editable
         if self.node is None and not disable:
             return
 
         self.set_children_disabled(disable)
-
         if bool(disable) != self.disabled:
             for w in (self.import_btn, self.export_btn):
                 if w:
@@ -1134,18 +1138,15 @@ class ColorPickerFrame(ContainerFrame):
         if not getattr(self, 'color_btn', None):
             return
 
-        if self.disabled:
-            self.color_btn.config(state=tk.DISABLED)
-        else:
-            self.color_btn.config(state=tk.NORMAL)
-
-        self.color_btn.config(bg=self.get_color()[1])
+        self.color_btn.config(bg=self.get_color()[1],
+                              state=tk.DISABLED if self.disabled else tk.NORMAL)
 
     def reload(self):
         ContainerFrame.reload(self)
         self.update_selector_button()
 
     def set_disabled(self, disable=True):
+        disable = disable or not self.editable
         if self.node is None and not disable:
             return
 
@@ -1179,6 +1180,36 @@ class ColorPickerFrame(ContainerFrame):
             return (int_color, '#%02x%02x%02x' % int_color)
         except Exception:
             return ((0, 0, 0), '#000000')
+
+    def select_color(self):
+        self.flush()
+        if getattr(self, 'color_btn', None):
+            self.color_btn.config(bg=self.get_color()[1])
+
+        color, hex_color = askcolor(self.get_color()[1], parent=self)
+
+        if None in (color, hex_color):
+            return
+
+        # NOTE: NEED to make it into an int. Some versions of
+        # tkinter seem to return color values as floats, even
+        # though the documentation specifies they will be ints.
+        c_color = float_c_color = tuple(int(v) / 255.0 for v in color)
+        n_color = (self.red, self.green, self.blue, self.alpha)
+        if issubclass(self.color_type, int):
+            c_color = tuple(int(v * 255.0 + 0.5) for v in c_color)
+            n_color = tuple(int(v * 255.0 + 0.5) for v in n_color)
+
+        self.set_edited()
+        self.edit_create(
+            attr_index='rgb',
+            redo_node=dict(r=c_color[0], g=c_color[1],
+                           b=c_color[2], a=n_color[3]),
+            undo_node=dict(r=n_color[0], g=n_color[1],
+                           b=n_color[2], a=n_color[3]))
+
+        self.red, self.green, self.blue = float_c_color
+        self.reload()
 
     @property
     def alpha(self):
@@ -1239,35 +1270,6 @@ class ColorPickerFrame(ContainerFrame):
             new_val = int(new_val * 255.0 + 0.5)
         if hasattr(self.node, "b"):
             self.node.b = new_val
-
-    def select_color(self):
-        self.flush()
-        if getattr(self, 'color_btn', None):
-            self.color_btn.config(bg=self.get_color()[1])
-
-        color, hex_color = askcolor(self.get_color()[1], parent=self)
-
-        if None in (color, hex_color):
-            return
-
-        # NOTE: NEED to make it into an int. Some versions of
-        # tkinter seem to return color values as floats, even
-        # though the documentation specifies they will be ints.
-        c_color = tuple(int(v) / 255.0 for v in color)
-        n_color = (self.red, self.green, self.blue, self.alpha)
-        if issubclass(self.color_type, int):
-            c_color = tuple(int(v * 255.0 + 0.5) for v in c_color)
-            n_color = tuple(int(v * 255.0 + 0.5) for v in n_color)
-
-        self.edit_create(
-            attr_index='rgb',
-            redo_node=dict(r=c_color[0], g=c_color[1], b=c_color[2], a=n_color[3]),
-            undo_node=dict(r=n_color[0], g=n_color[1], b=n_color[2], a=n_color[3]))
-
-        self.red, self.green, self.blue = c_color
-
-        self.set_edited()
-        self.reload()
 
 
 class ArrayFrame(ContainerFrame):
@@ -1402,6 +1404,7 @@ class ArrayFrame(ContainerFrame):
         ContainerFrame.unload_node_data(self)
 
     def set_disabled(self, disable=True):
+        disable = disable or not self.editable
         if self.node is None and not disable:
             return
 
@@ -1708,7 +1711,7 @@ class ArrayFrame(ContainerFrame):
         self.set_edited() # do this first so the TagWindow detects that
         #                   the title needs to be updated with an asterisk
         new_subnode = deepcopy(self.node[self.sel_index])
-        attr_index = len(self.node) - 1
+        attr_index = len(self.node)
 
         self.edit_create(edit_type='duplicate', attr_index=attr_index,
                          redo_node=new_subnode, sel_index=attr_index)
@@ -1718,7 +1721,7 @@ class ArrayFrame(ContainerFrame):
         self.options_sane = self.sel_menu.options_sane = False
         self.set_all_buttons_disabled(self.disabled)
         self.disable_unusable_buttons()
-        self.select_option(attr_index + 1, True)
+        self.select_option(attr_index, True)
 
     def delete_entry(self):
         if not hasattr(self.node, '__len__') or len(self.node) == 0:
@@ -2231,6 +2234,7 @@ class RawdataFrame(DataFrame):
         self.pose_fields()
 
     def set_disabled(self, disable=True):
+        disable = disable or not self.editable
         if self.node is None and not disable:
             return
 
@@ -2469,6 +2473,7 @@ class EntryFrame(DataFrame):
         self.entry_string.set("")
 
     def set_disabled(self, disable=True):
+        disable = disable or not self.editable
         if self.node is None and not disable:
             return
 
@@ -2999,6 +3004,7 @@ class TextFrame(DataFrame):
             self.data_text.config(state=tk.NORMAL)
 
     def set_disabled(self, disable=True):
+        disable = disable or not self.editable
         if self.node is None and not disable:
             return
 
@@ -3228,6 +3234,7 @@ class UnionFrame(ContainerFrame):
         self._initialized = True
 
     def set_disabled(self, disable=True):
+        disable = disable or not self.editable
         if self.node is None and not disable:
             return
 
@@ -3608,6 +3615,7 @@ class EnumFrame(DataFrame):
         self.sel_menu.update_label(" ")
 
     def set_disabled(self, disable=True):
+        disable = disable or not self.editable
         if self.node is None and not disable:
             return
 
@@ -3944,6 +3952,7 @@ class BoolFrame(DataFrame):
             var.set(0)
 
     def set_disabled(self, disable=True):
+        disable = disable or not self.editable
         if self.node is None and not disable:
             return
 
@@ -4172,6 +4181,7 @@ class BoolSingleFrame(DataFrame):
         self.checked.set(0)
 
     def set_disabled(self, disable=True):
+        disable = disable or not self.editable
         if self.node is None and not disable:
             return
 

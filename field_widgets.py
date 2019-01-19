@@ -997,10 +997,7 @@ class ContainerFrame(tk.Frame, FieldWidget):
     def reload(self):
         '''Resupplies the nodes to the widgets which display them.'''
         try:
-            node = self.node
             desc = self.desc
-            f_widgets = self.f_widgets
-
             field_indices = range(desc['ENTRIES'])
             # if the node has a steptree node, include its index in the indices
             if 'STEPTREE' in desc:
@@ -1017,7 +1014,7 @@ class ContainerFrame(tk.Frame, FieldWidget):
                 return
 
             for wid in self.f_widget_ids:
-                f_widgets[wid].reload()
+                self.f_widgets[wid].reload()
 
         except Exception:
             print(format_exc())
@@ -3334,35 +3331,31 @@ class UnionFrame(ContainerFrame):
 
     def populate(self):
         try:
-            old_content = self.content
-            new_content = tk.Frame(self, relief="sunken", bd=self.frame_depth,
+            old_content = None if self.content is self else self.content
+            self.content = tk.Frame(self, relief="sunken", bd=self.frame_depth,
                                    bg=self.default_bg_color)
-            self.content = new_content
-
-            # clear the f_widget_ids list
-            del self.f_widget_ids[:]
-            del self.f_widget_ids_map
-            del self.f_widget_ids_map_inv
-
-            f_widget_ids = self.f_widget_ids
-            f_widget_ids_map = self.f_widget_ids_map = {}
-            f_widget_ids_map_inv = self.f_widget_ids_map_inv = {}
-
-            self.sel_menu.update_label()
-            if self.disabled == self.sel_menu.disabled:
-                pass
-            elif self.disabled:
-                self.sel_menu.disable()
-            else:
-                self.sel_menu.enable()
-
-            node = self.node
-            desc = self.desc
-
             for w in (self, self.content, self.title_label):
                 w.tooltip_string = self.desc.get('TOOLTIP')
 
             self.display_comment(self.content)
+            self.reload()
+
+            # now that the field widgets are created, position them
+            if self.show.get():
+                self.pose_fields()
+
+            # do things in this order to prevent the window from scrolling up
+            if old_content:
+                old_content.destroy()
+        except Exception:
+            print(format_exc())
+
+    def reload(self):
+        try:
+            # clear the f_widget_ids list
+            self.f_widget_ids = []
+            self.f_widget_ids_map = {}
+            self.f_widget_ids_map_inv = {}
 
             u_node = getattr(node, "u_node", None)
             if u_node is None:
@@ -3410,9 +3403,9 @@ class UnionFrame(ContainerFrame):
                     widget = NullFrame(new_content, **kwargs)
 
                 wid = id(widget)
-                f_widget_ids.append(wid)
-                f_widget_ids_map['u_node'] = wid
-                f_widget_ids_map_inv[wid] = 'u_node'
+                self.f_widget_ids.append(wid)
+                self.f_widget_ids_map['u_node'] = wid
+                self.f_widget_ids_map_inv[wid] = 'u_node'
 
             self.build_f_widget_cache()
 
@@ -3426,7 +3419,10 @@ class UnionFrame(ContainerFrame):
         except Exception:
             print(format_exc())
 
-    reload = populate
+        if self.node is None:
+            self.set_disabled(True)
+        else:
+            self.set_children_disabled(not self.node)
 
     def pose_fields(self):
         f_widgets = self.f_widgets

@@ -40,6 +40,17 @@ def get_mouse_delta(e):
     else:
         return e.delta
 
+def get_relative_widget_position(child, parent):
+    x = y = 0
+    while child is not parent and parent:
+        if child.master is None and child.master is not parent:
+            raise Exception("Provided child is not a descendent of parent.")
+        x += child.winfo_x()
+        y += child.winfo_y()
+        child = child.master
+
+    return x, y
+
 
 class BinillaWidget():
     '''
@@ -355,8 +366,12 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         self.arrow_button.pack(side="left", fill='both', expand=True)
 
         # make the option box to populate
+        option_frame_root = self.winfo_toplevel()
+        if hasattr(option_frame_root, "root_frame"):
+            option_frame_root = option_frame_root.root_frame
+
         self.option_frame = tk.Frame(
-            self.winfo_toplevel(), highlightthickness=0, bd=0)
+            option_frame_root, highlightthickness=0, bd=0)
         self.option_frame.pack_propagate(0)
         self.option_bar = tk.Scrollbar(self.option_frame, orient="vertical")
         self.option_box = tk.Listbox(
@@ -656,16 +671,18 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         self_height = self.winfo_reqheight()
         root = self.winfo_toplevel()
 
-        pos_x = self.sel_label.winfo_rootx() - root.winfo_rootx()
-        pos_y = self.winfo_rooty() - root.winfo_rooty() + self_height
+        pos_x, pos_y = get_relative_widget_position(self.sel_label,
+                                                    self.option_frame.master)
+        pos_y += self_height - 4
         height = min(max(option_cnt, 0), self.max_height)*(14 + win_10_pad) + 4
         width = max(self.option_box.winfo_reqwidth(),
                     self.sel_label.winfo_width() +
                     self.arrow_button.winfo_width())
 
         # figure out how much space is above and below where the list will be
-        space_above = pos_y - self_height - 32
-        space_below = (root.winfo_height() + 32 - pos_y - 4)
+        window_rel_pos_y = self.winfo_rooty() + self_height - root.winfo_rooty()
+        space_above = window_rel_pos_y - self_height + 2
+        space_below = root.winfo_height() - window_rel_pos_y - 16
 
         # if there is more space above than below, swap the position
         if space_below >= height:
@@ -765,10 +782,6 @@ class ToolTipHandler(BinillaWidget):
         except KeyError:
             self.app_root.after(self.schedule_rate, self.check_loop)
             return
-
-        # get the widget in focus if nothing is under the mouse
-        #if tip_widget is None:
-        #    focus = root.focus_get()
 
         try:
             tip_text = focus.tooltip_string
@@ -1373,7 +1386,7 @@ class BitmapDisplayFrame(BinillaWidget, tk.Frame):
 
         channel_count = handler.channel_count
         if channel_count <= 2:
-            opts = ("Luminence", "Alpha", "AL")
+            opts = ("Luminance", "Alpha", "AL")
         else:
             opts = ("RGB", "Alpha", "ARGB", "Red", "Green", "Blue")
         self.channel_menu.set_options(opts)

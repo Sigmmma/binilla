@@ -658,9 +658,8 @@ class FieldWidget(widgets.BinillaWidget):
                 return
             else:
                 # Tell all children that there are no longer unsaved edits
-                f_widgets = self.f_widgets
                 for f_wid in self.f_widget_ids:
-                    w = f_widgets.get(f_wid)
+                    w = self.f_widgets.get(f_wid)
                     if getattr(w, "edited", False):
                         w.set_edited(False)
         except Exception:
@@ -676,9 +675,8 @@ class FieldWidget(widgets.BinillaWidget):
                 return
 
             # Tell all children that there are no longer unflushed edits
-            f_widgets = self.f_widgets
             for f_wid in self.f_widget_ids:
-                w = f_widgets.get(f_wid)
+                w = self.f_widgets.get(f_wid)
                 if w.needs_flushing:
                     w.set_needs_flushing(False)
         except Exception:
@@ -1051,9 +1049,6 @@ class ContainerFrame(tk.Frame, FieldWidget):
             print(format_exc())
 
     def pose_fields(self):
-        f_widgets = self.f_widgets
-        f_widget_ids = self.f_widget_ids
-        content = self.content
         orient = self.desc.get('ORIENT', 'v')[:1].lower()
 
         if self.desc.get("PORTABLE", True):
@@ -1068,13 +1063,13 @@ class ContainerFrame(tk.Frame, FieldWidget):
                 self.set_export_disabled()
 
         side = 'left' if orient == 'h' else 'top'
-        for wid in f_widget_ids:
-            w = f_widgets[wid]
+        for wid in self.f_widget_ids:
+            w = self.f_widgets[wid]
             w.pack(fill='x', side=side, anchor='nw',
                    padx=w.pack_padx, pady=w.pack_pady)
 
-        if self is not content:
-            content.pack(fill='x', side=side, anchor='nw', expand=True)
+        if self.content is not self:
+            self.content.pack(fill='x', side=side, anchor='nw', expand=True)
 
         if not self.show_sidetips:
             return
@@ -1972,12 +1967,10 @@ class ArrayFrame(ContainerFrame):
             print(format_exc())
 
     def pose_fields(self):
-        f_widgets = self.f_widgets
-
         # there should only be one wid in here, but for
         # the sake of consistancy we'll loop over them.
         for wid in self.f_widget_ids:
-            w = f_widgets[wid]
+            w = self.f_widgets[wid]
 
             # by adding a fixed amount of padding, we fix a problem
             # with difficult to predict padding based on nesting
@@ -1987,7 +1980,7 @@ class ArrayFrame(ContainerFrame):
         # if there are no children in the content, we need to
         # pack in SOMETHING, update the idletasks, and then
         # destroy that something to resize the content frame
-        if not f_widgets:
+        if not self.f_widgets:
             f = tk.Frame(self.content, width=0, height=0, bd=0)
             f.pack()
             self.content.update_idletasks()
@@ -3169,9 +3162,11 @@ class UnionFrame(ContainerFrame):
     a dropdown box of all available enumerator options.'''
 
     option_cache = None
+    u_node_widgets_by_u_index = ()
 
     def __init__(self, *args, **kwargs):
         FieldWidget.__init__(self, *args, **kwargs)
+        self.u_node_widgets_by_u_index = {}
 
         if self.f_widget_parent is None:
             self.pack_padx = self.pack_pady = 0
@@ -3201,7 +3196,7 @@ class UnionFrame(ContainerFrame):
         btn_kwargs = dict(
             bg=self.button_color, fg=self.text_normal_color,
             disabledforeground=self.text_disabled_color,
-            bd=self.button_depth,
+            bd=self.button_depth, width=5,
             )
 
         try: title_font = self.tag_window.app_root.container_title_font
@@ -3224,8 +3219,28 @@ class UnionFrame(ContainerFrame):
         self.show_btn.pack(side="left")
         self.title_label.pack(side="left", fill="x", expand=True)
         self.sel_menu.pack(side="left", fill="x")
-
         self.title.pack(fill="x", expand=True)
+
+        self.content = tk.Frame(self, relief="sunken", bd=self.frame_depth,
+                                bg=self.default_bg_color)
+
+        # make the default raw bytes union frame
+        self.raw_frame = tk.Frame(
+            self.content, relief="flat", bd=0, bg=self.default_bg_color)
+        self.raw_label = tk.Label(
+            self.raw_frame, text='DataUnion', width=self.title_size,
+            anchor='w', bg=self.default_bg_color, fg=self.text_normal_color,
+            disabledforeground=self.text_disabled_color)
+        self.import_btn = tk.Button(
+            self.raw_frame, text='Import',
+            command=self.import_node, **btn_kwargs)
+        self.export_btn = tk.Button(
+            self.raw_frame, text='Export',
+            command=self.export_node, **btn_kwargs)
+
+        self.raw_label.pack(side="left", expand=True, fill='x')
+        for w in (self.export_btn, self.import_btn):
+            w.pack(side="left", padx=(0, 4), pady=2)
 
         self.populate()
         self._initialized = True
@@ -3331,22 +3346,22 @@ class UnionFrame(ContainerFrame):
 
     def populate(self):
         try:
-            old_content = None if self.content is self else self.content
-            self.content = tk.Frame(self, relief="sunken", bd=self.frame_depth,
-                                   bg=self.default_bg_color)
+            old_u_node_frames = []
+            for u_index in self.u_node_widgets_by_u_index:
+                # delete any existing widgets
+                if u_index is not None:
+                    old_u_node_frames.append(
+                        self.u_node_widgets_by_u_index[u_index])
+
             for w in (self, self.content, self.title_label):
                 w.tooltip_string = self.desc.get('TOOLTIP')
 
             self.display_comment(self.content)
             self.reload()
 
-            # now that the field widgets are created, position them
-            if self.show.get():
-                self.pose_fields()
-
             # do things in this order to prevent the window from scrolling up
-            if old_content:
-                old_content.destroy()
+            for w in old_u_node_frames:
+                w.destroy()
         except Exception:
             print(format_exc())
 
@@ -3356,79 +3371,69 @@ class UnionFrame(ContainerFrame):
             self.f_widget_ids = []
             self.f_widget_ids_map = {}
             self.f_widget_ids_map_inv = {}
+            u_index = u_node = None
+            u_desc = self.desc.get(u_index)
+            if self.node is not None:
+                self.raw_label.config(text='DataUnion: %s raw bytes' %
+                                      self.node.get_size())
+                u_index = self.node.u_index
+                u_node = self.node.u_node
 
-            u_node = getattr(node, "u_node", None)
-            if u_node is None:
-                btn_kwargs = dict(
-                    bg=self.button_color, fg=self.text_normal_color,
-                    disabledforeground=self.text_disabled_color,
-                    bd=self.button_depth,
-                    )
-                self.raw_label = tk.Label(
-                    new_content, text='DataUnion: %s raw bytes' % node.get_size(),
-                    width=self.title_size, anchor='w',
-                    bg=self.default_bg_color, fg=self.text_normal_color,
-                    disabledforeground=self.text_disabled_color)
-                # make the rawdata inner frame
-                self.import_btn = tk.Button(
-                    new_content, width=5, text='Import',
-                    command=self.import_node, **btn_kwargs)
-                self.export_btn = tk.Button(
-                    new_content, width=5, text='Export',
-                    command=self.export_node, **btn_kwargs)
-                self.raw_label.pack(padx=self.vertical_padx,
-                                    side="left", expand=True, fill='x')
-                for w in (self.export_btn, self.import_btn):
-                    w.pack(side="left", padx=(0, 4), pady=2)
-            else:
-                if getattr(self, 'import_btn', None):
-                    del self.import_btn
-                    del self.export_btn
+            if hasattr(u_node, 'desc'):
+                u_desc = u_node.desc
 
-                u_desc = desc[node.u_index]
-                if hasattr(u_node, 'desc'):
-                    u_desc = u_node.desc
+            if u_index not in self.u_node_widgets_by_u_index:
+                widget = self.raw_frame
+                if u_index is not None:
+                    widget_cls = self.widget_picker.get_widget(u_desc)
+                    kwargs = dict(
+                        show_title=False, tag_window=self.tag_window,
+                        attr_index='u_node', disabled=self.disabled,
+                        f_widget_parent=self, desc=u_desc,
+                        show_frame=self.show.get(), dont_padx_fields=True)
 
-                widget_cls = self.widget_picker.get_widget(u_desc)
-                kwargs = dict(
-                    node=u_node, parent=node, show_title=False,
-                    tag_window=self.tag_window, attr_index='u_node',
-                    disabled=self.disabled, f_widget_parent=self,
-                    desc=u_desc, show_frame=self.show.get(),
-                    dont_padx_fields=True)
-                try:
-                    widget = widget_cls(new_content, **kwargs)
-                except Exception:
-                    print(format_exc())
-                    widget = NullFrame(new_content, **kwargs)
+                    try:
+                        widget = widget_cls(self.content, **kwargs)
+                    except Exception:
+                        print(format_exc())
+                        widget = NullFrame(self.content, **kwargs)
 
                 wid = id(widget)
                 self.f_widget_ids.append(wid)
                 self.f_widget_ids_map['u_node'] = wid
                 self.f_widget_ids_map_inv[wid] = 'u_node'
+                self.u_node_widgets_by_u_index[u_index] = widget
+
+
+            active_widget = self.u_node_widgets_by_u_index.get(u_index)
+            if hasattr(active_widget, "load_node_data"):
+                if active_widget.load_node_data(self.node, u_node,
+                                                'u_node', u_desc):
+                    self.populate()
+                    return
+                active_widget.reload()
 
             self.build_f_widget_cache()
-
             # now that the field widgets are created, position them
             if self.show.get():
                 self.pose_fields()
-
-            # do things in this order to prevent the window from scrolling up
-            if old_content not in (None, self):
-                old_content.destroy()
         except Exception:
             print(format_exc())
 
+        self.sel_menu.update_label()
         if self.node is None:
             self.set_disabled(True)
         else:
             self.set_children_disabled(not self.node)
 
     def pose_fields(self):
-        f_widgets = self.f_widgets
-        for wid in self.f_widget_ids:
-            w = f_widgets[wid]
+        u_index = None if self.node is None else self.node.u_index
+        w = self.u_node_widgets_by_u_index.get(u_index)
+        for child in self.content.children.values():
+            if child not in (w, self.comment_frame):
+                child.pack_forget()
 
+        if w:
             # by adding a fixed amount of padding, we fix a problem
             # with difficult to predict padding based on nesting
             w.pack(fill='x', anchor='nw',

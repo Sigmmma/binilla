@@ -322,10 +322,12 @@ class ScrollMenu(tk.Frame, BinillaWidget):
 
     def __init__(self, *args, **kwargs):
         BinillaWidget.__init__(self)
+
         sel_index = kwargs.pop('sel_index', -1)
         disabled = kwargs.pop('disabled', False)
 
         options = kwargs.pop('options', None)
+        self.can_scroll = kwargs.pop('can_scroll', self.can_scroll)
         self.option_getter = kwargs.pop('option_getter', None)
         self.callback = kwargs.pop('callback', None)
         self.variable = kwargs.pop('variable', None)
@@ -1108,16 +1110,17 @@ class BitmapDisplayFrame(BinillaWidget, tk.Frame):
                                       bg=self.bitmap_canvas_bg_color)
 
         self.bitmap_menu  = ScrollMenu(self.controls_frame0, menu_width=7,
-                                       variable=self.bitmap_index)
+                                       variable=self.bitmap_index, can_scroll=True)
         self.mipmap_menu  = ScrollMenu(self.controls_frame1, menu_width=7,
-                                       variable=self.mipmap_index)
+                                       variable=self.mipmap_index, can_scroll=True)
         self.depth_menu   = ScrollMenu(self.controls_frame2, menu_width=7,
-                                       variable=self.depth_index)
+                                       variable=self.depth_index, can_scroll=True)
         self.channel_menu = ScrollMenu(self.controls_frame0, menu_width=9,
-                                       variable=self.channel_index)
+                                       variable=self.channel_index, can_scroll=True)
         self.cube_display_menu = ScrollMenu(self.controls_frame1, menu_width=9,
                                             variable=self.cube_display_index,
-                                            options=("cross", "linear"))
+                                            options=("cross", "linear"), can_scroll=True)
+
         self.save_button = tk.Button(self.controls_frame2, width=11,
                                      text="Browse", command=self.save_as)
         self.depth_menu.default_text = self.mipmap_menu.default_text =\

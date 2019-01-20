@@ -402,9 +402,8 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             if not hover.can_scroll:
                 return True
 
-            if (not isinstance(hover, FieldWidget)
-                and hasattr(hover, 'f_widget_parent')):
-                hover = hover.f_widget_parent
+            while hover.master and not hasattr(hover, "should_scroll"):
+                hover = hover.master
             return not hover.should_scroll(e)
         except AttributeError:
             pass

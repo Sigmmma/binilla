@@ -1784,7 +1784,13 @@ class ArrayFrame(ContainerFrame):
                 btn.config(state=tk.NORMAL)
 
     def disable_unusable_buttons(self):
-        if isinstance(self.desc.get('SIZE'), int) and self.enforce_min:
+        no_node = not hasattr(self.node, '__len__')
+        if no_node or len(self.node) < 2:
+            self.set_shift_up_disabled()
+            self.set_shift_down_disabled()
+
+        if no_node or (isinstance(self.desc.get('SIZE'), int)
+                       and self.enforce_min):
             self.set_add_disabled()
             self.set_insert_disabled()
             self.set_duplicate_disabled()
@@ -1792,32 +1798,25 @@ class ArrayFrame(ContainerFrame):
             self.set_delete_all_disabled()
             return
 
-        node = self.node
-        empty_node = not hasattr(node, '__len__')
         field_max = self.field_max
         field_min = self.field_min
-        enforce_min = self.enforce_min or empty_node
-        enforce_max = self.enforce_max or empty_node
-        if field_min is None: field_min = 0
+        if field_min is None or field_min < 0: field_min = 0
+        enforce_min = self.enforce_min or field_min == 0
+        enforce_max = self.enforce_max
 
-        if empty_node or (field_max is not None and len(node) >= field_max):
-            if enforce_max:
-                self.set_add_disabled()
-                self.set_insert_disabled()
-                self.set_duplicate_disabled()
-
-        if empty_node or len(node) <= field_min:
-            if enforce_min or len(node) == 0:
-                self.set_delete_disabled()
-                self.set_delete_all_disabled()
-
-        if empty_node or not len(node):
-            self.set_export_disabled()
+        if field_max is not None and len(self.node) >= field_max and enforce_max:
+            self.set_add_disabled()
+            self.set_insert_disabled()
             self.set_duplicate_disabled()
 
-        if empty_node or len(node) < 2:
-            self.set_shift_up_disabled()
-            self.set_shift_down_disabled()
+        if len(self.node) <= field_min and (enforce_min or not self.node):
+            self.set_delete_disabled()
+            self.set_delete_all_disabled()
+
+        if not self.node:
+            self.set_export_disabled()
+            self.set_import_disabled()
+            self.set_duplicate_disabled()
 
     def populate(self):
         node = self.node
@@ -2255,6 +2254,7 @@ class RawdataFrame(DataFrame):
 
             self.parent.parse(rawdata=b'\x00'*new_size, attr_index=index)
             self.node = self.parent[index]
+            self.set_edited()
 
             self.edit_create(undo_node=undo_node, redo_node=self.node)
 
@@ -2268,7 +2268,6 @@ class RawdataFrame(DataFrame):
                     root = root.f_widget_parent
 
                 root.reload()
-                self.set_edited()
             except Exception:
                 print(format_exc())
                 print("Could not reload after deleting '%s' node." % self.name)
@@ -2319,6 +2318,7 @@ class RawdataFrame(DataFrame):
 
             self.parent.parse(rawdata=rawdata, attr_index=index)
             self.node = self.parent[index]
+            self.set_edited()
 
             self.edit_create(undo_node=undo_node, redo_node=self.node)
 
@@ -2332,7 +2332,6 @@ class RawdataFrame(DataFrame):
                     root = root.f_widget_parent
 
                 root.reload()
-                self.set_edited()
             except Exception:
                 print(format_exc())
                 print("Could not reload after importing '%s' node." % self.name)
@@ -3245,6 +3244,22 @@ class UnionFrame(ContainerFrame):
         self.populate()
         self._initialized = True
 
+    def load_child_node_data(self):
+        desc = self.desc
+        sub_node = None
+        for wid in self.f_widgets:
+            # try and load any existing FieldWidgets with appropriate node data
+            w = self.f_widgets[wid]
+            attr_index = self.f_widget_ids_map_inv.get(wid)
+            if attr_index is None:
+                continue
+            elif self.node:
+                sub_node = self.node.u_node
+
+            w.load_node_data(self.node, sub_node, attr_index)
+
+        return False
+
     def set_disabled(self, disable=True):
         disable = disable or not self.editable
         if self.node is None and not disable:
@@ -3262,10 +3277,10 @@ class UnionFrame(ContainerFrame):
         if self.option_cache is None:
             self.cache_options()
 
-        if opt_index is None or self.node is None:
+        if opt_index is None:
             return self.option_cache
         elif opt_index == "active":
-            opt_index = self.node.u_index
+            opt_index = getattr(self.node, "u_index", None)
             if opt_index is None:
                 opt_index = len(self.option_cache) - 1
 
@@ -3333,7 +3348,6 @@ class UnionFrame(ContainerFrame):
             self.node.set_active(opt_index)
 
         self.set_edited()
-
         # make an edit state
         if undo_u_index != node.u_index:
             self.edit_create(
@@ -3352,6 +3366,9 @@ class UnionFrame(ContainerFrame):
                 if u_index is not None:
                     old_u_node_frames.append(
                         self.u_node_widgets_by_u_index[u_index])
+
+            self.u_node_widgets_by_u_index.clear()
+            self.u_node_widgets_by_u_index[None] = self.raw_frame
 
             for w in (self, self.content, self.title_label):
                 w.tooltip_string = self.desc.get('TOOLTIP')
@@ -3372,43 +3389,49 @@ class UnionFrame(ContainerFrame):
             self.f_widget_ids_map = {}
             self.f_widget_ids_map_inv = {}
             u_index = u_node = None
-            u_desc = self.desc.get(u_index)
             if self.node is not None:
                 self.raw_label.config(text='DataUnion: %s raw bytes' %
                                       self.node.get_size())
+                sel_index = self.sel_menu.sel_index
                 u_index = self.node.u_index
                 u_node = self.node.u_node
 
+                new_sel_index = (self.sel_menu.max_index if
+                                 u_index is None else u_index)
+                if new_sel_index != self.sel_menu.sel_index:
+                    self.sel_menu.sel_index = new_sel_index
+                    
+            u_desc = self.desc.get(u_index)
             if hasattr(u_node, 'desc'):
                 u_desc = u_node.desc
 
-            if u_index not in self.u_node_widgets_by_u_index:
-                widget = self.raw_frame
+            active_widget = self.u_node_widgets_by_u_index.get(u_index)
+            if active_widget is None:
                 if u_index is not None:
                     widget_cls = self.widget_picker.get_widget(u_desc)
                     kwargs = dict(
                         show_title=False, tag_window=self.tag_window,
-                        attr_index='u_node', disabled=self.disabled,
+                        attr_index=u_index, disabled=self.disabled,
                         f_widget_parent=self, desc=u_desc,
                         show_frame=self.show.get(), dont_padx_fields=True)
 
                     try:
-                        widget = widget_cls(self.content, **kwargs)
+                        active_widget = widget_cls(self.content, **kwargs)
                     except Exception:
                         print(format_exc())
-                        widget = NullFrame(self.content, **kwargs)
+                        active_widget = NullFrame(self.content, **kwargs)
+                else:
+                    active_widget = self.raw_frame
 
-                wid = id(widget)
-                self.f_widget_ids.append(wid)
-                self.f_widget_ids_map['u_node'] = wid
-                self.f_widget_ids_map_inv[wid] = 'u_node'
-                self.u_node_widgets_by_u_index[u_index] = widget
+                self.u_node_widgets_by_u_index[u_index] = active_widget
 
-
-            active_widget = self.u_node_widgets_by_u_index.get(u_index)
+            wid = id(active_widget)
+            self.f_widget_ids.append(wid)
+            self.f_widget_ids_map[u_index] = wid
+            self.f_widget_ids_map_inv[wid] = u_index
             if hasattr(active_widget, "load_node_data"):
                 if active_widget.load_node_data(self.node, u_node,
-                                                'u_node', u_desc):
+                                                u_index, u_desc):
                     self.populate()
                     return
                 active_widget.reload()

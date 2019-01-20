@@ -485,7 +485,7 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         if under_mouse not in (self.option_frame, self.option_bar,
                                self.option_box, self.sel_label,
                                self.arrow_button):
-            self.select_menu()
+            self.deselect_option_box()
 
     def decrement_listbox_sel(self, e=None):
         if self.selecting:
@@ -671,8 +671,8 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         self_height = self.winfo_reqheight()
         root = self.winfo_toplevel()
 
-        pos_x, pos_y = get_relative_widget_position(self.sel_label,
-                                                    self.option_frame.master)
+        pos_x, pos_y = get_relative_widget_position(
+            self.sel_label, self.option_frame.master)
         pos_y += self_height - 4
         height = min(max(option_cnt, 0), self.max_height)*(14 + win_10_pad) + 4
         width = max(self.option_box.winfo_reqwidth(),
@@ -680,9 +680,8 @@ class ScrollMenu(tk.Frame, BinillaWidget):
                     self.arrow_button.winfo_width())
 
         # figure out how much space is above and below where the list will be
-        window_rel_pos_y = self.winfo_rooty() + self_height - root.winfo_rooty()
-        space_above = window_rel_pos_y - self_height + 2
-        space_below = root.winfo_height() - window_rel_pos_y - 16
+        space_above = pos_y - self_height
+        space_below = self.option_frame.master.winfo_height() - pos_y
 
         # if there is more space above than below, swap the position
         if space_below >= height:
@@ -694,13 +693,14 @@ class ScrollMenu(tk.Frame, BinillaWidget):
             # there is more space above than below and the space below
             # isnt enough to fit the height, so cap it by the space above
             height = min(height, space_above)
-            pos_y -= self_height + height - 4
+            pos_y -= self_height + height
 
-        # unpack the scrollbar is there is enough room to display the whole list
-        if option_cnt <= self.max_height and (height - 4)//14 >= option_cnt:
+        # unpack the scrollbar if there is enough room to display the whole list
+        if option_cnt <= self.max_height and (height - 4) // 14 >= option_cnt:
             # place it off the frame so it can still be used for key bindings
             self.option_bar.pack_forget()
             self.option_bar.place(x=pos_x + width, y=pos_y, anchor=tk.NW)
+
         self.option_bar.focus_set()
         self.option_frame.place(x=pos_x, y=pos_y, anchor=tk.NW,
                                 height=height, width=width)

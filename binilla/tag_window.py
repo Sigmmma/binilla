@@ -402,9 +402,18 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             if not hover.can_scroll:
                 return True
 
-            while hover.master and not hasattr(hover, "should_scroll"):
-                hover = hover.master
-            return not hover.should_scroll(e)
+            if (not isinstance(hover, FieldWidget) and
+                hasattr(hover, "f_widget_parent")):
+                # ScrollMenu option boxes are parented to the root frame,
+                # so climbing their masters won't work like below.
+                hover = hover.f_widget_parent
+            else:
+                # climb up the masters until we find one that can scroll
+                while hover.master and not hasattr(hover, "should_scroll"):
+                    hover = hover.master
+
+            if hover is not self:
+                return not hover.should_scroll(e)
         except AttributeError:
             pass
         return True

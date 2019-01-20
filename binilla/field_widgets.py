@@ -89,6 +89,8 @@ class FieldWidget(widgets.BinillaWidget):
     f_widget_ids_map_inv = ()
 
     content = None
+    comment_label = None
+    comment_frame = None
 
     # the amount of external padding this widget needs
     _pack_padx = 0
@@ -181,12 +183,12 @@ class FieldWidget(widgets.BinillaWidget):
 
     def apply_style(self, seen=None):
         widgets.BinillaWidget.apply_style(self, seen)
-        if getattr(self, "comment_frame", None):
+        if self.comment_frame:
             self.comment_frame.config(bd=self.comment_depth,
                                       bg=self.comment_bg_color)
-        if getattr(self, "comment", None):
-            self.comment.config(bg=self.comment_bg_color,
-                                fg=self.text_normal_color)
+        if comment_label:
+            self.comment_label.config(bg=self.comment_bg_color,
+                                      fg=self.text_normal_color)
 
     @property
     def enforce_max(self):
@@ -410,11 +412,11 @@ class FieldWidget(widgets.BinillaWidget):
             try: comment_font = self.tag_window.app_root.comment_font
             except AttributeError: comment_font = None
 
-            self.comment = tk.Label(
+            self.comment_label = tk.Label(
                 self.comment_frame, text=comment, anchor='nw',
                 justify='left', font=comment_font,
                 bg=self.comment_bg_color, fg=self.text_normal_color)
-            self.comment.pack(side='left', fill='both', expand=True)
+            self.comment_label.pack(side='left', fill='both', expand=True)
             self.comment_frame.pack(fill='both', expand=True)
 
     def edit_apply(self=None, *, edit_state, undo=True):

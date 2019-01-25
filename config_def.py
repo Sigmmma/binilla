@@ -56,6 +56,7 @@ tag_window_flag_tooltips = (
      "happens to the contents(mouse scrolling, a widget is changed, etc)."),
     ("Whether to resize a tag windows height to fit its contents when something\n" +
      "happens to the contents(mouse scrolling, a widget is changed, etc)."),
+    ("Whether start empty collapsable blocks in a tag as expanded or collapsed."),
     ("Whether to display a checkbox for each available bit in a boolean, even\n" +
      "if that bit doesnt represent anything. Used for debugging and testing."),
     )
@@ -371,6 +372,7 @@ config_header = Struct("header",
         {NAME: "scroll_unselected_widgets", TOOLTIP: tag_window_flag_tooltips[14]},
         {NAME: "auto_resize_width", TOOLTIP: tag_window_flag_tooltips[15]},
         {NAME: "auto_resize_height", TOOLTIP: tag_window_flag_tooltips[16]},
+        {NAME: "empty_blocks_start_hidden", TOOLTIP: tag_window_flag_tooltips[17]},
 
         {NAME: "show_all_bools", TOOLTIP: tag_window_flag_tooltips[-1],
          VALUE: (1 << 31)},

@@ -191,6 +191,30 @@ class FieldWidget(widgets.BinillaWidget):
                                       fg=self.text_normal_color)
 
     @property
+    def is_empty(self):
+        return getattr(self, "node", None) is None
+
+    @property
+    def blocks_start_hidden(self):
+        try:
+            flags = self.tag_window.app_root.config_file.data.\
+                    header.tag_window_flags
+            if flags.blocks_start_hidden:
+                return True
+            return False
+        except Exception:
+            return True
+
+    @property
+    def hide_if_blank(self):
+        try:
+            flags = self.tag_window.app_root.config_file.data.\
+                    header.tag_window_flags
+            return flags.empty_blocks_start_hidden
+        except Exception:
+            return False
+
+    @property
     def enforce_max(self):
         try:
             return bool(self.tag_window.enforce_max)
@@ -711,12 +735,11 @@ class ContainerFrame(tk.Frame, FieldWidget):
 
         show_frame = True
         if self.f_widget_parent is not None:
-            try:
-                def_show = not self.tag_window.app_root.config_file.data.\
-                           header.tag_window_flags.blocks_start_hidden
-            except Exception:
-                def_show = False
-            show_frame = bool(kwargs.pop('show_frame', def_show))
+            show_frame = bool(
+                kwargs.pop('show_frame', not self.blocks_start_hidden))
+
+        if self.is_empty and self.hide_if_blank:
+            show_frame = False
 
         tk.Frame.__init__(self, *args, **fix_kwargs(**kwargs))
         self.show = tk.BooleanVar(self)
@@ -808,7 +831,6 @@ class ContainerFrame(tk.Frame, FieldWidget):
         if w:
             if self.desc.get('ORIENT', 'v')[:1].lower() == 'v':
                 w.config(bd=0, bg=self.frame_bg_color)
-
     @property
     def visible_field_count(self):
         desc = self.desc
@@ -1284,12 +1306,9 @@ class ArrayFrame(ContainerFrame):
 
         try: title_font = self.tag_window.app_root.container_title_font
         except AttributeError: title_font = None
-        try:
-            def_show = not self.tag_window.app_root.config_file.data.\
-                       header.tag_window_flags.blocks_start_hidden
-        except Exception:
-            def_show = False
-        show_frame = bool(kwargs.pop('show_frame', def_show))
+        show_frame = bool(kwargs.pop('show_frame', not self.blocks_start_hidden))
+        if self.is_empty and self.hide_if_blank:
+            show_frame = False
 
         self.show = tk.BooleanVar()
         self.show.set(show_frame)
@@ -1377,6 +1396,12 @@ class ArrayFrame(ContainerFrame):
 
         self.populate()
         self._initialized = True
+
+    @property
+    def is_empty(self):
+        if getattr(self, "node", None) is None:
+            return True
+        return len(self.node) == 0
 
     def load_node_data(self, parent, node, attr_index, desc=None):
         FieldWidget.load_node_data(self, parent, node, attr_index, desc)
@@ -3175,12 +3200,9 @@ class UnionFrame(ContainerFrame):
         kwargs.update(relief='flat', bd=0, highlightthickness=0,
                       bg=self.default_bg_color)
 
-        try:
-            def_show = not self.tag_window.app_root.config_file.data.\
-                       header.tag_window_flags.blocks_start_hidden
-        except Exception:
-            def_show = False
-        show_frame = bool(kwargs.pop('show_frame', def_show))
+        show_frame = bool(kwargs.pop('show_frame', not self.blocks_start_hidden))
+        if self.is_empty and self.hide_if_blank:
+            show_frame = False
 
         tk.Frame.__init__(self, *args, **fix_kwargs(**kwargs))
 
@@ -3478,12 +3500,9 @@ class StreamAdapterFrame(ContainerFrame):
         kwargs.update(relief='flat', bd=0, highlightthickness=0,
                       bg=self.default_bg_color)
 
-        try:
-            def_show = not self.tag_window.app_root.config_file.data.\
-                       header.tag_window_flags.blocks_start_hidden
-        except Exception:
-            def_show = False
-        show_frame = bool(kwargs.pop('show_frame', def_show))
+        show_frame = bool(kwargs.pop('show_frame', not self.blocks_start_hidden))
+        if self.is_empty and self.hide_if_blank:
+            show_frame = False
 
         tk.Frame.__init__(self, *args, **fix_kwargs(**kwargs))
 

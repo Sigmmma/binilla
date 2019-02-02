@@ -237,6 +237,9 @@ class BinillaWidget():
                 if isinstance(w, tk.Menu):
                     w.config(fg=self.text_normal_color, bg=self.default_bg_color)
                     next_widgets.extend(w.children.values())
+                elif isinstance(w, tk.PanedWindow):
+                    w.config(bd=self.frame_depth, bg=self.frame_bg_color)
+                    next_widgets.extend(w.children.values())
                 elif isinstance(w, tk.Listbox):
                     w.config(bg=self.enum_normal_color, fg=self.text_normal_color,
                              selectbackground=self.enum_highlighted_color,

@@ -186,7 +186,7 @@ class FieldWidget(widgets.BinillaWidget):
         if self.comment_frame:
             self.comment_frame.config(bd=self.comment_depth,
                                       bg=self.comment_bg_color)
-        if comment_label:
+        if self.comment_label:
             self.comment_label.config(bg=self.comment_bg_color,
                                       fg=self.text_normal_color)
 

@@ -284,8 +284,8 @@ method_enums = (
     {GUI_NAME: "tile windows horizontally", NAME: "tile_horizontal"},
     {GUI_NAME: "minimize all windows", NAME: "minimize_all"},
     {GUI_NAME: "restore all windows", NAME: "restore_all"},
-    {GUI_NAME: "display config file", NAME: "show_config_file"},
-    {GUI_NAME: "apply config file", NAME: "apply_config"},
+    {GUI_NAME: "open config window", NAME: "show_config_file"},
+    {GUI_NAME: "apply config", NAME: "apply_config"},
     {GUI_NAME: "exit program", NAME: "exit"},
     {GUI_NAME: "clear console", NAME: "clear_console"},
     )

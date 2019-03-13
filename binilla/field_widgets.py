@@ -154,9 +154,11 @@ class FieldWidget(widgets.BinillaWidget):
                             kwargs.get('attr_index', None),
                             kwargs.get('desc', None))
 
-        self.disabled = kwargs.get('disabled', self.disabled)
-        if 'EDITABLE' in self.desc:
-            self.disabled = not self.desc['EDITABLE']
+        # default to self editability for disable state, but
+        # change to disabled if parent explicitely says to
+        self.disabled = not self.editable
+        if kwargs.get('disabled', False):
+            self.disabled = True
 
         # make sure a button style exists for the 'show' button
         if FieldWidget.show_button_style is None:
@@ -199,9 +201,7 @@ class FieldWidget(widgets.BinillaWidget):
         try:
             flags = self.tag_window.app_root.config_file.data.\
                     header.tag_window_flags
-            if flags.blocks_start_hidden:
-                return True
-            return False
+            return bool(flags.blocks_start_hidden)
         except Exception:
             return True
 
@@ -210,7 +210,7 @@ class FieldWidget(widgets.BinillaWidget):
         try:
             flags = self.tag_window.app_root.config_file.data.\
                     header.tag_window_flags
-            return flags.empty_blocks_start_hidden
+            return bool(flags.empty_blocks_start_hidden)
         except Exception:
             return False
 
@@ -247,7 +247,6 @@ class FieldWidget(widgets.BinillaWidget):
         try:
             return bool(self.tag_window.all_visible)
         except Exception:
-            print(format_exc())
             return False
 
     @property

@@ -15,8 +15,6 @@ import threadsafe_tkinter as tk
 import tkinter.ttk as ttk
 from . import editor_constants as e_c
 
-field_widgets = None  # linked to through __init__.py
-
 win_10_pad = 2
 
 
@@ -191,7 +189,11 @@ class BinillaWidget():
                                   scroll_unselected_widgets
             except AttributeError:
                 scroll_unselect = True
-            
+
+            if "field_widgets" not in globals():
+                global field_widgets
+                from binilla import field_widgets
+
             fw = field_widgets.FieldWidget
             if not isinstance(self, fw) and hasattr(self, 'f_widget_parent'):
                 widget = self.f_widget_parent

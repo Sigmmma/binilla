@@ -19,17 +19,18 @@ from traceback import format_exc
 import binilla
 
 # load the binilla constants so they are injected before any defs are loaded
-from . import constants as s_c
+from binilla import constants as s_c
 s_c.inject()
 from supyr_struct.field_types import FieldType
 
-from . import editor_constants as e_c
-from .tag_window import *
-from .config_def import *
-from .widget_picker import *
-from .widgets import BinillaWidget, ToolTipHandler
-from .handler import Handler
-from .util import *
+from binilla import editor_constants as e_c
+from binilla.tag_window import *
+from binilla.config_def import *
+from binilla.widget_picker import *
+from binilla.widgets import BinillaWidget, ToolTipHandler
+from binilla.handler import Handler
+from binilla.util import *
+from binilla.about_window import AboutWindow
 
 
 this_curr_dir = get_cwd(__file__)
@@ -104,16 +105,25 @@ class Binilla(tk.Tk, BinillaWidget):
     recent_tag_max = 20
     recent_tagpaths = ()
 
+    '''Modules to display in About window'''
+    about_module_names = (
+        "arbytmap",
+        "binilla",
+        "supyr_struct",
+        "threadsafe_tkinter",
+        )
+
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
-    version = binilla.__version__
+    version = "%s.%s.%s" % binilla.__version__
     log_filename = 'binilla.log'
     debug = 0
     debug_mode = False
     untitled_num = 0  # when creating a new, untitled tag, this integer is used
     #                   in its name like so: 'untitled%s' % self.untitled_num
     max_undos = 1000
+    icon_filepath = None
 
     '''Config properties'''
     style_def = style_def
@@ -262,7 +272,7 @@ class Binilla(tk.Tk, BinillaWidget):
         self.main_menu.add_cascade(label="Settings", menu=self.settings_menu)
         self.main_menu.add_cascade(label="Windows", menu=self.windows_menu)
         #self.main_menu.add_command(label="Help")
-        #self.main_menu.add_command(label="About")
+        self.main_menu.add_command(label="About", command=self.show_about_window)
         try:
             self.debug_mode = bool(self.config_file.data.header.flags.debug_mode)
         except Exception:
@@ -1597,6 +1607,18 @@ class Binilla(tk.Tk, BinillaWidget):
     def apply_style(self, seen=None):
         BinillaWidget.apply_style(self, seen)
         self.io_text.config(fg=self.io_fg_color, bg=self.io_bg_color)
+
+    def show_about_window(self):
+        w = getattr(self, "about_window", None)
+        if w is not None:
+            try: w.destroy()
+            except Exception: pass
+            self.about_window = None
+
+        self.about_window = AboutWindow(self,
+                                        module_names=self.about_module_names,
+                                        iconbitmap=self.icon_filepath)
+        self.place_window_relative(self.about_window, 30, 50)
 
 
 class DefSelectorWindow(tk.Toplevel, BinillaWidget):

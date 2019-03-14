@@ -17,8 +17,6 @@ from . import widgets
 from . import editor_constants as e_c
 from .util import float_to_str, FLOAT_PREC, DOUBLE_PREC
 
-# linked to through __init__.py
-widget_picker = None
 NoneType = type(None)
 
 
@@ -377,7 +375,11 @@ class FieldWidget(widgets.BinillaWidget):
         try:
             return self.tag_window.widget_picker
         except AttributeError:
-            return widget_picker.def_widget_picker
+            if "widget_picker" not in globals():
+                global widget_picker
+                from binilla import widget_picker
+
+        return widget_picker.def_widget_picker
 
     @property
     def pack_padx(self):

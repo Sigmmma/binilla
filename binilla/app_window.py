@@ -16,6 +16,8 @@ from tkinter.filedialog import askopenfilenames, askopenfilename,\
      askdirectory, asksaveasfilename
 from traceback import format_exc
 
+import binilla
+
 # load the binilla constants so they are injected before any defs are loaded
 from . import constants as s_c
 s_c.inject()
@@ -105,7 +107,7 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
-    version = '0.9.71'
+    version = binilla.__version__
     log_filename = 'binilla.log'
     debug = 0
     debug_mode = False

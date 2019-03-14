@@ -1,4 +1,5 @@
 import os
+import string
 
 from traceback import format_exc
 import threadsafe_tkinter as tk
@@ -7,6 +8,8 @@ import tkinter.ttk as ttk
 from tkinter.messagebox import showerror
 
 from binilla.widgets import BinillaWidget
+
+VALID_MODULE_CHARACTERS = frozenset(string.ascii_letters + "_" + string.digits)
 
 try:
     from idlelib.textView import TextViewer
@@ -66,6 +69,11 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
         self.apply_style()
 
     def get_module_info(self, module_name):
+        # make sure input is sanitary(we ARE running an exec after all)
+        bad_chars = set(module_name).difference(VALID_MODULE_CHARACTERS)
+        if bad_chars:
+            raise ValueError("Bad characters in module name:\n%s" % bad_chars)
+
         exec("import %s" % module_name)
         module = eval(module_name)
 

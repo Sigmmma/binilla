@@ -47,6 +47,8 @@ except ImportError:
 class AboutWindow(tk.Toplevel, BinillaWidget):
     module_infos = {}
     _initialized = False
+    _button_pressed = 0
+    _start = 3
 
     app_name = ""
 
@@ -87,6 +89,14 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
         self.geometry("%sx%s" % (w, h))
         self.minsize(width=w, height=h)
 
+    def _pressed(self):
+        self._button_pressed += 1
+        if self._button_pressed >= self._start:
+            self._()
+
+    def _(self):
+        pass
+
     def generate_widgets(self):
         if self._initialized:
             return
@@ -100,11 +110,13 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
         py_label_frame = tk.Frame(header_frame, borderwidth=0)
 
         image_filepath = os.path.splitext(self.iconbitmap_filepath)[0] + ".png"
-        app_image_label = None
+        app_image_button = None
         if os.path.isfile(image_filepath):
             self.app_image = tk.PhotoImage(file=image_filepath)
-            app_image_label = tk.Label(header_frame, text='[picture]', image=self.app_image)
-
+            app_image_button = tk.Button(header_frame, text='[picture]', bd=0,
+                                         image=self.app_image, relief='flat',
+                                         command=self._pressed,
+                                         highlightthickness=0)
 
         app_name_label = tk.Label(header_frame, text=self.app_name,
                                   font=('Copperplate Gothic', 24, 'bold italic'))
@@ -116,39 +128,50 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
         close_button = tk.Button(buttons_frame, text='Close', width=12)
 
         modules_frame = tk.Frame(main_frame, borderwidth=0)
-        for name in sorted(self.module_infos):
-            info = self.module_infos[name]
+        names = tuple(sorted(self.module_infos))
+        max_width = 1
+        if len(names) > 3:
+            max_width = 2
 
+        x = y = 0
+        for name in names:
+            info = self.module_infos[name]
             proper_name = self.get_proper_module_name(name)
 
             module_frame = tk.LabelFrame(
                 modules_frame, text="%s  -  %s: %s" % (
                     info["date"], proper_name, self.get_version_string(name)))
-            button_frame = tk.Frame(module_frame)
 
             license_button = tk.Button(
-                button_frame, text='License', width=8,
+                module_frame, text='License', width=8,
                 command=lambda s=self, n=name: s.display_module_license(n))
             readme_button = tk.Button(
-                button_frame, text='Readme', width=8,
+                module_frame, text='Readme', width=8,
                 command=lambda s=self, n=name: s.display_module_readme(n))
             browse_button = tk.Button(
-                button_frame, text='Browse', width=8,
+                module_frame, text='Browse', width=8,
                 command=lambda s=self, n=name: s.open_module_location(n))
 
-            module_frame.pack(fill='both')
-            button_frame.pack(fill='both')
-            if info["location"]:
-                browse_button.grid(column=0, row=0, padx=12, pady=4)
-            if info["license"]:
-                license_button.grid(column=1, row=0, padx=12, pady=4)
-            if info["readme"]:
-                readme_button.grid(column=2, row=0, padx=12, pady=4)
+            browse_button.pack(expand=True, fill='both', side='left', padx=6, pady=4)
+            license_button.pack(expand=True, fill='both', side='left', padx=6, pady=4)
+            readme_button.pack(expand=True, fill='both', side='left', padx=6, pady=4)
+            if not info["location"]:
+                browse_button.config(state="disabled")
+            if not info["license"]:
+                license_button.config(state="disabled")
+            if not info["readme"]:
+                readme_button.config(state="disabled")
+
+            module_frame.grid(row=y, column=x)
+            x += 1
+            if x == max_width:
+                x = 0
+                y += 1
 
 
         app_name_label.pack(padx=10, fill='both')
-        if app_image_label:
-            app_image_label.pack(padx=0, pady=3)
+        if app_image_button:
+            app_image_button.pack(padx=0, pady=3)
         py_label_frame.pack(padx=10, pady=0)
 
         python_ver_label.pack(padx=10, pady=0, side='left')
@@ -254,7 +277,6 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
 
 if __name__ == "__main__":
     AboutWindow(None, module_names=(
-            "arbytmap",
             "binilla",
             "supyr_struct",
             "threadsafe_tkinter",

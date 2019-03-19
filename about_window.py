@@ -137,10 +137,14 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
         for name in names:
             info = self.module_infos[name]
             proper_name = self.get_proper_module_name(name)
+            accelerated_str = ""
+            if info.get("accelerated", None) is not None:
+                accelerated_str = "  -  " + ("Fast" if info["accelerated"] else "Slow")
 
             module_frame = tk.LabelFrame(
-                modules_frame, text="%s  -  %s: %s" % (
-                    info["date"], proper_name, self.get_version_string(name)))
+                modules_frame, text="%s  -  %s: %s%s" % (
+                    info["date"], proper_name, self.get_version_string(name),
+                    accelerated_str))
 
             license_button = tk.Button(
                 module_frame, text='License', width=8,
@@ -162,7 +166,7 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
             if not info["readme"]:
                 readme_button.config(state="disabled")
 
-            module_frame.grid(row=y, column=x)
+            module_frame.grid(row=y, column=x, sticky="news")
             x += 1
             if x == max_width:
                 x = 0
@@ -194,6 +198,7 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
         exec("import %s" % module_name)
         module = eval(module_name)
 
+        accelerated = None
         date = getattr(module, "__date__", "unknown")
         version = getattr(module, "__version__", "unknown")
         module_location = readme_filepath = license_filepath = None
@@ -212,12 +217,16 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
 
                 # don't check more than the first level
                 break
+
+            if module_name == "arbytmap":
+                from arbytmap.arby import fast_arbytmap
+                accelerated = fast_arbytmap
         except AttributeError:
             pass
 
         return {"license": license_filepath, "date": date,
                 "readme": readme_filepath, "version": version,
-                "location": module_location}
+                "location": module_location, "accelerated": accelerated}
 
     def get_proper_module_name(self, module_name):
         return " ".join(s.capitalize() for s in module_name.split("_"))
@@ -277,7 +286,8 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
 
 if __name__ == "__main__":
     AboutWindow(None, module_names=(
-            "binilla",
-            "supyr_struct",
-            "threadsafe_tkinter",
-            ))
+        "arbytmap",
+        "binilla",
+        "supyr_struct",
+        "threadsafe_tkinter",
+        ))

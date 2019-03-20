@@ -123,7 +123,7 @@ class Binilla(tk.Tk, BinillaWidget):
     untitled_num = 0  # when creating a new, untitled tag, this integer is used
     #                   in its name like so: 'untitled%s' % self.untitled_num
     max_undos = 1000
-    icon_filepath = None
+    icon_filepath = ""
 
     '''Config properties'''
     style_def = style_def

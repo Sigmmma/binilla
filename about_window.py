@@ -57,7 +57,7 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
         kw.update(highlightthickness=0)
         self.app_name = kw.pop("app_name", "Unknown")
         module_names = kw.pop("module_names", ())
-        self.iconbitmap_filepath = kw.pop("iconbitmap", "")
+        self.iconbitmap_filepath = str(kw.pop("iconbitmap", ""))
 
         tk.Toplevel.__init__(self, master, *a, **kw)
         self.resizable(0, 0)

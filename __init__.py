@@ -3,8 +3,8 @@
 # ##############
 __author__ = "Devin Bobadilla"
 #           YYYY.MM.DD
-__date__ = "2019.02.01"
-__version__ = (0, 9, 71)
+__date__ = "2019.03.21"
+__version__ = (1, 0, 0)
 __all__ = (
     'app_window', 'config_def', 'constants', 'edit_manager',
     'editor_constants', 'field_widgets', 'handler',

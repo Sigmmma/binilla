@@ -553,8 +553,8 @@ class Binilla(tk.Tk, BinillaWidget):
                         # couldn't destroy window, it's saving or something
                         return
                     
-                    del tid_to_wid[tid]
-                    del self.tag_windows[wid]
+                    tid_to_wid.pop(tid, None)
+                    self.tag_windows.pop(wid, None)
 
             if tag is self.config_file:
                 pass
@@ -1086,15 +1086,6 @@ class Binilla(tk.Tk, BinillaWidget):
             self.load_tags(filepaths=fp, def_id=def_id))
         self.def_selector_window = dsw
         self.place_window_relative(self.def_selector_window, 30, 50)
-
-    def place_window_relative(self, window, x=0, y=0):
-        # calculate x and y coordinates for this window
-        x_base, y_base = self.winfo_x(), self.winfo_y()
-        w, h = window.geometry().split('+')[0].split('x')[:2]
-        if w == '1' and w == '1':
-            w = window.winfo_reqwidth()
-            h = window.winfo_reqheight()
-        window.geometry('%sx%s+%s+%s' % (w, h, x + x_base, y + y_base))
 
     def make_tag_window(self, tag, *, focus=True, window_cls=None,
                         is_new_tag=False):

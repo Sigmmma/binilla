@@ -199,8 +199,8 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
         module = eval(module_name)
 
         accelerated = None
-        date = getattr(module, "__date__", "unknown")
-        version = getattr(module, "__version__", "unknown")
+        date = getattr(module, "__date__", "????.??.??")
+        version = getattr(module, "__version__", ("?", "?"))
         module_location = readme_filepath = license_filepath = None
 
         try:
@@ -234,7 +234,9 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
     def get_version_string(self, module_name):
         version = self.module_infos.get(module_name, {}).get("version")
         try:
-            return "%s.%s.%s" % version
+            if isinstance(version, str):
+                return version
+            return ".".join(str(v) for v in version)
         except Exception:
             return ""
 

@@ -211,6 +211,19 @@ class BinillaWidget():
             pass
         return True
 
+    def place_window_relative(self, window, x=None, y=None):
+        # calculate x and y coordinates for this widget
+        x_base, y_base = self.winfo_rootx(), self.winfo_rooty()
+        w, h = window.geometry().split('+')[0].split('x')[:2]
+        if w == '1' and w == '1':
+            w = window.winfo_reqwidth()
+            h = window.winfo_reqheight()
+        if x is None:
+            x = self.winfo_width()//2 - int(w)//2
+        if y is None:
+            y = self.winfo_height()//2 - int(h)//2
+        window.geometry('%sx%s+%s+%s' % (w, h, x + x_base, y + y_base))
+
     def apply_style(self, seen=None):
         if not isinstance(self, (tk.BaseWidget, tk.Tk)):
             return

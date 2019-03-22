@@ -125,7 +125,8 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
         tk_ver_label = tk.Label(
             py_label_frame, text='Tk version:  %s' % tk_version_str)
 
-        close_button = tk.Button(buttons_frame, text='Close', width=12)
+        close_button = tk.Button(buttons_frame, text='Close', width=12,
+                                 command=self.destroy)
 
         modules_frame = tk.Frame(main_frame, borderwidth=0)
         names = tuple(sorted(self.module_infos))

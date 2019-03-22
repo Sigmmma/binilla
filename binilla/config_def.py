@@ -13,7 +13,8 @@ flag_tooltips = (
     "Whether to reload the tags that were open when the program was closed.",
     "Whether to write console output to a log.",
     "Whether to write tag printouts to the log file",
-    "Whether to be in debug mode or not.\nDoesnt do much right now."
+    "Whether to be in debug mode or not.\nDoesnt do much right now.",
+    "Whether to disable redirecting sys.stdout to the io text frame."
     )
 
 handler_flag_tooltips = (
@@ -338,6 +339,8 @@ config_header = Struct("header",
         {NAME: "log_output",    TOOLTIP: flag_tooltips[2]},
         {NAME: "log_tag_print", TOOLTIP: flag_tooltips[3]},
         {NAME: "debug_mode",    TOOLTIP: flag_tooltips[4]},
+        {NAME: "disable_io_redirect", TOOLTIP: flag_tooltips[5]},
+           
         DEFAULT=sum([1<<i for i in (0, 2, 3)]),
         GUI_NAME="general flags"
         ),

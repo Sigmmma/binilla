@@ -892,14 +892,7 @@ class ContainerFrame(tk.Frame, FieldWidget):
     def destroy(self):
         # These will linger and take up RAM, even if the widget is destroyed.
         # Need to remove the references manually
-        try: del self.node
-        except Exception: pass
-        try: del self.parent
-        except Exception: pass
-        try: del self.f_widget_parent
-        except Exception: pass
-        try: del self.tag_window
-        except Exception: pass
+        self.node = self.parent = self.f_widget_parent = self.tag_window = None
         tk.Frame.destroy(self)
         self.delete_all_traces()
         self.delete_all_widget_refs()
@@ -1463,11 +1456,8 @@ class ArrayFrame(ContainerFrame):
     def destroy(self):
         # These will linger and take up RAM, even if the widget is destroyed.
         # Need to remove the references manually
-        try: del self.option_cache
-        except Exception: pass
-        tk.Frame.destroy(self)
-        self.delete_all_traces()
-        self.delete_all_widget_refs()
+        self.option_cache = None
+        ContainerFrame.destroy(self)
 
     def export_node(self):
         try:
@@ -2125,14 +2115,7 @@ class DataFrame(FieldWidget, tk.Frame):
     def destroy(self):
         # These will linger and take up RAM, even if the widget is destroyed.
         # Need to remove the references manually
-        try: del self.node
-        except Exception: pass
-        try: del self.parent
-        except Exception: pass
-        try: del self.f_widget_parent
-        except Exception: pass
-        try: del self.tag_window
-        except Exception: pass
+        self.node = self.parent = self.f_widget_parent = self.tag_window = None
         tk.Frame.destroy(self)
         self.delete_all_traces()
         self.delete_all_widget_refs()

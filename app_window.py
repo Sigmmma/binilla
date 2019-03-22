@@ -443,9 +443,15 @@ class Binilla(tk.Tk, BinillaWidget):
         self.io_text.pack(fill=BOTH, expand=True)
         self.io_frame.pack(fill=BOTH, expand=True)
 
-        self.terminal_out = sys.stdout = IORedirecter(
-            self.io_text, log_file=self.log_file,
-            edit_log=self.config_file.data.header.flags.log_output)
+        try:
+            flags = self.config_file.data.header.flags
+            edit_log, disable = flags.log_output, flags.disable_io_redirect
+        except Exception:
+            edit_log, disable = True, False
+
+        self.terminal_out = IORedirecter(self.io_text, log_file=self.log_file,
+                                         edit_log=edit_log)
+        sys.stdout = self.orig_stdout if disable else self.terminal_out
 
     def bind_hotkeys(self, new_hotkeys=None):
         '''
@@ -602,7 +608,7 @@ class Binilla(tk.Tk, BinillaWidget):
         try:
             # need to save before destroying the
             # windows or bindings wont be saved
-            self.save_config()
+            self.config_file.serialize(temp=False, backup=False)
         except Exception:
             print(format_exc())
 
@@ -653,36 +659,30 @@ class Binilla(tk.Tk, BinillaWidget):
                 open_header.offset_x, open_header.offset_y = pos_x, pos_y
                 open_header.width, open_header.height = int(width), int(height)
 
-                open_tag.def_id = tag.def_id
-                open_tag.path = tag.filepath
+                open_tag.def_id, open_tag.path = tag.def_id, tag.filepath
         except Exception:
             print(format_exc())
 
     def load_last_workspace(self):
         try:
-            handler = self.handler
             config_file = self.config_file
             open_tags = config_file.data.open_tags
 
             for open_tag in open_tags:
-                def_id = open_tag.def_id
-                path = open_tag.path
-
                 open_header = open_tag.header
-
-                windows = self.load_tags(filepaths=path, def_id=def_id)
+                windows = self.load_tags(filepaths=open_tag.path,
+                                         def_id=open_tag.def_id)
                 if not windows:
                     continue
 
                 w = windows[0]
                 if open_header.flags.minimized:
-                    w.withdraw()
+                    windows[0].withdraw()
                     self.selected_tag = None
 
-                pos_x, pos_y = open_header.offset_x, open_header.offset_y
-                width, height = open_header.width, open_header.height
-
-                w.geometry("%sx%s+%s+%s" % (width, height, pos_x, pos_y))
+                windows[0].geometry("%sx%s+%s+%s" % (
+                    open_header.width, open_header.height,
+                    open_header.offset_x, open_header.offset_y))
         except Exception:
             print(format_exc())
 
@@ -763,6 +763,8 @@ class Binilla(tk.Tk, BinillaWidget):
 
         if self._initialized:
             self.bind_hotkeys()
+            sys.stdout = (self.orig_stdout if header.flags.disable_io_redirect
+                          else self.terminal_out)
         else:
             # only load the recent tagpaths when loading binilla
             self.recent_tagpaths = paths = []
@@ -884,7 +886,6 @@ class Binilla(tk.Tk, BinillaWidget):
             except IndexError: pass
 
         for s in color_names[:len(colors)]:
-            # it has to be a tuple for some reason
             try:
                 setattr(BinillaWidget, s + '_color',
                         '#%02x%02x%02x' % tuple(colors[s]))

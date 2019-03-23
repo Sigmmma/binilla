@@ -7,9 +7,7 @@ except ImportError:
 
 curr_dir = dirname(__file__)
 
-#               YYYY.MM.DD
-release_date = "2019.02.01"
-version = (0, 9, 71)  # DONT FORGET TO UPDATE THE VERSION IN app_window.py
+import binilla
 
 try:
     try:
@@ -23,7 +21,7 @@ setup(
     name='binilla',
     description='A universal binary structure editor built on supyr_struct.',
     long_description=long_desc,
-    version='%s.%s.%s' % version,
+    version='%s.%s.%s' % binilla.__version__,
     url='http://bitbucket.org/moses_of_egypt/binilla',
     author='Devin Bobadilla',
     author_email='MosesBobadilla@gmail.com',

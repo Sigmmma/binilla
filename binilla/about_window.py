@@ -49,8 +49,6 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
     module_infos = {}
     messages = ()
     _initialized = False
-    _button_pressed = 0
-    _start = 1
 
     app_name = "Unknown"
     iconbitmap_filepath = ""
@@ -95,14 +93,11 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
         self.minsize(width=w, height=h)
 
     def _pressed(self):
-        self._button_pressed += 1
-        if self._button_pressed >= self._start:
-            self._()
+        if not self.messages:
+            return
 
-    def _(self):
-        if self.messages:
-            msg = self.messages[randrange(0, 0xFFffFFff) % len(self.messages)]
-            messagebox.showinfo(".fortune", msg, parent=self)
+        msg = self.messages[randrange(0, 0xFFffFFff) % len(self.messages)]
+        messagebox.showinfo(".fortune", msg, parent=self)
 
     def generate_widgets(self):
         if self._initialized:

@@ -15,8 +15,6 @@ import threadsafe_tkinter as tk
 import tkinter.ttk as ttk
 from . import editor_constants as e_c
 
-field_widgets = None  # linked to through __init__.py
-
 win_10_pad = 2
 
 
@@ -191,7 +189,11 @@ class BinillaWidget():
                                   scroll_unselected_widgets
             except AttributeError:
                 scroll_unselect = True
-            
+
+            if "field_widgets" not in globals():
+                global field_widgets
+                from binilla import field_widgets
+
             fw = field_widgets.FieldWidget
             if not isinstance(self, fw) and hasattr(self, 'f_widget_parent'):
                 widget = self.f_widget_parent
@@ -208,6 +210,19 @@ class BinillaWidget():
         except AttributeError:
             pass
         return True
+
+    def place_window_relative(self, window, x=None, y=None):
+        # calculate x and y coordinates for this widget
+        x_base, y_base = self.winfo_rootx(), self.winfo_rooty()
+        w, h = window.geometry().split('+')[0].split('x')[:2]
+        if w == '1' and w == '1':
+            w = window.winfo_reqwidth()
+            h = window.winfo_reqheight()
+        if x is None:
+            x = self.winfo_width()//2 - int(w)//2
+        if y is None:
+            y = self.winfo_height()//2 - int(h)//2
+        window.geometry('%sx%s+%s+%s' % (w, h, x + x_base, y + y_base))
 
     def apply_style(self, seen=None):
         if not isinstance(self, (tk.BaseWidget, tk.Tk)):

@@ -17,8 +17,6 @@ from . import widgets
 from . import editor_constants as e_c
 from .util import float_to_str, FLOAT_PREC, DOUBLE_PREC
 
-# linked to through __init__.py
-widget_picker = None
 NoneType = type(None)
 
 
@@ -154,9 +152,11 @@ class FieldWidget(widgets.BinillaWidget):
                             kwargs.get('attr_index', None),
                             kwargs.get('desc', None))
 
-        self.disabled = kwargs.get('disabled', self.disabled)
-        if 'EDITABLE' in self.desc:
-            self.disabled = not self.desc['EDITABLE']
+        # default to self editability for disable state, but
+        # change to disabled if parent explicitely says to
+        self.disabled = not self.editable
+        if kwargs.get('disabled', False):
+            self.disabled = True
 
         # make sure a button style exists for the 'show' button
         if FieldWidget.show_button_style is None:
@@ -199,9 +199,7 @@ class FieldWidget(widgets.BinillaWidget):
         try:
             flags = self.tag_window.app_root.config_file.data.\
                     header.tag_window_flags
-            if flags.blocks_start_hidden:
-                return True
-            return False
+            return bool(flags.blocks_start_hidden)
         except Exception:
             return True
 
@@ -210,7 +208,7 @@ class FieldWidget(widgets.BinillaWidget):
         try:
             flags = self.tag_window.app_root.config_file.data.\
                     header.tag_window_flags
-            return flags.empty_blocks_start_hidden
+            return bool(flags.empty_blocks_start_hidden)
         except Exception:
             return False
 
@@ -247,7 +245,6 @@ class FieldWidget(widgets.BinillaWidget):
         try:
             return bool(self.tag_window.all_visible)
         except Exception:
-            print(format_exc())
             return False
 
     @property
@@ -378,7 +375,11 @@ class FieldWidget(widgets.BinillaWidget):
         try:
             return self.tag_window.widget_picker
         except AttributeError:
-            return widget_picker.def_widget_picker
+            if "widget_picker" not in globals():
+                global widget_picker
+                from binilla import widget_picker
+
+        return widget_picker.def_widget_picker
 
     @property
     def pack_padx(self):
@@ -649,7 +650,11 @@ class FieldWidget(widgets.BinillaWidget):
         self.node = node
         self.attr_index = attr_index
         if self.node is None and self.parent:
-            self.node = self.parent[self.attr_index]
+            try:
+                self.node = self.parent[self.attr_index]
+            except Exception:
+                self.unload_node_data()
+                return True
 
         prev_desc = self._desc
         if desc is None:
@@ -887,14 +892,7 @@ class ContainerFrame(tk.Frame, FieldWidget):
     def destroy(self):
         # These will linger and take up RAM, even if the widget is destroyed.
         # Need to remove the references manually
-        try: del self.node
-        except Exception: pass
-        try: del self.parent
-        except Exception: pass
-        try: del self.f_widget_parent
-        except Exception: pass
-        try: del self.tag_window
-        except Exception: pass
+        self.node = self.parent = self.f_widget_parent = self.tag_window = None
         tk.Frame.destroy(self)
         self.delete_all_traces()
         self.delete_all_widget_refs()
@@ -1405,15 +1403,20 @@ class ArrayFrame(ContainerFrame):
 
     def load_node_data(self, parent, node, attr_index, desc=None):
         FieldWidget.load_node_data(self, parent, node, attr_index, desc)
+        sub_node = attr_index = None
+        if self.node:
+            attr_index = self.sel_index
+            if attr_index in range(len(self.node)):
+                sub_node = self.node[attr_index]
+            else:
+                attr_index = len(self.node) - 1
+                if attr_index < 0:
+                    attr_index = None
 
         for wid in self.f_widgets:
             # there must be only one entry in self.f_widgets
             w = self.f_widgets[wid]
-            sub_node = None
-            if self.node and self.sel_index in range(len(self.node)):
-                sub_node = self.node[self.sel_index]
-
-            if w.load_node_data(self.node, sub_node, self.sel_index):
+            if w.load_node_data(self.node, sub_node, attr_index):
                 return True
 
         return False
@@ -1453,11 +1456,8 @@ class ArrayFrame(ContainerFrame):
     def destroy(self):
         # These will linger and take up RAM, even if the widget is destroyed.
         # Need to remove the references manually
-        try: del self.option_cache
-        except Exception: pass
-        tk.Frame.destroy(self)
-        self.delete_all_traces()
-        self.delete_all_widget_refs()
+        self.option_cache = None
+        ContainerFrame.destroy(self)
 
     def export_node(self):
         try:
@@ -1620,12 +1620,11 @@ class ArrayFrame(ContainerFrame):
                 w.sel_menu.max_index = max_index
                 w.options_sane = w.sel_menu.options_sane = False
                 if w.sel_index < 0:
-                    w.select_option(0, force_reload=True)
+                    w.select_option(0, force=True)
                 elif w.sel_index > max_index:
-                    w.select_option(max_index, force_reload=True)
+                    w.select_option(max_index, force=True)
                 else:
-                    w.select_option(w.sel_index, force_reload=True)
-                #w.reload()
+                    w.select_option(w.sel_index, force=True)
 
                 w.needs_flushing = False
                 w.set_edited()
@@ -1968,6 +1967,13 @@ class ArrayFrame(ContainerFrame):
             for wid in self.f_widget_ids:
                 w = self.f_widgets[wid]
                 wid = id(w)
+
+                if node and self.sel_index not in range(len(node)):
+                    # current selection index is invalid. call select_option
+                    # to reset it to some valid option. Don't reload though,
+                    # as we will be either reloading or repopulating below.
+                    self.select_option(force=True, reload=False)
+
                 self.f_widget_ids_map[self.sel_index] = wid
                 self.f_widget_ids_map_inv[wid] = self.sel_index
 
@@ -2014,13 +2020,13 @@ class ArrayFrame(ContainerFrame):
 
         self.content.pack(fill='both', side='top', anchor='nw', expand=True)
 
-    def select_option(self, opt_index=None, force_reload=False):
+    def select_option(self, opt_index=None, force=False, reload=True):
         node = self.node if self.node else ()
         curr_index = self.sel_index
         if opt_index is None:
             opt_index = curr_index
 
-        if opt_index == curr_index and not force_reload:
+        if opt_index == curr_index and not force:
             return
         elif not node:
             opt_index = -1
@@ -2032,7 +2038,9 @@ class ArrayFrame(ContainerFrame):
         self.sel_index = opt_index
         self.sel_menu.sel_index = opt_index
         self.sel_menu.max_index = len(node) - 1
-        self.reload()
+        if reload:
+            self.reload()
+
         self.sel_menu.update_label()
 
     @property
@@ -2107,14 +2115,7 @@ class DataFrame(FieldWidget, tk.Frame):
     def destroy(self):
         # These will linger and take up RAM, even if the widget is destroyed.
         # Need to remove the references manually
-        try: del self.node
-        except Exception: pass
-        try: del self.parent
-        except Exception: pass
-        try: del self.f_widget_parent
-        except Exception: pass
-        try: del self.tag_window
-        except Exception: pass
+        self.node = self.parent = self.f_widget_parent = self.tag_window = None
         tk.Frame.destroy(self)
         self.delete_all_traces()
         self.delete_all_widget_refs()
@@ -3348,7 +3349,7 @@ class UnionFrame(ContainerFrame):
             except Exception:
                 print(format_exc())
 
-    def select_option(self, opt_index=None):
+    def select_option(self, opt_index=None, force=False, reload=True):
         self.flush()
         if self.node is None:
             return
@@ -3357,7 +3358,7 @@ class UnionFrame(ContainerFrame):
         curr_index = self.sel_menu.sel_index
 
         if (opt_index < 0 or opt_index > self.sel_menu.max_index or
-            opt_index is None):
+            opt_index is None or force):
             return
 
         undo_u_index = node.u_index
@@ -3380,7 +3381,8 @@ class UnionFrame(ContainerFrame):
                 undo_node=undo_node)
 
         self.sel_menu.sel_index = opt_index
-        self.reload()
+        if reload:
+            self.reload()
 
     def populate(self):
         try:

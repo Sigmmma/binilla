@@ -16,18 +16,21 @@ from tkinter.filedialog import askopenfilenames, askopenfilename,\
      askdirectory, asksaveasfilename
 from traceback import format_exc
 
+import binilla
+
 # load the binilla constants so they are injected before any defs are loaded
-from . import constants as s_c
+from binilla import constants as s_c
 s_c.inject()
 from supyr_struct.field_types import FieldType
 
-from . import editor_constants as e_c
-from .tag_window import *
-from .config_def import *
-from .widget_picker import *
-from .widgets import BinillaWidget, ToolTipHandler
-from .handler import Handler
-from .util import *
+from binilla import editor_constants as e_c
+from binilla.tag_window import *
+from binilla.config_def import *
+from binilla.widget_picker import *
+from binilla.widgets import BinillaWidget, ToolTipHandler
+from binilla.handler import Handler
+from binilla.util import *
+from binilla.about_window import AboutWindow
 
 
 this_curr_dir = get_cwd(__file__)
@@ -102,16 +105,27 @@ class Binilla(tk.Tk, BinillaWidget):
     recent_tag_max = 20
     recent_tagpaths = ()
 
+    '''Modules to display in About window'''
+    about_module_names = (
+        "arbytmap",
+        "binilla",
+        "supyr_struct",
+        "threadsafe_tkinter",
+        )
+
+    about_messages = ()
+
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
-    version = '0.9.71'
+    version = "%s.%s.%s" % binilla.__version__
     log_filename = 'binilla.log'
     debug = 0
     debug_mode = False
     untitled_num = 0  # when creating a new, untitled tag, this integer is used
     #                   in its name like so: 'untitled%s' % self.untitled_num
     max_undos = 1000
+    icon_filepath = ""
 
     '''Config properties'''
     style_def = style_def
@@ -260,7 +274,7 @@ class Binilla(tk.Tk, BinillaWidget):
         self.main_menu.add_cascade(label="Settings", menu=self.settings_menu)
         self.main_menu.add_cascade(label="Windows", menu=self.windows_menu)
         #self.main_menu.add_command(label="Help")
-        #self.main_menu.add_command(label="About")
+        self.main_menu.add_command(label="About", command=self.show_about_window)
         try:
             self.debug_mode = bool(self.config_file.data.header.flags.debug_mode)
         except Exception:
@@ -431,9 +445,15 @@ class Binilla(tk.Tk, BinillaWidget):
         self.io_text.pack(fill=BOTH, expand=True)
         self.io_frame.pack(fill=BOTH, expand=True)
 
-        self.terminal_out = sys.stdout = IORedirecter(
-            self.io_text, log_file=self.log_file,
-            edit_log=self.config_file.data.header.flags.log_output)
+        try:
+            flags = self.config_file.data.header.flags
+            edit_log, disable = flags.log_output, flags.disable_io_redirect
+        except Exception:
+            edit_log, disable = True, False
+
+        self.terminal_out = IORedirecter(self.io_text, log_file=self.log_file,
+                                         edit_log=edit_log)
+        sys.stdout = self.orig_stdout if disable else self.terminal_out
 
     def bind_hotkeys(self, new_hotkeys=None):
         '''
@@ -541,8 +561,8 @@ class Binilla(tk.Tk, BinillaWidget):
                         # couldn't destroy window, it's saving or something
                         return
                     
-                    del tid_to_wid[tid]
-                    del self.tag_windows[wid]
+                    tid_to_wid.pop(tid, None)
+                    self.tag_windows.pop(wid, None)
 
             if tag is self.config_file:
                 pass
@@ -590,7 +610,7 @@ class Binilla(tk.Tk, BinillaWidget):
         try:
             # need to save before destroying the
             # windows or bindings wont be saved
-            self.save_config()
+            self.config_file.serialize(temp=False, backup=False)
         except Exception:
             print(format_exc())
 
@@ -641,36 +661,30 @@ class Binilla(tk.Tk, BinillaWidget):
                 open_header.offset_x, open_header.offset_y = pos_x, pos_y
                 open_header.width, open_header.height = int(width), int(height)
 
-                open_tag.def_id = tag.def_id
-                open_tag.path = tag.filepath
+                open_tag.def_id, open_tag.path = tag.def_id, tag.filepath
         except Exception:
             print(format_exc())
 
     def load_last_workspace(self):
         try:
-            handler = self.handler
             config_file = self.config_file
             open_tags = config_file.data.open_tags
 
             for open_tag in open_tags:
-                def_id = open_tag.def_id
-                path = open_tag.path
-
                 open_header = open_tag.header
-
-                windows = self.load_tags(filepaths=path, def_id=def_id)
+                windows = self.load_tags(filepaths=open_tag.path,
+                                         def_id=open_tag.def_id)
                 if not windows:
                     continue
 
                 w = windows[0]
                 if open_header.flags.minimized:
-                    w.withdraw()
+                    windows[0].withdraw()
                     self.selected_tag = None
 
-                pos_x, pos_y = open_header.offset_x, open_header.offset_y
-                width, height = open_header.width, open_header.height
-
-                w.geometry("%sx%s+%s+%s" % (width, height, pos_x, pos_y))
+                windows[0].geometry("%sx%s+%s+%s" % (
+                    open_header.width, open_header.height,
+                    open_header.offset_x, open_header.offset_y))
         except Exception:
             print(format_exc())
 
@@ -751,6 +765,8 @@ class Binilla(tk.Tk, BinillaWidget):
 
         if self._initialized:
             self.bind_hotkeys()
+            sys.stdout = (self.orig_stdout if header.flags.disable_io_redirect
+                          else self.terminal_out)
         else:
             # only load the recent tagpaths when loading binilla
             self.recent_tagpaths = paths = []
@@ -872,7 +888,6 @@ class Binilla(tk.Tk, BinillaWidget):
             except IndexError: pass
 
         for s in color_names[:len(colors)]:
-            # it has to be a tuple for some reason
             try:
                 setattr(BinillaWidget, s + '_color',
                         '#%02x%02x%02x' % tuple(colors[s]))
@@ -1074,15 +1089,6 @@ class Binilla(tk.Tk, BinillaWidget):
             self.load_tags(filepaths=fp, def_id=def_id))
         self.def_selector_window = dsw
         self.place_window_relative(self.def_selector_window, 30, 50)
-
-    def place_window_relative(self, window, x=0, y=0):
-        # calculate x and y coordinates for this window
-        x_base, y_base = self.winfo_x(), self.winfo_y()
-        w, h = window.geometry().split('+')[0].split('x')[:2]
-        if w == '1' and w == '1':
-            w = window.winfo_reqwidth()
-            h = window.winfo_reqheight()
-        window.geometry('%sx%s+%s+%s' % (w, h, x + x_base, y + y_base))
 
     def make_tag_window(self, tag, *, focus=True, window_cls=None,
                         is_new_tag=False):
@@ -1595,6 +1601,19 @@ class Binilla(tk.Tk, BinillaWidget):
     def apply_style(self, seen=None):
         BinillaWidget.apply_style(self, seen)
         self.io_text.config(fg=self.io_fg_color, bg=self.io_bg_color)
+
+    def show_about_window(self):
+        w = getattr(self, "about_window", None)
+        if w is not None:
+            try: w.destroy()
+            except Exception: pass
+            self.about_window = None
+
+        self.about_window = AboutWindow(
+            self, module_names=self.about_module_names,
+            iconbitmap=self.icon_filepath, app_name=self.app_name,
+            messages=self.about_messages)
+        self.place_window_relative(self.about_window, 30, 50)
 
 
 class DefSelectorWindow(tk.Toplevel, BinillaWidget):

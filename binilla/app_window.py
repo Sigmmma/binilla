@@ -113,6 +113,8 @@ class Binilla(tk.Tk, BinillaWidget):
         "threadsafe_tkinter",
         )
 
+    about_messages = ()
+
     '''Miscellaneous properties'''
     _initialized = False
     app_name = "Binilla"  # the name of the app(used in window title)
@@ -1609,7 +1611,8 @@ class Binilla(tk.Tk, BinillaWidget):
 
         self.about_window = AboutWindow(
             self, module_names=self.about_module_names,
-            iconbitmap=self.icon_filepath, app_name=self.app_name)
+            iconbitmap=self.icon_filepath, app_name=self.app_name,
+            messages=self.about_messages)
         self.place_window_relative(self.about_window, 30, 50)
 
 

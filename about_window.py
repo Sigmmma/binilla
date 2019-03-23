@@ -1,12 +1,13 @@
 import os
 import string
 
+from random import randrange
 from sys import version_info
 from traceback import format_exc
+
 import threadsafe_tkinter as tk
 
-from tkinter.messagebox import showerror
-
+from tkinter import messagebox
 from binilla.widgets import BinillaWidget
 
 VALID_MODULE_CHARACTERS = frozenset(string.ascii_letters + "_" + string.digits)
@@ -36,7 +37,7 @@ try:
             with open(filepath, 'r') as f:
                 text = f.read()
         except Exception as e:
-            showerror('File open error', str(e), parent=master)
+            messagebox.showerror('File open error', str(e), parent=master)
             return
         return BinillaTextViewer(master, title, text, *a, **kw)
 
@@ -46,23 +47,28 @@ except ImportError:
 
 class AboutWindow(tk.Toplevel, BinillaWidget):
     module_infos = {}
+    messages = ()
     _initialized = False
     _button_pressed = 0
-    _start = 3
+    _start = 1
 
-    app_name = ""
+    app_name = "Unknown"
+    iconbitmap_filepath = ""
 
     def __init__(self, master, *a, **kw):
         BinillaWidget.__init__(self, *a, **kw)
         kw.update(highlightthickness=0)
-        self.app_name = kw.pop("app_name", "Unknown")
-        module_names = kw.pop("module_names", ())
-        self.iconbitmap_filepath = str(kw.pop("iconbitmap", ""))
+        self.messages = kw.pop("messages", self.messages)
+        self.app_name = kw.pop("app_name", self.app_name)
+        self.module_infos = {name: None for name in kw.pop("module_names", ())}
+        self.iconbitmap_filepath = str(kw.pop("iconbitmap", self.iconbitmap_filepath))
 
         tk.Toplevel.__init__(self, master, *a, **kw)
         self.resizable(0, 0)
         self.title("About " + self.app_name)
         self.transient(master)
+
+        self.messages = tuple(m.strip() for m in self.messages if m.strip())
 
         self.update()
         try:
@@ -71,8 +77,7 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
         except Exception:
             print("Could not load window icon.")
 
-        self.module_infos = {}
-        for name in module_names:
+        for name in self.module_infos:
             try:
                 self.module_infos[name] = self.get_module_info(name)
             except Exception:
@@ -95,7 +100,9 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
             self._()
 
     def _(self):
-        pass
+        if self.messages:
+            msg = self.messages[randrange(0, 0xFFffFFff) % len(self.messages)]
+            messagebox.showinfo(".fortune", msg, parent=self)
 
     def generate_widgets(self):
         if self._initialized:
@@ -117,6 +124,7 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
                                          image=self.app_image, relief='flat',
                                          command=self._pressed,
                                          highlightthickness=0)
+            app_image_button.config(relief="sunken")
 
         app_name_label = tk.Label(header_frame, text=self.app_name,
                                   font=('Copperplate Gothic', 24, 'bold italic'))
@@ -284,7 +292,7 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
         try:
             os.startfile(module_location)
         except Exception as e:
-            showerror('Browser open error', str(e), parent=self.master)
+            messagebox.showerror('Browser open error', str(e), parent=self.master)
 
 
 if __name__ == "__main__":

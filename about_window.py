@@ -83,8 +83,7 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
 
         self.generate_widgets()
 
-        self.bind('<Return>', self.destroy)
-        self.bind('<Escape>', self.destroy)
+        self.bind('<Escape>', lambda e=None, s=self: s.destroy())
         self.apply_style()
 
         self.update()

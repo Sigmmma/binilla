@@ -319,6 +319,7 @@ class ScrollMenu(tk.Frame, BinillaWidget):
     selecting an array element or an enumerator option.
     '''
     variable = None
+    str_variable = None
     callback = None
     option_box = None
     max_height = None
@@ -349,6 +350,7 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         self.option_getter = kwargs.pop('option_getter', None)
         self.callback = kwargs.pop('callback', None)
         self.variable = kwargs.pop('variable', None)
+        self.str_variable = kwargs.pop('str_variable', None)
         self.max_index = kwargs.pop('max_index', self.max_index)
         self.max_height = kwargs.pop('max_height', self.max_height)
         self.f_widget_parent = kwargs.pop('f_widget_parent', None)
@@ -442,6 +444,9 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         if options is not None:
             self.set_options(options)
 
+        if self.str_variable is None:
+            self.str_variable = tk.StringVar(self, "")
+
     def apply_style(self, seen=None):
         BinillaWidget.apply_style(self, seen)
         if self.disabled:
@@ -459,10 +464,23 @@ class ScrollMenu(tk.Frame, BinillaWidget):
     @sel_index.setter
     def sel_index(self, new_val):
         self.variable.set(new_val)
+        self.str_variable.set(self.sel_name)
+        # not necessary to call update_label as there is a
+        # write_trace to call it if the sel_index is touched
+        #self.update_label()
+
+    @property
+    def sel_name(self):
+        if self.sel_index < 0:
+            return ""
+        text = self.get_options(e_c.ACTIVE_ENUM_NAME)
+        if text is None:
+            text = '%s. %s' % (self.sel_index, self.default_text)
+        return text
 
     def get_option(self, opt_index=None):
         if opt_index is None:
-            opt_index = "active"
+            opt_index = e_c.ACTIVE_ENUM_NAME
         assert isinstance(opt_index, (int, str))
         return self.get_options(opt_index)
 
@@ -474,7 +492,7 @@ class ScrollMenu(tk.Frame, BinillaWidget):
 
         if opt_index is None:
             return self.option_cache
-        elif opt_index == "active":
+        elif opt_index == e_c.ACTIVE_ENUM_NAME:
             opt_index = self.sel_index
         return self.option_cache.get(opt_index)
 
@@ -742,10 +760,8 @@ class ScrollMenu(tk.Frame, BinillaWidget):
             pass
 
     def update_label(self, text=''):
-        if not text and self.sel_index >= 0:
-            text = self.get_options("active")
-            if text is None:
-                text = '%s. %s' % (self.sel_index, self.default_text)
+        if not text:
+            text = self.sel_name
         self.sel_label.config(text=text, anchor="w")
 
 

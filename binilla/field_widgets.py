@@ -1484,7 +1484,7 @@ class ArrayFrame(ContainerFrame):
 
         if opt_index is None:
             return self.option_cache
-        elif opt_index == "active":
+        elif opt_index == e_c.ACTIVE_ENUM_NAME:
             opt_index = self.sel_index
 
         if opt_index < 0: opt_index = -1
@@ -3304,7 +3304,7 @@ class UnionFrame(ContainerFrame):
 
         if opt_index is None:
             return self.option_cache
-        elif opt_index == "active":
+        elif opt_index == e_c.ACTIVE_ENUM_NAME:
             opt_index = getattr(self.node, "u_index", None)
             if opt_index is None:
                 opt_index = len(self.option_cache) - 1
@@ -3714,7 +3714,7 @@ class EnumFrame(DataFrame):
 
         if opt_index is None:
             return self.option_cache
-        elif opt_index == "active":
+        elif opt_index == e_c.ACTIVE_ENUM_NAME:
             opt_index = self.sel_menu.sel_index
 
         return self.option_cache.get(opt_index, e_c.INVALID_OPTION)

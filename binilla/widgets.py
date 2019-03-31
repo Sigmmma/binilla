@@ -473,7 +473,7 @@ class ScrollMenu(tk.Frame, BinillaWidget):
     def sel_name(self):
         if self.sel_index < 0:
             return ""
-        text = self.get_options(e_c.ACTIVE_ENUM_NAME)
+        text = self.get_option()
         if text is None:
             text = '%s. %s' % (self.sel_index, self.default_text)
         return text

@@ -1088,6 +1088,7 @@ class Binilla(tk.Tk, BinillaWidget):
             self, title="Select a definition to use", action=lambda def_id:
             self.load_tags(filepaths=fp, def_id=def_id))
         self.def_selector_window = dsw
+        self.update()
         self.place_window_relative(self.def_selector_window, 30, 50)
 
     def make_tag_window(self, tag, *, focus=True, window_cls=None,
@@ -1147,6 +1148,7 @@ class Binilla(tk.Tk, BinillaWidget):
             self, title="Select a definition to use", action=lambda def_id:
             self.load_tags(filepaths='', def_id=def_id))
         self.def_selector_window = dsw
+        self.update()
         self.place_window_relative(self.def_selector_window, 30, 50)
 
     def load(self, e=None):

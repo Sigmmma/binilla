@@ -518,7 +518,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         title = self.title()
         exception = None
         try:
-            self.title("Saving... " + title)
+            self.title("Saving...", title)
             if self.field_widget.needs_flushing:
                 self.field_widget.flush()
 
@@ -562,6 +562,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         If cap_size is True the width and height will be capped so they
         do not expand beyond the right and bottom edges of the screen.
         '''
+
         old_width, old_height  = self.winfo_width(), self.winfo_height()
         if new_width is None or (dont_shrink_width and new_width < old_width):
             new_width = old_width

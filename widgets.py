@@ -212,6 +212,11 @@ class BinillaWidget():
         return True
 
     def place_window_relative(self, window, x=None, y=None):
+        if self.state() in ('iconic', 'withdrawn'):
+            # winfo_rootx/y dont work properly when iconic or withdrawn
+            window.withdraw()
+            return
+
         # calculate x and y coordinates for this widget
         x_base, y_base = self.winfo_rootx(), self.winfo_rooty()
         w, h = window.geometry().split('+')[0].split('x')[:2]

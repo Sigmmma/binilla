@@ -518,7 +518,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         title = self.title()
         exception = None
         try:
-            self.title("Saving...", title)
+            self.title("Saving... " + title)
             if self.field_widget.needs_flushing:
                 self.field_widget.flush()
 

@@ -325,6 +325,24 @@ class FieldWidget(widgets.BinillaWidget):
         return desc.get('MIN', desc['TYPE'].min)
 
     @property
+    def field_size(self):
+        desc = self.desc
+        f_type = desc['TYPE']
+        field_size = desc.get('SIZE', f_type.size)
+        if not isinstance(field_size, int):
+            if hasattr(self.parent, "get_size"):
+                field_size = self.parent.get_size(self.attr_index)
+            else:
+                field_size = 0
+
+        return field_size
+
+    @property
+    def is_bit_based(self):
+        desc = self.desc
+        return desc['TYPE'].is_bit_based
+
+    @property
     def unit_scale(self):
         desc = self.desc
         unit_scale = desc.get('UNIT_SCALE')
@@ -4060,17 +4078,27 @@ class BoolFrame(DataFrame):
             w.tooltip_string = self.desc.get('TOOLTIP')
 
         all_visible = self.all_bools_visible
+        visible_bits = [int(log(mask, 2.0)) for mask in sorted(desc['VALUE_MAP'])]
+        # create visible bits for all flags that dont have one defined
+        if all_visible:
+            bit_ct = self.field_size * (1 if self.is_bit_based else 8)
+            for i in range(bit_ct):
+                if len(visible_bits) <= i:
+                    visible_bits.extend(range(i, bit_ct))
+                    break
+                elif visible_bits[i] != i:
+                    visible_bits.insert(i, i)
 
         # make a condensed mapping of all visible flags and their information
-        for mask in sorted(desc['VALUE_MAP']):
-            bit = int(log(mask, 2.0))
-            opt = desc.get(desc['VALUE_MAP'][mask])
+        for bit in visible_bits:
+            mask = 1 << bit
+            opt = desc.get(desc['VALUE_MAP'].get(mask))
 
             if opt is None or not opt.get("VISIBLE", True):
                 if not all_visible:
                     continue
                 name = e_c.UNKNOWN_BOOLEAN % bit
-                opt = dict(GUI_NAME=name, NAME=name)
+                opt = dict(GUI_NAME=name.replace('_', ' '), NAME=name)
             else:
                 opt = dict(opt)
                 defname = opt.get('NAME', e_c.UNNAMED_FIELD).replace('_', ' ')

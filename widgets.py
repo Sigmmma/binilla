@@ -536,17 +536,18 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         sel_indices = self.option_box.curselection()
         if not sel_indices:
             return
-        sel_index = sel_indices[0] - 1
-        if sel_index < 0:
+        new_index = sel_indices[0] - 1
+        if new_index < 0:
             new_index = (self.max_index >= 0) - 1
+
         try:
             self.selecting = True
             self.option_box.select_clear(0, tk.END)
-            self.option_box.select_set(sel_index)
-            self.option_box.see(sel_index)
-            self.sel_index = sel_index
+            self.option_box.select_set(new_index)
+            self.option_box.see(new_index)
+            self.sel_index = new_index
             if self.callback is not None:
-                self.callback(sel_index)
+                self.callback(new_index)
             self.selecting = False
         except Exception:
             self.selecting = False
@@ -621,17 +622,18 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         sel_indices = self.option_box.curselection()
         if not sel_indices:
             return
-        sel_index = sel_indices[0] + 1
-        if sel_index > self.max_index:
+        new_index = sel_indices[0] + 1
+        if new_index > self.max_index:
             new_index = self.max_index
+
         try:
             self.selecting = True
             self.option_box.select_clear(0, tk.END)
-            self.option_box.select_set(sel_index)
-            self.option_box.see(sel_index)
-            self.sel_index = sel_index
+            self.option_box.select_set(new_index)
+            self.option_box.see(new_index)
+            self.sel_index = new_index
             if self.callback is not None:
-                self.callback(sel_index)
+                self.callback(new_index)
             self.selecting = False
         except Exception:
             self.selecting = False

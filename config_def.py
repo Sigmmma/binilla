@@ -57,7 +57,7 @@ tag_window_flag_tooltips = (
      "happens to the contents(mouse scrolling, a widget is changed, etc)."),
     ("Whether to resize a tag windows height to fit its contents when something\n" +
      "happens to the contents(mouse scrolling, a widget is changed, etc)."),
-    ("Whether start empty collapsable blocks in a tag as expanded or collapsed."),
+    ("Whether to start empty collapsable blocks in a tag as expanded or collapsed."),
     ("Whether to display a checkbox for each available bit in a boolean, even\n" +
      "if that bit doesnt represent anything. Used for debugging and testing."),
     )

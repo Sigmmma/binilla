@@ -11,7 +11,7 @@ from tkinter.colorchooser import askcolor
 from tkinter.filedialog import asksaveasfilename, askopenfilename
 from traceback import format_exc
 
-from supyr_struct.buffer import get_rawdata
+from supyr_struct.buffer import get_rawdata_context
 from .edit_manager import EditState
 from . import widgets
 from . import editor_constants as e_c
@@ -2354,33 +2354,35 @@ class RawdataFrame(DataFrame):
         try:
             undo_node = self.node
             curr_size = self.parent.get_size(attr_index=index)
-            rawdata = get_rawdata(filepath=filepath)
-            try:
-                self.parent.set_size(len(rawdata), attr_index=index)
-            except Exception:
-                # sometimes rawdata has an explicit size, so an exception
-                # will be raised when trying to change it. just ignore it
-                pass
 
-            self.parent.parse(rawdata=rawdata, attr_index=index)
-            self.node = self.parent[index]
-            self.set_edited()
+            writable = kwargs.pop('writable', False)
+            with get_rawdata_context(writable=False, filepath=filepath) as rawdata:
+                try:
+                    self.parent.set_size(len(rawdata), attr_index=index)
+                except Exception:
+                    # sometimes rawdata has an explicit size, so an exception
+                    # will be raised when trying to change it. just ignore it
+                    pass
 
-            self.edit_create(undo_node=undo_node, redo_node=self.node)
+                self.parent.parse(rawdata=rawdata, attr_index=index)
+                self.node = self.parent[index]
+                self.set_edited()
 
-            # until i come up with a better method, i'll have to rely on
-            # reloading the root field widget so stuff(sizes) will be updated
-            try:
-                root = self.f_widget_parent
-                while hasattr(root, 'f_widget_parent'):
-                    if root.f_widget_parent is None:
-                       break
-                    root = root.f_widget_parent
+                self.edit_create(undo_node=undo_node, redo_node=self.node)
 
-                root.reload()
-            except Exception:
-                print(format_exc())
-                print("Could not reload after importing '%s' node." % self.name)
+                # until i come up with a better method, i'll have to rely on
+                # reloading the root field widget so stuff(sizes) will be updated
+                try:
+                    root = self.f_widget_parent
+                    while hasattr(root, 'f_widget_parent'):
+                        if root.f_widget_parent is None:
+                           break
+                        root = root.f_widget_parent
+
+                    root.reload()
+                except Exception:
+                    print(format_exc())
+                    print("Could not reload after importing '%s' node." % self.name)
         except Exception:
             print(format_exc())
             print("Could not import '%s' node." % self.name)

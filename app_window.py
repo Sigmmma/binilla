@@ -6,6 +6,9 @@ import re
 import sys
 import threadsafe_tkinter as tk
 
+# make the ui more responsive by lowering the time between processing events
+tk.TkWrapper.idle_time = 2
+
 from copy import deepcopy
 from datetime import datetime
 from time import time, sleep

@@ -1,9 +1,12 @@
-from os.path import splitext
+import math
+
+import struct
 import threadsafe_tkinter as tk
 import tkinter.ttk as ttk
 
 from copy import deepcopy
 from math import log, ceil
+from os.path import splitext
 from tkinter import messagebox
 from tkinter import constants as t_const
 from tkinter.font import Font
@@ -12,12 +15,35 @@ from tkinter.filedialog import asksaveasfilename, askopenfilename
 from traceback import format_exc
 
 from supyr_struct.buffer import get_rawdata_context
-from .edit_manager import EditState
-from . import widgets
-from . import editor_constants as e_c
-from .util import float_to_str, FLOAT_PREC, DOUBLE_PREC
+from binilla.edit_manager import EditState
+from binilla import widgets
+from binilla import editor_constants as e_c
+from binilla.util import float_to_str, FLOAT_PREC, DOUBLE_PREC
 
 NoneType = type(None)
+
+
+def float_from_bytes(val, end='<'):
+    if isinstance(val, bytes):
+        if len(val) == 4:
+            return struct.unpack(end + 'f', val)[0]
+        elif len(val) == 8:
+            return struct.unpack(end + 'd', val)[0]
+    else:
+        return float(val)
+
+
+number_eval_globals = dict(
+    abs=abs, e=math.e, pi=math.pi, inf=math.inf,
+    acos=math.acos, asin=math.asin, atan=math.atan, atan2=math.atan2,
+    acosh=math.acosh, asinh=math.asinh, atanh=math.atanh,
+    ceil=math.ceil, floor=math.floor, erf=math.erf, erfc=math.erfc,
+    exp=math.exp, expm1=math.expm1, fact=math.factorial, fmod=math.fmod,
+    sum=math.fsum, gamma=math.gamma, gcd=math.gcd, hypot=math.hypot,
+    log=math.log, log2=math.log2, loge=math.log1p, log10=math.log10,
+    lgamma=math.lgamma, pow=math.pow, sqrt=math.sqrt,
+    float=float_from_bytes
+    )
 
 
 __all__ = (
@@ -202,6 +228,15 @@ class FieldWidget(widgets.BinillaWidget):
             return bool(flags.blocks_start_hidden)
         except Exception:
             return True
+
+    @property
+    def evaluate_entry_fields(self):
+        try:
+            flags = self.tag_window.app_root.config_file.data.\
+                    header.tag_window_flags
+            return bool(flags.evaluate_entry_fields)
+        except Exception:
+            return False
 
     @property
     def hide_if_blank(self):
@@ -2757,6 +2792,9 @@ class NumberEntryFrame(EntryFrame):
         node_cls = desc.get('NODE_CLS', field_type.node_cls)
 
         new_node = self.entry_string.get()
+        if self.evaluate_entry_fields:
+            new_node = eval(new_node, {}, number_eval_globals)
+
         if unit_scale is None:
             unit_scale = 1
             new_node = node_cls(new_node)

@@ -293,7 +293,7 @@ class BinillaWidget():
                 elif isinstance(w, (tk.Frame, tk.Canvas, tk.Toplevel)):
                     w.config(bg=self.default_bg_color)
                     next_widgets.extend(w.children.values())
-                elif isinstance(w, tk.Checkbutton):
+                elif isinstance(w, (tk.Radiobutton, tk.Checkbutton)):
                     w.config(disabledforeground=self.text_disabled_color,
                              bg=self.default_bg_color, fg=self.text_normal_color,
                              activebackground=self.default_bg_color,

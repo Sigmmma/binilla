@@ -40,12 +40,17 @@ def float_to_str(f, max_sig_figs=FLOAT_PREC):
     
     sig_figs = -1
     if abs(f) > 0:
-        sig_figs = int(round(max_sig_figs - log(abs(f), 10)))
+        sig_figs = int(round(max_sig_figs - log(abs(f), 10) - 1))
 
     if sig_figs < 0:
+        # do the string conversion this way so large numbers
+        # dont get converted into exponential notation
         return ("%f" % f).split(".")[0]
 
-    return (("%" + (".%sf" % sig_figs)) % f).rstrip("0").rstrip(".")
+    str_float = ("%" + (".%sf" % sig_figs)) % f
+    if "." in str_float:
+        return str_float.rstrip("0").rstrip(".")
+    return str_float
 
 
 class IORedirecter(StringIO):

@@ -120,6 +120,7 @@ class Binilla(tk.Tk, BinillaWidget):
 
     '''Miscellaneous properties'''
     _initialized = False
+    config_made_anew = False
     app_name = "Binilla"  # the name of the app(used in window title)
     version = "%s.%s.%s" % binilla.__version__
     log_filename = 'binilla.log'
@@ -215,9 +216,11 @@ class Binilla(tk.Tk, BinillaWidget):
             except Exception:
                 print(format_exc())
                 self.make_config()
+                self.config_made_anew = True
         else:
             # make a config file
             self.make_config()
+            self.config_made_anew = True
 
         if not exists(self.curr_dir):
             self.curr_dir = this_curr_dir

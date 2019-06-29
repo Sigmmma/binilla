@@ -4,6 +4,19 @@ IS_WIN = "windows" in platform.system().lower()
 IS_MAC = "darwin" in platform.system().lower()
 IS_LNX = "linux" in platform.system().lower()
 
+if IS_WIN:
+    DEFAULT_FONT_NAME = "Segoe UI"
+    DEFAULT_FONT_SIZE = 9
+    FIXED_FONT_NAME = "Courier"
+    FIXED_FONT_SIZE = 8
+else:
+    DEFAULT_FONT_NAME = "Bitstream Charter"
+    DEFAULT_FONT_SIZE = 9
+    FIXED_FONT_NAME = "Bitstream Vera Sans Mono"
+    FIXED_FONT_SIZE = 8
+
+
+
 # padding to use when packing a widget being oriented vertically
 VERTICAL_PADX = (20, 0)
 VERTICAL_PADY = (0, 5)

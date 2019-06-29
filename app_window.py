@@ -140,6 +140,7 @@ class Binilla(tk.Tk, BinillaWidget):
     # the tag that holds all the config settings for this application
     config_file = None
     log_file = None
+    color_names = ()
 
     '''Window properties'''
     # When tags are opened they are tiled, first vertically, then horizontally.
@@ -195,6 +196,7 @@ class Binilla(tk.Tk, BinillaWidget):
         self.debug = kwargs.pop('debug', self.debug)
         self.tag_windows = {}
         self.tag_id_to_window_id = {}
+        self.color_names = color_names
 
         if 'handler' in kwargs:
             self.handler = kwargs.pop('handler')
@@ -238,11 +240,15 @@ class Binilla(tk.Tk, BinillaWidget):
         tk.Tk.__init__(self, *args, **kwargs)
 
         #fonts
-        self.default_font = Font(family="Segoe UI", size=9)
-        self.fixed_font = Font(family="Courier", size=8)
+        self.default_font = Font(
+            family=e_c.DEFAULT_FONT_NAME, size=e_c.DEFAULT_FONT_SIZE)
+        self.fixed_font = Font(
+            family=e_c.FIXED_FONT_NAME, size=e_c.FIXED_FONT_SIZE)
         self.container_title_font = Font(
-            family="Courier", size=10, weight='bold')
-        self.comment_font = Font(family="Courier", size=9)
+            family=e_c.FIXED_FONT_SIZE, size=e_c.FIXED_FONT_SIZE + 2,
+            weight='bold')
+        self.comment_font = Font(
+            family=e_c.FIXED_FONT_NAME, size=e_c.FIXED_FONT_SIZE + 1)
 
         self.title('%s v%s' % (self.app_name, self.version))
         self.minsize(width=200, height=50)
@@ -893,10 +899,10 @@ class Binilla(tk.Tk, BinillaWidget):
             try: setattr(BinillaWidget, s + '_depth', widget_depths[s])
             except IndexError: pass
 
-        for s in color_names[:len(colors)]:
+        for i in range(len(colors)):
             try:
-                setattr(BinillaWidget, s + '_color',
-                        '#%02x%02x%02x' % tuple(colors[s]))
+                setattr(BinillaWidget, self.color_names[i] + '_color',
+                        '#%02x%02x%02x' % tuple(colors[i]))
             except IndexError:
                 pass
 
@@ -958,7 +964,7 @@ class Binilla(tk.Tk, BinillaWidget):
         style_file.filepath = filepath
 
         style_file.data.widgets.depths.extend(len(widget_depth_names))
-        style_file.data.colors.extend(len(color_names))
+        style_file.data.colors.extend(len(self.color_names))
 
         self.update_style(style_file)
         style_file.serialize(temp=0, backup=0, calc_pointers=0)
@@ -1597,12 +1603,21 @@ class Binilla(tk.Tk, BinillaWidget):
             try: widget_depths[s] = getattr(BinillaWidget, s + '_depth')
             except IndexError: pass
 
-        for s in color_names:
+        for i in range(len(self.color_names)):
             try:
-                color = getattr(BinillaWidget, s + '_color')[1:]
-                colors[s][0] = int(color[0:2], 16)
-                colors[s][1] = int(color[2:4], 16)
-                colors[s][2] = int(color[4:6], 16)
+                color_block = colors[i]
+            except IndexError:
+                colors.append()
+                try:
+                    color_block = colors[i]
+                except IndexError:
+                    continue
+            
+            try:
+                color = getattr(BinillaWidget, self.color_names[i] + '_color')[1:]
+                color_block[0] = int(color[0:2], 16)
+                color_block[1] = int(color[2:4], 16)
+                color_block[2] = int(color[4:6], 16)
             except IndexError:
                 pass
 

@@ -118,6 +118,7 @@ class Binilla(tk.Tk, BinillaWidget):
 
     '''Miscellaneous properties'''
     _initialized = False
+    _window_geometry_initialized = False
     config_made_anew = False
     app_name = "Binilla"  # the name of the app(used in window title)
     version = "%s.%s.%s" % binilla.__version__
@@ -373,10 +374,6 @@ class Binilla(tk.Tk, BinillaWidget):
 
         # make the console output
         self.make_io_text()
-
-        self.geometry("%sx%s+%s+%s" %
-                      (self.app_width, self.app_height,
-                       self.app_offset_x, self.app_offset_y))
         self.apply_style()
         try:
             if self.config_file.data.header.flags.load_last_workspace:
@@ -935,9 +932,6 @@ class Binilla(tk.Tk, BinillaWidget):
         if self._initialized:
             self.update_config()
             self.apply_style()
-            self.geometry("%sx%s+%s+%s" %
-                          (self.app_width, self.app_height,
-                           self.app_offset_x, self.app_offset_y))
 
     def make_config(self, filepath=None):
         if filepath is None:
@@ -1453,12 +1447,6 @@ class Binilla(tk.Tk, BinillaWidget):
         '''Syncs TagWindows to move with the app.'''
         dx = int(self.winfo_x()) - self.app_offset_x
         dy = int(self.winfo_y()) - self.app_offset_y
-        self.app_offset_x += dx
-        self.app_offset_y += dy
-
-        # keep a tabs on these so the config file can be updated
-        self.app_width  = self.winfo_width()
-        self.app_height = self.winfo_height()
 
         if not self.sync_window_movement:
             return
@@ -1567,12 +1555,13 @@ class Binilla(tk.Tk, BinillaWidget):
 
         del recent_tags[:]
 
-        if self._initialized:
+        if self._window_geometry_initialized:
             self.app_width = self.winfo_width()
             self.app_height = self.winfo_height()
             self.app_offset_x = self.winfo_x()
             self.app_offset_y = self.winfo_y()
 
+        if self._initialized:
             for s in app_window.NAME_MAP.keys():
                 try: app_window[s] = getattr(self, s)
                 except IndexError: pass
@@ -1675,6 +1664,12 @@ class Binilla(tk.Tk, BinillaWidget):
     def apply_style(self, seen=None):
         BinillaWidget.apply_style(self, seen)
         self.io_text.config(fg=self.io_fg_color, bg=self.io_bg_color)
+        if not self._window_geometry_initialized:
+            self._window_geometry_initialized = True
+            self.update()
+            self.geometry("%sx%s+%s+%s" %
+                          (self.app_width, self.app_height,
+                           self.app_offset_x, self.app_offset_y))
 
     def show_about_window(self):
         w = getattr(self, "about_window", None)

@@ -360,7 +360,7 @@ class BinillaWidget():
                              font=font)
                     next_widgets.extend(w.children.values())
                 elif isinstance(w, tk.PanedWindow):
-                    w.config(bd=self.frame_depth, bg=self.frame_bg_color)
+                    w.config(bd=self.frame_depth, bg=self.default_bg_color)
                     next_widgets.extend(w.children.values())
                 elif isinstance(w, tk.Listbox):
                     w.config(bg=self.enum_normal_color, fg=self.text_normal_color,

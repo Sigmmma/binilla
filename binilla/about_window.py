@@ -121,7 +121,7 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
             app_image_button.config(relief="sunken")
 
         app_name_label = tk.Label(header_frame, text=self.app_name,
-                                  font=('Copperplate Gothic', 24, 'bold italic'))
+                                  font=self.get_font("heading"))
         python_ver_label = tk.Label(
             py_label_frame, text='Python version:  %s' % pr_version_str)
         tk_ver_label = tk.Label(

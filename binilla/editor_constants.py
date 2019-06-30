@@ -4,18 +4,6 @@ IS_WIN = "windows" in platform.system().lower()
 IS_MAC = "darwin" in platform.system().lower()
 IS_LNX = "linux" in platform.system().lower()
 
-if IS_WIN:
-    DEFAULT_FONT_NAME = "Segoe UI"
-    DEFAULT_FONT_SIZE = 9
-    FIXED_FONT_NAME = "Courier"
-    FIXED_FONT_SIZE = 8
-else:
-    DEFAULT_FONT_NAME = "Bitstream Charter"
-    DEFAULT_FONT_SIZE = 9
-    FIXED_FONT_NAME = "Bitstream Vera Sans Mono"
-    FIXED_FONT_SIZE = 8
-
-
 
 # padding to use when packing a widget being oriented vertically
 VERTICAL_PADX = (20, 0)
@@ -100,6 +88,38 @@ ENUM_NORMAL_COLOR = ENTRY_NORMAL_COLOR
 ENUM_DISABLED_COLOR = ENTRY_DISABLED_COLOR
 ENUM_HIGHLIGHTED_COLOR = ENTRY_HIGHLIGHTED_COLOR
 
+# Fonts
+if IS_WIN:
+    DEFAULT_FONT_FAMILY = "Segoe UI"
+    DEFAULT_FONT_SIZE = 9
+    FIXED_FONT_FAMILY = "Courier"
+    FIXED_FONT_SIZE = 8
+    HEADING_FONT_FAMILY = 'Copperplate Gothic Bold'
+    HEADING_FONT_SIZE   = 24
+else:
+    DEFAULT_FONT_FAMILY = "Bitstream Charter"
+    DEFAULT_FONT_SIZE = 9
+    FIXED_FONT_FAMILY = "Bitstream Vera Sans Mono"
+    FIXED_FONT_SIZE = 8
+    HEADING_FONT_FAMILY = 'Copperplate Gothic Bold'
+    HEADING_FONT_SIZE   = 24
+
+DEFAULT_FONT_WEIGHT = "normal"
+DEFAULT_FONT_SLANT  = "roman"
+FIXED_FONT_WEIGHT = DEFAULT_FONT_WEIGHT
+FIXED_FONT_SLANT  = "roman"
+
+HEADING_FONT_WEIGHT = "bold"
+HEADING_FONT_SLANT = "italic"
+CONTAINER_TITLE_FONT_FAMILY = FIXED_FONT_FAMILY
+CONTAINER_TITLE_FONT_SIZE   = FIXED_FONT_SIZE + 2
+CONTAINER_TITLE_FONT_WEIGHT = "bold"
+CONTAINER_TITLE_FONT_SLANT  = "roman"
+COMMENT_FONT_FAMILY = FIXED_FONT_FAMILY
+COMMENT_FONT_SIZE   = FIXED_FONT_SIZE + 1
+COMMENT_FONT_WEIGHT = DEFAULT_FONT_WEIGHT
+COMMENT_FONT_SLANT  = "roman"
+
 
 # A list of the kwargs used by FrameWidget classes. This list
 # exists to prune these items from kwargs as they are passed
@@ -116,3 +136,22 @@ ACTIVE_ENUM_NAME = '<ACTIVE>'
 UNNAMED_FIELD = '<UNNAMED>'
 INVALID_OPTION = '<INVALID>'
 UNKNOWN_BOOLEAN = 'unknown %s'
+
+
+widget_depth_names = (
+    "frame", "button", "entry", "listbox", "comment"
+    )
+
+color_names = (
+    "io_fg", "io_bg",
+    "default_bg", "comment_bg", "frame_bg", "button",
+    "text_normal", "text_disabled", "text_highlighted",
+    "enum_normal", "enum_disabled", "enum_highlighted",
+    "entry_normal", "entry_disabled", "entry_highlighted",
+    "invalid_path", "tooltip_bg",
+    "bitmap_canvas_bg", "bitmap_canvas_outline"
+    )
+
+font_names = (
+    "default", "fixed", "container_title", "comment", "heading",
+    )

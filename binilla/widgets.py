@@ -13,7 +13,8 @@ from tkinter.filedialog import asksaveasfilename
 
 import threadsafe_tkinter as tk
 import tkinter.ttk as ttk
-from . import editor_constants as e_c
+import tkinter.font
+from binilla import editor_constants as e_c
 
 win_10_pad = 2
 
@@ -48,6 +49,32 @@ def get_relative_widget_position(child, parent):
         child = child.master
 
     return x, y
+
+
+class FontConfig(dict):
+    __slots__ = ()
+    def __init__(self, *a, **kw):
+        dict.__init__(self, *a, **kw)
+        # default these so the dict is properly filled with defaults
+        self.setdefault('family', "")
+        self.setdefault('size', 12)
+        self.setdefault('weight', "normal")
+        self.setdefault('slant', "roman")
+        self.setdefault('underline', 0)
+        self.setdefault('overstrike', 0)
+
+    @property
+    def family(self): return str(self.get("family", ""))
+    @property
+    def size(self): return int(self.get("size", 12))
+    @property
+    def weight(self): return str(self.get("weight", "normal"))
+    @property
+    def slant(self): return str(self.get("slant", "roman"))
+    @property
+    def underline(self): return bool(self.get("underline", 0))
+    @property
+    def overstrike(self): return bool(self.get("overstrike", 0))
 
 
 class BinillaWidget():
@@ -92,6 +119,27 @@ class BinillaWidget():
     io_bg_color = e_c.IO_BG_COLOR
     invalid_path_color = e_c.INVALID_PATH_COLOR
     tooltip_bg_color = e_c.TOOLTIP_BG_COLOR
+
+    # FONTS
+    _fonts = {}
+
+    font_settings = dict(
+        default=FontConfig(
+            family=e_c.DEFAULT_FONT_FAMILY, size=e_c.DEFAULT_FONT_SIZE,
+            weight=e_c.DEFAULT_FONT_WEIGHT, slant=e_c.DEFAULT_FONT_SLANT),
+        fixed=FontConfig(
+            family=e_c.FIXED_FONT_FAMILY, size=e_c.FIXED_FONT_SIZE,
+            weight=e_c.FIXED_FONT_WEIGHT, slant=e_c.FIXED_FONT_SLANT),
+        container_title=FontConfig(
+            family=e_c.CONTAINER_TITLE_FONT_FAMILY, size=e_c.CONTAINER_TITLE_FONT_SIZE,
+            weight=e_c.CONTAINER_TITLE_FONT_WEIGHT, slant=e_c.CONTAINER_TITLE_FONT_SLANT),
+        comment=FontConfig(
+            family=e_c.COMMENT_FONT_FAMILY, size=e_c.COMMENT_FONT_SIZE,
+            weight=e_c.COMMENT_FONT_WEIGHT, slant=e_c.COMMENT_FONT_SLANT),
+        heading=FontConfig(
+            family=e_c.HEADING_FONT_FAMILY, size=e_c.HEADING_FONT_SIZE,
+            weight=e_c.HEADING_FONT_WEIGHT, slant=e_c.HEADING_FONT_SLANT),
+        )
 
     # MISC
     title_width = e_c.TITLE_WIDTH
@@ -145,6 +193,36 @@ class BinillaWidget():
 
     def set_disabled(self, disable=True):
         self.disabled = bool(disable)
+
+    def get_font(self, font_type):
+        if font_type not in self.font_settings:
+            raise AttributeError("No font type '%s'" % font_type)
+        elif font_type not in self._fonts:
+            self.reload_fonts((font_type, ))
+
+        return self._fonts[font_type]
+
+    def get_font_config(self, font_type):
+        return FontConfig(**self.font_settings.get(font_type, {}))
+
+    def set_font_config(self, font_type, reload=True, **kw):
+        font_config = FontConfig(**self.get_font_config(font_type))
+        font_config.update(**kw)
+        self.font_settings[font_type] = font_config
+        if reload:
+            self.reload_fonts((font_type, ))
+
+    def reload_fonts(self, font_types=None):
+        if font_types is None:
+            font_types = self.font_settings.keys()
+
+        for typ in tuple(font_types):
+            settings = self.get_font_config(typ)
+            if settings is None:
+                continue
+
+            if typ not in self._fonts or self._fonts[typ].actual() != settings:
+                self._fonts[typ] = tkinter.font.Font(**settings)
 
     def delete_all_traces(self, modes="rw"):
         for mode, traces in (("r", self.read_traces),

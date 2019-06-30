@@ -455,9 +455,10 @@ class Binilla(tk.Tk, BinillaWidget):
             master = self.root_frame
 
         self.io_frame = tk.Frame(master, highlightthickness=0)
-        self.io_text = tk.Text(self.io_frame,
-                               font=self.get_font("fixed"), state=DISABLED,
-                               fg=self.io_fg_color, bg=self.io_bg_color)
+        self.io_text = tk.Text(
+            self.io_frame, font=self.get_font("console"), state=DISABLED,
+            fg=self.io_fg_color, bg=self.io_bg_color)
+        self.io_text.font_type = "console"
         self.io_scroll_y = tk.Scrollbar(self.io_frame, orient=VERTICAL)
 
         self.io_scroll_y.config(command=self.io_text.yview)
@@ -1714,6 +1715,7 @@ class DefSelectorWindow(tk.Toplevel, BinillaWidget):
         self.def_listbox = tk.Listbox(
             self.list_canvas, selectmode=SINGLE, exportselection=False,
             highlightthickness=0, font=self.get_font("fixed"))
+        self.def_listbox.font_type = "fixed"
 
         self.ok_btn = tk.Button(
             self.button_canvas, text='OK', command=self.complete_action, width=16)

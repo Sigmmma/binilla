@@ -339,16 +339,11 @@ font = Container("font",
     Struct("header",
         UInt16("size"),
         Bool16("flags",
-            "bold",       # weight=("bold" if flags.bold else "normal")
-            "italic",     # slant=("italic" if flags.italic else "roman")
-            "underline",  # underline=bool(flags.underline)
-            "overstrike", # overstrike=bool(flags.overstrike)
+            "bold",
+            "italic",
+            "underline",
+            "overstrike",
             ),
-
-        # UPDATE THIS PADDING WHEN ADDING STUFF ABOVE IT
-        #Pad(12 - 2*2),
-
-        #UInt16("font_family_len", VISIBLE=False, EDITABLE=False),
         SIZE=16, HIDE_TITLE=True
         ),
 
@@ -356,7 +351,7 @@ font = Container("font",
         *({NAME:"_%s_%s" % (i, font_families[i]),
            GUI_NAME: font_families[i], VALUE: font_families[i]}
           for i in range(len(font_families))),
-        SIZE=240#".header.font_family_len"
+        SIZE=240
         ),
     )
 

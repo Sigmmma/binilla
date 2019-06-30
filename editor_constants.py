@@ -91,17 +91,17 @@ ENUM_HIGHLIGHTED_COLOR = ENTRY_HIGHLIGHTED_COLOR
 # Fonts
 if IS_WIN:
     DEFAULT_FONT_FAMILY = "Segoe UI"
-    DEFAULT_FONT_SIZE = 9
+    DEFAULT_FONT_SIZE   = 9
     FIXED_FONT_FAMILY = "Courier"
-    FIXED_FONT_SIZE = 8
-    HEADING_FONT_FAMILY = 'Copperplate Gothic Bold'
+    FIXED_FONT_SIZE   = 10
+    HEADING_FONT_FAMILY = 'Courier'
     HEADING_FONT_SIZE   = 24
 else:
     DEFAULT_FONT_FAMILY = "Bitstream Charter"
-    DEFAULT_FONT_SIZE = 9
+    DEFAULT_FONT_SIZE   = 9
     FIXED_FONT_FAMILY = "Bitstream Vera Sans Mono"
-    FIXED_FONT_SIZE = 8
-    HEADING_FONT_FAMILY = 'Copperplate Gothic Bold'
+    FIXED_FONT_SIZE   = 8
+    HEADING_FONT_FAMILY = 'Bitstream Vera Sans Mono'
     HEADING_FONT_SIZE   = 24
 
 DEFAULT_FONT_WEIGHT = "normal"
@@ -153,5 +153,6 @@ color_names = (
     )
 
 font_names = (
-    "default", "fixed", "container_title", "comment", "heading",
+    "default", "fixed", "fixed_small", "heading", "frame_title",
+    "treeview", "console", "comment", "tooltip"
     )

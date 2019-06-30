@@ -1,10 +1,20 @@
+import tkinter.font
+
 from supyr_struct.defs.tag_def import TagDef
 from supyr_struct.field_types import *
-from .field_widgets import *
-from .constants import *
+from binilla.field_widgets import *
+from binilla.constants import *
+from binilla.editor_constants import widget_depth_names, color_names,\
+     font_names
 
-def get():
-    return (config_def, style_def)
+
+font_families = ()
+try:
+    font_families = tuple(sorted(tkinter.font.families()))
+except Exception:
+    print("Cannot import list of font families. Create Tkinter "
+          "interpreter instance before attempting to import config.")
+
 
 pad_str = "Padding applied to the %s of widgets oriented %sally"
 
@@ -118,18 +128,6 @@ widget_tooltips = (
 
 depth_tooltip = "\
 Number of pixels to surround the widget with to give an appearance of depth."
-
-widget_depth_names = ("frame", "button", "entry", "listbox", "comment")
-
-color_names = (
-    "io_fg", "io_bg",
-    "default_bg", "comment_bg", "frame_bg", "button",
-    "text_normal", "text_disabled", "text_highlighted",
-    "enum_normal", "enum_disabled", "enum_highlighted",
-    "entry_normal", "entry_disabled", "entry_highlighted",
-    "invalid_path", "tooltip_bg",
-    "bitmap_canvas_bg", "bitmap_canvas_outline"
-    )
 
 modifier_enums = (
     {GUI_NAME: "", NAME: "NONE"},
@@ -305,6 +303,11 @@ hotkey = Struct("hotkey",
         TOOLTIP="Function to run when this hotkey is pressed")
     )
 
+color = QStruct("color",
+    UInt8('r'), UInt8('g'), UInt8('b'),
+    ORIENT='h', WIDGET=ColorPickerFrame
+    )
+
 open_tag = Container("open_tag",
     Struct("header",
         UInt16("width"),
@@ -332,6 +335,30 @@ filepath = Container("filepath",
     StrUtf8("path", SIZE=".path_len")
     )
 
+font = Container("font",
+    Struct("header",
+        UInt16("size"),
+        Bool16("flags",
+            "bold",       # weight=("bold" if flags.bold else "normal")
+            "italic",     # slant=("italic" if flags.italic else "roman")
+            "underline",  # underline=bool(flags.underline)
+            "overstrike", # overstrike=bool(flags.overstrike)
+            ),
+
+        # UPDATE THIS PADDING WHEN ADDING STUFF ABOVE IT
+        #Pad(12 - 2*2),
+
+        #UInt16("font_family_len", VISIBLE=False, EDITABLE=False),
+        SIZE=16, HIDE_TITLE=True
+        ),
+
+    StrUtf8Enum("family",
+        *({NAME:"_%s_%s" % (i, font_families[i]),
+           GUI_NAME: font_families[i], VALUE: font_families[i]}
+          for i in range(len(font_families))),
+        SIZE=240#".header.font_family_len"
+        ),
+    )
 
 config_header = Struct("header",
     UEnum32("id", ('Bnla', 'alnB'), VISIBLE=False, DEFAULT='alnB'),
@@ -448,6 +475,7 @@ array_counts = Struct("array_counts",
     UInt32("color_count", VISIBLE=False),
     UInt32("hotkey_count", VISIBLE=False),
     UInt32("tag_window_hotkey_count", VISIBLE=False),
+    UInt32("font_count", VISIBLE=False),
     SIZE=128, VISIBLE=False,
     COMMENT="You really shouldnt be messing with these."
     )
@@ -555,22 +583,24 @@ directory_paths = Array("directory_paths",
     )
 
 colors = Array("colors",
-    SUB_STRUCT=QStruct("color",
-        UInt8('r'), UInt8('g'), UInt8('b'),
-        ORIENT='h', WIDGET=ColorPickerFrame
-        ),
-    SIZE=".array_counts.color_count",
+    SUB_STRUCT=color, SIZE=".array_counts.color_count",
     MAX=len(color_names), MIN=len(color_names),
     NAME_MAP=color_names,
     )
 
-hotkeys = Array(
-    "hotkeys", SUB_STRUCT=hotkey, DYN_NAME_PATH='.method.enum_name',
+hotkeys = Array("hotkeys",
+    SUB_STRUCT=hotkey, DYN_NAME_PATH='.method.enum_name',
     SIZE=".array_counts.hotkey_count", WIDGET=DynamicArrayFrame)
 
 tag_window_hotkeys = Array(
     "tag_window_hotkeys", SUB_STRUCT=hotkey, DYN_NAME_PATH='.method.enum_name',
     SIZE=".array_counts.tag_window_hotkey_count", WIDGET=DynamicArrayFrame)
+
+fonts = Array("fonts",
+    SUB_STRUCT=font, SIZE=".array_counts.font_count",
+    MAX=len(font_names), MIN=len(font_names),
+    NAME_MAP=font_names,
+    )
 
 config_def = TagDef("binilla_config",
     config_header,
@@ -583,6 +613,7 @@ config_def = TagDef("binilla_config",
     colors,
     hotkeys,
     tag_window_hotkeys,
+    fonts,
     ENDIAN='<', ext=".cfg",
     )
 
@@ -591,5 +622,9 @@ style_def = TagDef("binilla_style",
     array_counts,
     widgets,
     colors,
+    fonts,
     ENDIAN='<', ext=".sty",
     )
+
+def get():
+    return (config_def, style_def)

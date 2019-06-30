@@ -13,7 +13,6 @@ from copy import deepcopy
 from datetime import datetime
 from time import time, sleep
 from os.path import basename, dirname, exists, join, isfile, relpath
-from tkinter.font import Font
 from tkinter.constants import *
 from tkinter.filedialog import askopenfilenames, askopenfilename,\
      askdirectory, asksaveasfilename
@@ -28,7 +27,6 @@ from supyr_struct.field_types import FieldType
 
 from binilla import editor_constants as e_c
 from binilla.tag_window import *
-from binilla.config_def import *
 from binilla.widget_picker import *
 from binilla.widgets import BinillaWidget, ToolTipHandler
 from binilla.handler import Handler
@@ -132,15 +130,19 @@ class Binilla(tk.Tk, BinillaWidget):
     icon_filepath = ""
 
     '''Config properties'''
-    style_def = style_def
-    config_def = config_def
+    style_def = None
+    config_def = None
+
     config_version = 1
     config_path = default_config_path
     config_window = None
     # the tag that holds all the config settings for this application
     config_file = None
     log_file = None
-    color_names = ()
+
+    widget_depth_names = e_c.widget_depth_names
+    color_names = e_c.color_names
+    font_names = e_c.font_names
 
     '''Window properties'''
     # When tags are opened they are tiled, first vertically, then horizontally.
@@ -196,7 +198,6 @@ class Binilla(tk.Tk, BinillaWidget):
         self.debug = kwargs.pop('debug', self.debug)
         self.tag_windows = {}
         self.tag_id_to_window_id = {}
-        self.color_names = color_names
 
         if 'handler' in kwargs:
             self.handler = kwargs.pop('handler')
@@ -208,6 +209,26 @@ class Binilla(tk.Tk, BinillaWidget):
             self.curr_hotkeys = {}
         if self.curr_tag_window_hotkeys is None:
             self.curr_tag_window_hotkeys = {}
+
+        try:
+            # will fail with an AttributeError not initialized.
+            # also, cant use getattr, as tkinter.Tk overloads __getattr__
+            # with a call to getattr, so it will recurse to max stack depth
+            _tk = object.__getattribute__(self, "tk")
+        except AttributeError:
+            _tk = None
+
+        if _tk is None:
+            tk.Tk.__init__(self, *args, **{
+                k: v for k, v in kwargs.items() if k in (
+                "screenName", "baseName", "className", "useTk", "sync", "use"
+                )})
+
+        # NOTE: Do this import AFTER Tk interpreter is set up, otherwise
+        # it will fail to get the names of the font families
+        from binilla.config_def import style_def, config_def
+        self.style_def = kwargs.pop('style_def', style_def)
+        self.config_def  = kwargs.pop('config_def', config_def)
 
         if self.config_file is not None:
             pass
@@ -231,25 +252,14 @@ class Binilla(tk.Tk, BinillaWidget):
             except Exception:
                 pass
 
-        self.app_name = str(kwargs.pop('app_name', self.app_name))
-        self.version  = str(kwargs.pop('version', self.version))
-
         if self.handler is not None:
             self.handler.log_filename = self.log_filename
 
-        tk.Tk.__init__(self, *args, **kwargs)
-
         #fonts
-        self.default_font = Font(
-            family=e_c.DEFAULT_FONT_NAME, size=e_c.DEFAULT_FONT_SIZE)
-        self.fixed_font = Font(
-            family=e_c.FIXED_FONT_NAME, size=e_c.FIXED_FONT_SIZE)
-        self.container_title_font = Font(
-            family=e_c.FIXED_FONT_SIZE, size=e_c.FIXED_FONT_SIZE + 2,
-            weight='bold')
-        self.comment_font = Font(
-            family=e_c.FIXED_FONT_NAME, size=e_c.FIXED_FONT_SIZE + 1)
+        self.reload_fonts()
 
+        self.app_name = str(kwargs.pop('app_name', self.app_name))
+        self.version  = str(kwargs.pop('version', self.version))
         self.title('%s v%s' % (self.app_name, self.version))
         self.minsize(width=200, height=50)
         self.protocol("WM_DELETE_WINDOW", self.exit)
@@ -446,7 +456,7 @@ class Binilla(tk.Tk, BinillaWidget):
 
         self.io_frame = tk.Frame(master, highlightthickness=0)
         self.io_text = tk.Text(self.io_frame,
-                               font=self.fixed_font, state=DISABLED,
+                               font=self.get_font("fixed"), state=DISABLED,
                                fg=self.io_fg_color, bg=self.io_bg_color)
         self.io_scroll_y = tk.Scrollbar(self.io_frame, orient=VERTICAL)
 
@@ -878,6 +888,7 @@ class Binilla(tk.Tk, BinillaWidget):
 
         widget_depths = widgets.depths
         colors = style_data.colors
+        fonts = style_data.fonts
 
         for s in ('title_width', 'scroll_menu_width', 'enum_menu_width',
                   'min_entry_width', 'textbox_width', 'textbox_height',
@@ -895,7 +906,7 @@ class Binilla(tk.Tk, BinillaWidget):
             try: setattr(BinillaWidget, s, tuple(widgets[s]))
             except IndexError: pass
 
-        for s in widget_depth_names[:len(widget_depths)]:
+        for s in self.widget_depth_names[:len(widget_depths)]:
             try: setattr(BinillaWidget, s + '_depth', widget_depths[s])
             except IndexError: pass
 
@@ -903,6 +914,20 @@ class Binilla(tk.Tk, BinillaWidget):
             try:
                 setattr(BinillaWidget, self.color_names[i] + '_color',
                         '#%02x%02x%02x' % tuple(colors[i]))
+            except IndexError:
+                pass
+
+        for i in range(len(fonts)):
+            try:
+                font_flags = fonts[i].header.flags
+                self.set_font_config(
+                    self.font_names[i],
+                    family=fonts[i].family.data, size=fonts[i].header.size,
+                    weight=("bold" if font_flags.bold else "normal"),
+                    slant=("italic" if font_flags.italic else "roman"),
+                    underline=bool(font_flags.underline),
+                    overstrike=bool(font_flags.overstrike),
+                    )
             except IndexError:
                 pass
 
@@ -963,8 +988,9 @@ class Binilla(tk.Tk, BinillaWidget):
         style_file = self.style_def.build()
         style_file.filepath = filepath
 
-        style_file.data.widgets.depths.extend(len(widget_depth_names))
+        style_file.data.widgets.depths.extend(len(self.widget_depth_names))
         style_file.data.colors.extend(len(self.color_names))
+        style_file.data.fonts.extend(len(self.font_names))
 
         self.update_style(style_file)
         style_file.serialize(temp=0, backup=0, calc_pointers=0)
@@ -1581,6 +1607,7 @@ class Binilla(tk.Tk, BinillaWidget):
 
         widget_depths = widgets.depths
         colors = style_data.colors
+        fonts = style_data.fonts
 
         header.parse(attr_index='date_modified')
         for s in ('title_width', 'scroll_menu_width', 'enum_menu_width',
@@ -1599,7 +1626,7 @@ class Binilla(tk.Tk, BinillaWidget):
             try: widgets[s][:] = tuple(getattr(BinillaWidget, s))
             except IndexError: pass
 
-        for s in widget_depth_names:
+        for s in self.widget_depth_names:
             try: widget_depths[s] = getattr(BinillaWidget, s + '_depth')
             except IndexError: pass
 
@@ -1618,6 +1645,29 @@ class Binilla(tk.Tk, BinillaWidget):
                 color_block[0] = int(color[0:2], 16)
                 color_block[1] = int(color[2:4], 16)
                 color_block[2] = int(color[4:6], 16)
+            except IndexError:
+                pass
+
+        for i in range(len(self.font_names)):
+            try:
+                font_block = fonts[i]
+            except IndexError:
+                fonts.append()
+                try:
+                    font_block = fonts[i]
+                except IndexError:
+                    continue
+
+            try:
+                font_cfg = self.get_font_config(self.font_names[i])
+                font_block.family.data = font_cfg.family
+                font_block.header.size = font_cfg.size
+
+                font_flags = font_block.header.flags
+                font_flags.bold = font_cfg.weight.lower() == "bold"
+                font_flags.italic = font_cfg.slant.lower() == "italic"
+                font_flags.underline = font_cfg.underline
+                font_flags.overstrike = font_cfg.overstrike
             except IndexError:
                 pass
 
@@ -1663,7 +1713,7 @@ class DefSelectorWindow(tk.Toplevel, BinillaWidget):
         #create and set the y scrollbar for the canvas root
         self.def_listbox = tk.Listbox(
             self.list_canvas, selectmode=SINGLE, exportselection=False,
-            highlightthickness=0, font=app_root.fixed_font)
+            highlightthickness=0, font=self.get_font("fixed"))
 
         self.ok_btn = tk.Button(
             self.button_canvas, text='OK', command=self.complete_action, width=16)

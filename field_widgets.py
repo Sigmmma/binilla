@@ -9,7 +9,6 @@ from math import log, ceil
 from os.path import splitext
 from tkinter import messagebox
 from tkinter import constants as t_const
-from tkinter.font import Font
 from tkinter.colorchooser import askcolor
 from tkinter.filedialog import asksaveasfilename, askopenfilename
 from traceback import format_exc
@@ -487,7 +486,8 @@ class FieldWidget(widgets.BinillaWidget):
             self.comment_frame = tk.Frame(
                 master, relief='sunken', bd=self.comment_depth,
                 bg=self.comment_bg_color)
-            try: comment_font = self.tag_window.app_root.comment_font
+
+            try: comment_font = self.get_font("comment")
             except AttributeError: comment_font = None
 
             self.comment_label = tk.Label(
@@ -813,7 +813,7 @@ class ContainerFrame(tk.Frame, FieldWidget):
                 bd=self.button_depth,
                 )
 
-            try: title_font = self.tag_window.app_root.container_title_font
+            try: title_font = self.get_font("container_title")
             except AttributeError: title_font = None
             self.title = tk.Frame(self, relief='raised', bd=self.frame_depth,
                                   bg=self.frame_bg_color)
@@ -1355,7 +1355,7 @@ class ArrayFrame(ContainerFrame):
         FieldWidget.__init__(self, *args, **kwargs)
         tk.Frame.__init__(self, *args, **fix_kwargs(**kwargs))
 
-        try: title_font = self.tag_window.app_root.container_title_font
+        try: title_font = self.get_font("container_title")
         except AttributeError: title_font = None
         show_frame = bool(kwargs.pop('show_frame', not self.blocks_start_hidden))
         if self.is_empty and self.hide_if_blank:
@@ -2197,7 +2197,7 @@ class NullFrame(DataFrame):
     def flush(self): pass
 
     def populate(self):
-        try: title_font = self.tag_window.app_root.default_font
+        try: title_font = self.get_font("default")
         except AttributeError: title_font = None
         self.title_label = tk.Label(
             self, text=self.gui_name, width=self.title_size, anchor='w',
@@ -2275,7 +2275,7 @@ class RawdataFrame(DataFrame):
                 print(format_exc())
 
     def populate(self):
-        try: title_font = self.tag_window.app_root.default_font
+        try: title_font = self.get_font("default")
         except AttributeError: title_font = None
         self.title_label = tk.Label(
             self, text=self.gui_name, width=self.title_size, anchor='w',
@@ -2450,7 +2450,7 @@ class VoidFrame(DataFrame):
     def flush(self): pass
 
     def populate(self):
-        try: title_font = self.tag_window.app_root.default_font
+        try: title_font = self.get_font("default")
         except AttributeError: title_font = None
         self.title_label = tk.Label(
             self, text=self.gui_name, width=self.title_size, anchor='w',
@@ -2508,7 +2508,7 @@ class EntryFrame(DataFrame):
         self.entry_string = tk.StringVar(self)
         self.content = tk.Frame(self, relief='flat', bd=0,
                                 bg=self.default_bg_color)
-        try: title_font = self.tag_window.app_root.default_font
+        try: title_font = self.get_font("default")
         except AttributeError: title_font = None
 
         self.title_label = tk.Label(
@@ -2996,7 +2996,7 @@ class TextFrame(DataFrame):
         # make the widgets
         self.content = tk.Frame(self, relief='flat', bd=0,
                                 bg=self.default_bg_color)
-        try: title_font = self.tag_window.app_root.default_font
+        try: title_font = self.get_font("default")
         except AttributeError: title_font = None
 
         self.title_label = tk.Label(
@@ -3281,7 +3281,7 @@ class UnionFrame(ContainerFrame):
             bd=self.button_depth, width=5,
             )
 
-        try: title_font = self.tag_window.app_root.container_title_font
+        try: title_font = self.get_font("container_title")
         except AttributeError: title_font = None
 
         self.title = tk.Frame(self, relief='raised', bd=self.frame_depth,
@@ -3577,7 +3577,7 @@ class StreamAdapterFrame(ContainerFrame):
             bd=self.button_depth,
             )
 
-        try: title_font = self.tag_window.app_root.container_title_font
+        try: title_font = self.get_font("container_title")
         except AttributeError: title_font = None
         self.title = tk.Frame(self, relief='raised', bd=self.frame_depth,
                               bg=self.frame_bg_color)
@@ -3689,7 +3689,7 @@ class EnumFrame(DataFrame):
                 label_width = max(label_width, len(s))
 
         # make the widgets
-        try: title_font = self.tag_window.app_root.default_font
+        try: title_font = self.get_font("default")
         except AttributeError: title_font = None
         self.content = tk.Frame(self, relief='flat', bd=0,
                                 bg=self.default_bg_color)
@@ -3860,7 +3860,7 @@ class DynamicEnumFrame(EnumFrame):
         sel_index = -1 if self.node is None else self.node + 1
 
         # make the widgets
-        try: title_font = self.tag_window.app_root.default_font
+        try: title_font = self.get_font("default")
         except AttributeError: title_font = None
         self.content = tk.Frame(self, relief='flat', bd=0,
                                 bg=self.default_bg_color)
@@ -4010,7 +4010,7 @@ class BoolFrame(DataFrame):
         self.checkbtns = {}
         DataFrame.__init__(self, *args, **kwargs)
 
-        try: title_font = self.tag_window.app_root.default_font
+        try: title_font = self.get_font("default")
         except AttributeError: title_font = None
         self.content = tk.Frame(
             self, bg=self.default_bg_color, highlightthickness=0)
@@ -4268,7 +4268,7 @@ class BoolSingleFrame(DataFrame):
 
     def __init__(self, *args, **kwargs):
         DataFrame.__init__(self, *args, **kwargs)
-        try: title_font = self.tag_window.app_root.default_font
+        try: title_font = self.get_font("default")
         except AttributeError: title_font = None
 
         self.checked = tk.IntVar(self)

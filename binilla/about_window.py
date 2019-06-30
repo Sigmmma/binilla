@@ -122,6 +122,7 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
 
         app_name_label = tk.Label(header_frame, text=self.app_name,
                                   font=self.get_font("heading"))
+        app_name_label.font_type = "heading"
         python_ver_label = tk.Label(
             py_label_frame, text='Python version:  %s' % pr_version_str)
         tk_ver_label = tk.Label(

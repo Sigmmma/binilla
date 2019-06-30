@@ -124,21 +124,39 @@ class BinillaWidget():
     _fonts = {}
 
     font_settings = dict(
+        # "default" font is required to be here at the very least
         default=FontConfig(
             family=e_c.DEFAULT_FONT_FAMILY, size=e_c.DEFAULT_FONT_SIZE,
             weight=e_c.DEFAULT_FONT_WEIGHT, slant=e_c.DEFAULT_FONT_SLANT),
+
         fixed=FontConfig(
             family=e_c.FIXED_FONT_FAMILY, size=e_c.FIXED_FONT_SIZE,
             weight=e_c.FIXED_FONT_WEIGHT, slant=e_c.FIXED_FONT_SLANT),
-        container_title=FontConfig(
-            family=e_c.CONTAINER_TITLE_FONT_FAMILY, size=e_c.CONTAINER_TITLE_FONT_SIZE,
-            weight=e_c.CONTAINER_TITLE_FONT_WEIGHT, slant=e_c.CONTAINER_TITLE_FONT_SLANT),
-        comment=FontConfig(
-            family=e_c.COMMENT_FONT_FAMILY, size=e_c.COMMENT_FONT_SIZE,
-            weight=e_c.COMMENT_FONT_WEIGHT, slant=e_c.COMMENT_FONT_SLANT),
+        fixed_small=FontConfig(
+            family=e_c.FIXED_FONT_FAMILY, size=e_c.FIXED_FONT_SIZE - 2,
+            weight=e_c.FIXED_FONT_WEIGHT, slant=e_c.FIXED_FONT_SLANT),
+
+        treeview=FontConfig(
+            family=e_c.DEFAULT_FONT_FAMILY, size=e_c.DEFAULT_FONT_SIZE,
+            weight=e_c.DEFAULT_FONT_WEIGHT, slant=e_c.DEFAULT_FONT_SLANT),
+
+        console=FontConfig(
+            family=e_c.FIXED_FONT_FAMILY, size=e_c.FIXED_FONT_SIZE - 2,
+            weight=e_c.FIXED_FONT_WEIGHT, slant=e_c.FIXED_FONT_SLANT),
+
         heading=FontConfig(
             family=e_c.HEADING_FONT_FAMILY, size=e_c.HEADING_FONT_SIZE,
             weight=e_c.HEADING_FONT_WEIGHT, slant=e_c.HEADING_FONT_SLANT),
+        frame_title=FontConfig(
+            family=e_c.CONTAINER_TITLE_FONT_FAMILY, size=e_c.CONTAINER_TITLE_FONT_SIZE,
+            weight=e_c.CONTAINER_TITLE_FONT_WEIGHT, slant=e_c.CONTAINER_TITLE_FONT_SLANT),
+
+        comment=FontConfig(
+            family=e_c.COMMENT_FONT_FAMILY, size=e_c.COMMENT_FONT_SIZE,
+            weight=e_c.COMMENT_FONT_WEIGHT, slant=e_c.COMMENT_FONT_SLANT),
+        tooltip=FontConfig(
+            family=e_c.DEFAULT_FONT_FAMILY, size=e_c.DEFAULT_FONT_SIZE,
+            weight=e_c.DEFAULT_FONT_WEIGHT, slant=e_c.DEFAULT_FONT_SLANT),
         )
 
     # MISC
@@ -170,6 +188,8 @@ class BinillaWidget():
     f_widget_parent = None
     disabled = False
 
+    font_type = "default"  # the type of font to use
+
     read_traces = ()
     write_traces = ()
     undefine_traces = ()
@@ -196,8 +216,9 @@ class BinillaWidget():
 
     def get_font(self, font_type):
         if font_type not in self.font_settings:
-            raise AttributeError("No font type '%s'" % font_type)
-        elif font_type not in self._fonts:
+            font_type = "default"
+
+        if font_type not in self._fonts:
             self.reload_fonts((font_type, ))
 
         return self._fonts[font_type]
@@ -332,8 +353,11 @@ class BinillaWidget():
                 elif w is not self:
                     seen.add(id(w))
 
+                font = self.get_font(getattr(w, "font_type", self.font_type))
+
                 if isinstance(w, tk.Menu):
-                    w.config(fg=self.text_normal_color, bg=self.default_bg_color)
+                    w.config(fg=self.text_normal_color, bg=self.default_bg_color,
+                             font=font)
                     next_widgets.extend(w.children.values())
                 elif isinstance(w, tk.PanedWindow):
                     w.config(bd=self.frame_depth, bg=self.frame_bg_color)
@@ -341,16 +365,17 @@ class BinillaWidget():
                 elif isinstance(w, tk.Listbox):
                     w.config(bg=self.enum_normal_color, fg=self.text_normal_color,
                              selectbackground=self.enum_highlighted_color,
-                             selectforeground=self.text_highlighted_color)
+                             selectforeground=self.text_highlighted_color,
+                             font=font)
                     next_widgets.extend(w.children.values())
                 elif isinstance(w, ttk.Treeview):
                     w.tag_configure(
                         'item', background=self.entry_normal_color,
-                        foreground=self.text_normal_color)
+                        foreground=self.text_normal_color, font=font)
                 elif isinstance(w, tk.Text):
                     w.config(bg=self.entry_normal_color, fg=self.text_normal_color,
                              selectbackground=self.entry_highlighted_color,
-                             selectforeground=self.text_highlighted_color)
+                             selectforeground=self.text_highlighted_color, font=font)
                     next_widgets.extend(w.children.values())
                 elif isinstance(w, tk.Spinbox):
                     w.config(bg=self.entry_normal_color, fg=self.text_normal_color,
@@ -360,13 +385,15 @@ class BinillaWidget():
                              selectforeground=self.text_highlighted_color,
                              activebackground=self.default_bg_color,
                              readonlybackground=self.entry_disabled_color,
-                             buttonbackground=self.default_bg_color,)
+                             buttonbackground=self.default_bg_color, font=font,)
                     next_widgets.extend(w.children.values())
                 elif isinstance(w, tk.LabelFrame):
-                    w.config(fg=self.text_normal_color, bg=self.default_bg_color)
+                    w.config(fg=self.text_normal_color, bg=self.default_bg_color,
+                             font=font)
                     next_widgets.extend(w.children.values())
                 elif isinstance(w, tk.Label):
-                    w.config(fg=self.text_normal_color, bg=self.default_bg_color)
+                    w.config(fg=self.text_normal_color, bg=self.default_bg_color,
+                             font=font)
                     next_widgets.extend(w.children.values())
                 elif isinstance(w, (tk.Frame, tk.Canvas, tk.Toplevel)):
                     w.config(bg=self.default_bg_color)
@@ -376,12 +403,12 @@ class BinillaWidget():
                              bg=self.default_bg_color, fg=self.text_normal_color,
                              activebackground=self.default_bg_color,
                              activeforeground=self.text_normal_color,
-                             selectcolor=self.entry_normal_color,)
+                             selectcolor=self.entry_normal_color, font=font,)
                     next_widgets.extend(w.children.values())
                 elif isinstance(w, tk.Button):
                     w.config(bg=self.button_color, activebackground=self.button_color,
                              fg=self.text_normal_color, bd=self.button_depth,
-                             disabledforeground=self.text_disabled_color)
+                             disabledforeground=self.text_disabled_color, font=font)
                     next_widgets.extend(w.children.values())
                 elif isinstance(w, tk.Entry):
                     w.config(bd=self.entry_depth,
@@ -390,7 +417,7 @@ class BinillaWidget():
                         disabledforeground=self.text_disabled_color,
                         selectbackground=self.entry_highlighted_color,
                         selectforeground=self.text_highlighted_color,
-                        readonlybackground=self.entry_disabled_color,)
+                        readonlybackground=self.entry_disabled_color, font=font,)
                     next_widgets.extend(w.children.values())
 
             widgets = next_widgets
@@ -953,7 +980,8 @@ class ToolTipHandler(BinillaWidget):
         self.tip_window.wm_geometry("+%d+%d" % (pos_x, pos_y))
         label = tk.Label(
             self.tip_window, text=tip_text, justify='left', relief='solid',
-            bg=self.tooltip_bg_color, fg=self.text_normal_color, borderwidth=1)
+            bg=self.tooltip_bg_color, fg=self.text_normal_color, borderwidth=1,
+            font=self.get_font("tooltip"))
         label.pack()
 
     def hide_tip(self):

@@ -917,10 +917,10 @@ class Binilla(tk.Tk, BinillaWidget):
 
         for i in range(len(fonts)):
             try:
-                font_flags = fonts[i].header.flags
+                font_flags = fonts[i].flags
                 self.set_font_config(
                     self.font_names[i],
-                    family=fonts[i].family.data, size=fonts[i].header.size,
+                    family=fonts[i].family.data, size=fonts[i].size,
                     weight=("bold" if font_flags.bold else "normal"),
                     slant=("italic" if font_flags.italic else "roman"),
                     underline=bool(font_flags.underline),
@@ -1651,9 +1651,9 @@ class Binilla(tk.Tk, BinillaWidget):
             try:
                 font_cfg = self.get_font_config(self.font_names[i])
                 font_block.family.data = font_cfg.family
-                font_block.header.size = font_cfg.size
+                font_block.size = font_cfg.size
 
-                font_flags = font_block.header.flags
+                font_flags = font_block.flags
                 font_flags.bold = font_cfg.weight.lower() == "bold"
                 font_flags.italic = font_cfg.slant.lower() == "italic"
                 font_flags.underline = font_cfg.underline

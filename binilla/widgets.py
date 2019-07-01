@@ -237,7 +237,7 @@ class BinillaWidget():
         if font_types is None:
             font_types = self.font_settings.keys()
 
-        for typ in tuple(font_types):
+        for typ in sorted(font_types):
             settings = self.get_font_config(typ)
             if settings is None:
                 continue
@@ -245,15 +245,18 @@ class BinillaWidget():
             if typ not in self._fonts or self._fonts[typ].actual() != settings:
                 self._fonts[typ] = tkinter.font.Font(**settings)
 
-    def delete_all_traces(self, modes="rw"):
+    def delete_all_traces(self, modes="rwu"):
         for mode, traces in (("r", self.read_traces),
                              ("w", self.write_traces),
                              ("u", self.undefine_traces)):
             if mode not in modes:
                 continue
             for cb_name in tuple(traces.keys()):
-                var = traces.pop(cb_name)
-                var.trace_vdelete(mode, cb_name)
+                try:
+                    var = traces.pop(cb_name)
+                    var.trace_vdelete(mode, cb_name)
+                except Exception:
+                    print(format_exc())
 
     def delete_all_widget_refs(self):
         '''
@@ -368,10 +371,6 @@ class BinillaWidget():
                              selectforeground=self.text_highlighted_color,
                              font=font)
                     next_widgets.extend(w.children.values())
-                elif isinstance(w, ttk.Treeview):
-                    w.tag_configure(
-                        'item', background=self.entry_normal_color,
-                        foreground=self.text_normal_color, font=font)
                 elif isinstance(w, tk.Text):
                     w.config(bg=self.entry_normal_color, fg=self.text_normal_color,
                              selectbackground=self.entry_highlighted_color,
@@ -418,6 +417,14 @@ class BinillaWidget():
                         selectbackground=self.entry_highlighted_color,
                         selectforeground=self.text_highlighted_color,
                         readonlybackground=self.entry_disabled_color, font=font,)
+                    next_widgets.extend(w.children.values())
+
+                # starting on ttk shit
+                elif isinstance(w, ttk.Treeview):
+                    w.tag_configure(
+                        'item', background=self.entry_normal_color,
+                        foreground=self.text_normal_color, font=font)
+                elif isinstance(w, ttk.Notebook):
                     next_widgets.extend(w.children.values())
 
             widgets = next_widgets

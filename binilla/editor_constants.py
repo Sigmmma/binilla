@@ -94,7 +94,7 @@ if IS_WIN:
     DEFAULT_FONT_SIZE   = 9
     FIXED_FONT_FAMILY = "Courier"
     FIXED_FONT_SIZE   = 10
-    HEADING_FONT_FAMILY = 'Courier'
+    HEADING_FONT_FAMILY = "Courier"
     HEADING_FONT_SIZE   = 24
 else:
     DEFAULT_FONT_FAMILY = "Bitstream Charter"
@@ -112,7 +112,7 @@ FIXED_FONT_SLANT  = "roman"
 HEADING_FONT_WEIGHT = "bold"
 HEADING_FONT_SLANT = "italic"
 CONTAINER_TITLE_FONT_FAMILY = FIXED_FONT_FAMILY
-CONTAINER_TITLE_FONT_SIZE   = FIXED_FONT_SIZE + 2
+CONTAINER_TITLE_FONT_SIZE   = FIXED_FONT_SIZE + 1
 CONTAINER_TITLE_FONT_WEIGHT = "bold"
 CONTAINER_TITLE_FONT_SLANT  = "roman"
 COMMENT_FONT_FAMILY = FIXED_FONT_FAMILY
@@ -156,3 +156,9 @@ font_names = (
     "default", "fixed", "fixed_small", "heading", "frame_title",
     "treeview", "console", "comment", "tooltip"
     )
+
+
+def fix_kwargs(**kw):
+    '''Returns a dict where all items in the provided keyword arguments
+    that use keys found in WIDGET_KWARGS are removed.'''
+    return {s:kw[s] for s in kw if s not in WIDGET_KWARGS}

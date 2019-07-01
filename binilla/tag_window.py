@@ -10,10 +10,10 @@ from tkinter import messagebox
 from tkinter import constants as t_c
 from traceback import format_exc
 
-from .edit_manager import EditManager
-from .field_widgets import *
-from .widgets import BinillaWidget, get_mouse_delta
-from .widget_picker import *
+from binilla.edit_manager import EditManager
+from binilla.field_widgets import *
+from binilla.widgets import BinillaWidget, get_mouse_delta
+from binilla.widget_picker import *
 
 
 __all__ = ("TagWindow", "ConfigWindow",

@@ -335,18 +335,15 @@ filepath = Container("filepath",
     StrUtf8("path", SIZE=".path_len")
     )
 
-font = Container("font",
-    Struct("header",
-        UInt16("size"),
-        Bool16("flags",
-            "bold",
-            "italic",
-            "underline",
-            "overstrike",
-            ),
-        SIZE=16, HIDE_TITLE=True
+font = Struct("font",
+    UInt16("size"),
+    Bool16("flags",
+        "bold",
+        "italic",
+        "underline",
+        "overstrike",
         ),
-
+    Pad(12),
     StrUtf8Enum("family",
         *({NAME:"_%s_%s" % (i, font_families[i]),
            GUI_NAME: font_families[i], VALUE: font_families[i]}

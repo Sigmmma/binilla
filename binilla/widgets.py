@@ -194,10 +194,29 @@ class BinillaWidget():
     write_traces = ()
     undefine_traces = ()
 
+    _filedialog_style_fix = None
+
     def __init__(self, *args, **kwargs):
         self.read_traces = {}
         self.write_traces = {}
         self.undefine_traces = {}
+        self.fix_filedialog_style()
+
+    def fix_filedialog_style(self):
+        if (BinillaWidget._filedialog_style_fix is not None
+            or not hasattr(self, "_root") or e_c.IS_WIN):
+            return
+
+        # fix linux using bad colors in the filedialog
+        # at times for certain linux distros
+        root = self._root()
+        root.option_add('*foreground', 'black')
+
+        BinillaWidget._filedialog_style_fix = ttk.Style(root)
+        self._filedialog_style_fix.configure('TLabel', foreground='black')
+        self._filedialog_style_fix.configure('TEntry', foreground='black')
+        self._filedialog_style_fix.configure('TMenubutton', foreground='black')
+        self._filedialog_style_fix.configure('TButton', foreground='black')
 
     def read_trace(self, var, function):
         cb_name = var.trace("r", function)

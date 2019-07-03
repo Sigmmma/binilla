@@ -3,8 +3,8 @@ import tkinter.ttk as ttk
 
 from traceback import format_exc
 
-from binilla.field_widgets import field_widget
 from binilla import editor_constants as e_c
+from binilla.widgets.field_widgets import field_widget
 
 
 class ContainerFrame(tk.Frame, field_widget.FieldWidget):

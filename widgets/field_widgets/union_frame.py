@@ -3,10 +3,10 @@ import tkinter.ttk as ttk
 
 from traceback import format_exc
 
-from binilla import widgets
 from binilla import editor_constants as e_c
-from binilla.field_widgets import field_widget
-from binilla.field_widgets import container_frame
+from binilla.widgets.scroll_menu import ScrollMenu
+from binilla.widgets.field_widgets import field_widget
+from binilla.widgets.field_widgets import container_frame
 
 
 class UnionFrame(container_frame.ContainerFrame):
@@ -59,7 +59,7 @@ class UnionFrame(container_frame.ContainerFrame):
             font=self.get_font("frame_title"),
             bg=self.frame_bg_color, fg=self.text_normal_color)
         self.title_label.font_type = "frame_title"
-        self.sel_menu = widgets.ScrollMenu(
+        self.sel_menu = ScrollMenu(
             self.title, f_widget_parent=self, sel_index=u_index,
             max_index=max_u_index, disabled=self.disabled,
             callback=self.select_option, option_getter=self.get_options)

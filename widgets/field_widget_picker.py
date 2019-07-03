@@ -5,7 +5,7 @@ to build to represent a field when given a descriptor.
 from supyr_struct.field_types import *
 
 from binilla import constants as const
-from binilla.field_widgets import *
+from binilla.widgets.field_widgets import *
 
 __all__ = ("add_widget", "get_widget", "copy_widget",
            "def_widget_picker", "WidgetPicker")

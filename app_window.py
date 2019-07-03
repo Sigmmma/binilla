@@ -9,10 +9,8 @@ import threadsafe_tkinter as tk
 # make the ui more responsive by lowering the time between processing events
 tk.TkWrapper.idle_time = 2
 
-from copy import deepcopy
 from datetime import datetime
 from time import time, sleep
-from os.path import basename, dirname, exists, join, isfile, relpath
 from tkinter.constants import *
 from tkinter.filedialog import askopenfilenames, askopenfilename,\
      askdirectory, asksaveasfilename
@@ -26,12 +24,16 @@ s_c.inject()
 from supyr_struct.field_types import FieldType
 
 from binilla import editor_constants as e_c
-from binilla.tag_window import *
-from binilla.widget_picker import *
-from binilla.widgets import BinillaWidget, ToolTipHandler
+from binilla.widgets.field_widget_picker import WidgetPicker
+from binilla.widgets.binilla_widget import BinillaWidget
+from binilla.widgets.tooltip_handler import ToolTipHandler
 from binilla.handler import Handler
 from binilla.util import *
-from binilla.about_window import AboutWindow
+from binilla.windows.about_window import AboutWindow
+from binilla.windows.def_selector_window import DefSelectorWindow
+from binilla.windows.tag_window import TagWindow, ConfigWindow,\
+     make_hotkey_string, read_hotkey_string
+from binilla.windows.tag_window_manager import TagWindowManager
 
 
 this_curr_dir = get_cwd(__file__)
@@ -98,7 +100,7 @@ class Binilla(tk.Tk, BinillaWidget):
 
     '''Directories'''
     curr_dir = this_curr_dir
-    styles_dir = join(curr_dir, "styles")
+    styles_dir = os.path.join(curr_dir, "styles")
     last_load_dir = curr_dir
     last_defs_dir = curr_dir
     last_imp_dir  = curr_dir
@@ -233,7 +235,7 @@ class Binilla(tk.Tk, BinillaWidget):
 
         if self.config_file is not None:
             pass
-        elif exists(self.config_path):
+        elif os.path.exists(self.config_path):
             # load the config file
             try:
                 self.load_config()
@@ -246,7 +248,7 @@ class Binilla(tk.Tk, BinillaWidget):
             self.make_config()
             self.config_made_anew = True
 
-        if not exists(self.curr_dir):
+        if not os.path.exists(self.curr_dir):
             self.curr_dir = this_curr_dir
             try:
                 self.config_file.data.directory_paths.curr_dir.path = this_curr_dir
@@ -406,8 +408,8 @@ class Binilla(tk.Tk, BinillaWidget):
         abs_filepath = tag.filepath
         abs_new_filepath = new_filepath
         if tagsdir_rel:
-            abs_filepath = join(tags_dir, abs_filepath)
-            abs_new_filepath = join(tags_dir, abs_new_filepath)
+            abs_filepath = os.path.join(tags_dir, abs_filepath)
+            abs_new_filepath = os.path.join(tags_dir, abs_new_filepath)
 
         try:
             existing_tag = handler.get_tag(tag.rel_filepath, tag.def_id)
@@ -428,7 +430,7 @@ class Binilla(tk.Tk, BinillaWidget):
         if not filepath:
             # the path is blank(new tag), give it a unique name
             new_filepath = 'untitled%s%s' % (self.untitled_num, tag.ext)
-            abs_new_filepath = join(tags_dir, new_filepath)
+            abs_new_filepath = os.path.join(tags_dir, new_filepath)
             self.untitled_num += 1
             add_to_recent = False
 
@@ -816,7 +818,7 @@ class Binilla(tk.Tk, BinillaWidget):
 
         self.handler.tagsdir = dir_paths.tags_dir.path
 
-        self.log_filename = basename(dir_paths.debug_log_path.path)
+        self.log_filename = os.path.basename(dir_paths.debug_log_path.path)
 
         try:
             self.debug_mode = bool(header.flags.debug_mode)
@@ -828,7 +830,7 @@ class Binilla(tk.Tk, BinillaWidget):
     def load_config(self, filepath=None):
         if filepath is None:
             filepath = self.config_path
-        assert exists(filepath)
+        assert os.path.exists(filepath)
 
         # load the config file
         self.config_file = self.config_def.build(filepath=filepath)
@@ -873,8 +875,8 @@ class Binilla(tk.Tk, BinillaWidget):
             if not filepath:
                 return
 
-            assert exists(filepath)
-            self.styles_dir = dirname(filepath)
+            assert os.path.exists(filepath)
+            self.styles_dir = os.path.dirname(filepath)
             style_file = self.style_def.build(filepath=filepath)
 
         assert hasattr(style_file, 'data')
@@ -979,7 +981,7 @@ class Binilla(tk.Tk, BinillaWidget):
         if not filepath:
             return
 
-        self.styles_dir = dirname(filepath)
+        self.styles_dir = os.path.dirname(filepath)
         style_file = self.style_def.build()
         style_file.filepath = filepath
 
@@ -1042,13 +1044,13 @@ class Binilla(tk.Tk, BinillaWidget):
             else:
                 filepaths = (filepaths, )
 
-        self.last_load_dir = dirname(filepaths[-1])
+        self.last_load_dir = os.path.dirname(filepaths[-1])
         w = None
 
         windows = []
         handler = self.handler
         handler_flags = self.config_file.data.header.handler_flags
-        tags_dir = join(handler.tagsdir, "")
+        tags_dir = os.path.join(handler.tagsdir, "")
 
         for path in filepaths:
             path = abs_path = sanitize_path(path)
@@ -1068,7 +1070,7 @@ class Binilla(tk.Tk, BinillaWidget):
                 # try to load the new tags
                 try:
                     if handler.tagsdir_relative and not is_new_tag:
-                        abs_path = join(tags_dir, abs_path)
+                        abs_path = os.path.join(tags_dir, abs_path)
                     new_tag = handler.build_tag(
                         filepath=abs_path, def_id=def_id,
                         allow_corrupt=handler_flags.allow_corrupt)
@@ -1116,7 +1118,7 @@ class Binilla(tk.Tk, BinillaWidget):
         if not fp:
             return
 
-        self.last_load_dir = dirname(fp)
+        self.last_load_dir = os.path.dirname(fp)
         dsw = DefSelectorWindow(
             self, title="Select a definition to use", action=lambda def_id:
             self.load_tags(filepaths=fp, def_id=def_id))
@@ -1266,7 +1268,7 @@ class Binilla(tk.Tk, BinillaWidget):
             w = self.get_tag_window_by_tag(tag)
             if ((w and w.is_new_tag) or (not(hasattr(tag, "filepath") and
                                              tag.filepath and
-                                             dirname(tag.filepath)))):
+                                             os.path.dirname(tag.filepath)))):
                 return self.save_tag_as(tag)
 
             exception = None
@@ -1297,7 +1299,7 @@ class Binilla(tk.Tk, BinillaWidget):
         if filepath is None:
             ext = tag.ext
             filepath = asksaveasfilename(
-                initialdir=dirname(tag.filepath), defaultextension=ext,
+                initialdir=os.path.dirname(tag.filepath), defaultextension=ext,
                 title="Save tag as...", filetypes=[
                     (ext[1:], "*" + ext), ('All', '*')] )
 
@@ -1308,9 +1310,9 @@ class Binilla(tk.Tk, BinillaWidget):
         w = self.get_tag_window_by_tag(tag)
 
         try:
-            self.last_load_dir = dirname(filepath)
+            self.last_load_dir = os.path.dirname(filepath)
             if tag.handler.tagsdir_relative:
-                filepath = relpath(filepath, tags_dir)
+                filepath = os.path.relpath(filepath, tags_dir)
 
             self.add_tag(tag, filepath)
             w.save(temp=False)
@@ -1387,16 +1389,16 @@ class Binilla(tk.Tk, BinillaWidget):
             self.update_idletasks()
             if not defs_dir.endswith(s_c.PATHDIV):
                 defs_dir += s_c.PATHDIV
-            defs_dir = sanitize_path(dirname(defs_dir))
+            defs_dir = sanitize_path(os.path.dirname(defs_dir))
 
             # try and find the module_root
             mod_root = defs_dir
             parent_dir = mod_root
-            while isfile(parent_dir + s_c.PATHDIV + "__init__.py"):
+            while os.path.isfile(parent_dir + s_c.PATHDIV + "__init__.py"):
                 mod_root = parent_dir
-                parent_dir = dirname(parent_dir)
+                parent_dir = os.path.dirname(parent_dir)
 
-            mod_root = dirname(parent_dir)
+            mod_root = os.path.dirname(parent_dir)
 
             # if the module_root isnt in sys.path, we need to add it so
             # the importer can resolve the import path for the definitions
@@ -1683,217 +1685,3 @@ class Binilla(tk.Tk, BinillaWidget):
             iconbitmap=self.icon_filepath, app_name=self.app_name,
             messages=self.about_messages)
         self.place_window_relative(self.about_window, 30, 50)
-
-
-class DefSelectorWindow(tk.Toplevel, BinillaWidget):
-
-    def __init__(self, app_root, action, *args, **kwargs):
-        self.app_root = app_root
-        try:
-            title = app_root.handler.defs_filepath
-        except AttributeError:
-            title = "Tag definitions"
-
-        title = kwargs.pop('title', title)
-        tk.Toplevel.__init__(self, app_root, *args, **kwargs)
-        self.title(title)
-
-        self.action = action
-        self.def_id = None
-        self.sorted_def_ids = []
-        self.minsize(width=400, height=300)
-
-        self.list_canvas = tk.Canvas(self, highlightthickness=0)
-        self.button_canvas = tk.Canvas(self, height=50, highlightthickness=0)
-
-        #create and set the y scrollbar for the canvas root
-        self.def_listbox = tk.Listbox(
-            self.list_canvas, selectmode=SINGLE, exportselection=False,
-            highlightthickness=0, font=self.get_font("fixed"))
-        self.def_listbox.font_type = "fixed"
-
-        self.ok_btn = tk.Button(
-            self.button_canvas, text='OK', command=self.complete_action, width=16)
-        self.cancel_btn = tk.Button(
-            self.button_canvas, text='Cancel', command=self.destroy, width=16)
-        self.hsb = tk.Scrollbar(self.button_canvas, orient='horizontal')
-        self.vsb = tk.Scrollbar(self.list_canvas,   orient='vertical')
-
-        self.def_listbox.config(xscrollcommand=self.hsb.set,
-                                yscrollcommand=self.vsb.set)
-
-        self.hsb.config(command=self.def_listbox.xview)
-        self.vsb.config(command=self.def_listbox.yview)
-
-        self.list_canvas.pack(fill='both', expand=True)
-        self.button_canvas.pack(fill='x')
-
-        self.vsb.pack(side=RIGHT, fill='y')
-        self.def_listbox.pack(fill='both', expand=True)
-
-        self.hsb.pack(side=TOP, fill='x')
-        self.ok_btn.pack(side=LEFT,      padx=9)
-        self.cancel_btn.pack(side=RIGHT, padx=9)
-
-        # make selecting things more natural
-        self.def_listbox.bind('<<ListboxSelect>>', self.set_selected_def)
-        self.def_listbox.bind('<Return>', self.complete_action)
-        self.def_listbox.bind('<Double-Button-1>', self.complete_action)
-        self.ok_btn.bind('<Return>', self.complete_action)
-        self.cancel_btn.bind('<Return>', self.destroy)
-        self.bind('<Escape>', self.destroy)
-
-        self.transient(self.app_root)
-        self.grab_set()
-
-        self.apply_style()
-        self.cancel_btn.focus_set()
-        self.populate_listbox()
-
-    def destroy(self, e=None):
-        try:
-            self.app_root.def_selector_window = None
-        except AttributeError:
-            pass
-        tk.Toplevel.destroy(self)
-
-    def complete_action(self, e=None):
-        if self.def_id is not None:
-            self.action(self.def_id)
-        self.destroy()
-
-    def populate_listbox(self):
-        defs_root = self.app_root.handler.defs_path
-        defs = self.app_root.handler.defs
-
-        id_pad = ext_pad = 0
-        defs_by_ext = {}
-
-        #loop over all the defs and find the max amount of
-        #padding needed between the ID and the Ext strings
-        for def_id in defs:
-            d = defs[def_id]
-            if len(def_id) > id_pad:
-                id_pad = len(def_id)
-
-        for def_id in defs.keys():
-            definiton = defs[def_id]
-            ext = definiton.ext[1:]
-            local_defs = defs_by_ext.get(ext, {})
-            local_defs[def_id] = definiton
-
-            defs_by_ext[ext] = local_defs
-
-        sorted_ids = []
-        for ext in sorted(defs_by_ext.keys()):
-            sorted_ids.extend(tuple(defs_by_ext[ext].keys()))
-
-        self.sorted_def_ids = tuple(sorted_ids)
-
-        #loop over all the definitions
-        for def_id in sorted_ids:
-            d = defs[def_id]
-
-            self.def_listbox.insert(END, 'ID=%s  %sExt=%s'%
-                                    (def_id, ' '*(id_pad-len(def_id)),
-                                     d.ext[1:] ))
-
-    def set_selected_def(self, event=None):
-        indexes = [int(i) for i in self.def_listbox.curselection()]
-
-        if len(indexes) == 1:
-            self.def_id = self.sorted_def_ids[indexes[0]]
-
-
-class TagWindowManager(tk.Toplevel, BinillaWidget):
-
-    app_root = None
-
-    list_index_to_window = None
-
-    def __init__(self, app_root, *args, **kwargs):
-        self.app_root = app_root
-        tk.Toplevel.__init__(self, app_root, *args, **kwargs)
-
-        self.list_index_to_window = []
-
-        self.title("Tag window manager")
-        self.minsize(width=400, height=250)
-
-        # make the frames
-        self.windows_frame = tk.Frame(self)
-        self.button_frame = tk.Frame(self)
-        self.ok_frame = tk.Frame(self.button_frame)
-        self.cancel_frame = tk.Frame(self.button_frame)
-
-        # make the buttons
-        self.ok_button = tk.Button(
-            self.ok_frame, text='OK', width=15, command=self.select)
-        self.cancel_button = tk.Button(
-            self.cancel_frame, text='Cancel', width=15, command=self.destroy)
-
-        # make the scrollbars and listbox
-        self.scrollbar_y = tk.Scrollbar(self.windows_frame, orient="vertical")
-        self.scrollbar_x = tk.Scrollbar(self, orient="horizontal")
-        self.windows_listbox = tk.Listbox(
-            self.windows_frame, selectmode='single',
-            exportselection=False, highlightthickness=0,
-            xscrollcommand=self.scrollbar_x.set,
-            yscrollcommand=self.scrollbar_y.set)
-
-        # set up the scrollbars
-        self.scrollbar_x.config(command=self.windows_listbox.xview)
-        self.scrollbar_y.config(command=self.windows_listbox.yview)
-
-        # set up the keybindings
-        self.windows_listbox.bind('<Return>', self.select)
-        self.scrollbar_x.bind('<Return>', self.select)
-        self.scrollbar_y.bind('<Return>', self.select)
-        self.windows_listbox.bind('<Double-Button-1>', self.select)
-        self.ok_button.bind('<Return>', self.select)
-        self.cancel_button.bind('<Return>', self.destroy)
-        self.bind('<Escape>', self.destroy)
-
-        # store the windows by title
-        windows_by_title = {}
-        for w in self.app_root.tag_windows.values():
-            windows_by_title[w.title()] = w
-
-        # populate the listbox
-        for title in sorted(windows_by_title):
-            self.list_index_to_window.append(windows_by_title[title])
-            self.windows_listbox.insert('end', title)
-
-        self.windows_listbox.select_set(0)
-
-        # pack everything
-        self.ok_button.pack(padx=12, pady=5, side='right')
-        self.cancel_button.pack(padx=12, pady=5, side='left')
-        self.ok_frame.pack(side='left', fill='x', expand=True)
-        self.cancel_frame.pack(side='right', fill='x', expand=True)
-
-        self.windows_listbox.pack(side='left', fill="both", expand=True)
-        self.scrollbar_y.pack(side='left', fill="y")
-
-        self.windows_frame.pack(fill="both", expand=True)
-        self.scrollbar_x.pack(fill="x")
-        self.button_frame.pack(fill="x")
-
-        self.apply_style()
-        self.transient(self.app_root)
-        self.ok_button.focus_set()
-        self.grab_set()
-
-    def destroy(self, e=None):
-        try:
-            self.app_root.tag_window_manager = None
-        except AttributeError:
-            pass
-        tk.Toplevel.destroy(self)
-
-    def select(self, e=None):
-        indexes = [int(i) for i in self.windows_listbox.curselection()]
-        w = self.list_index_to_window[indexes[0]]
-
-        self.destroy()
-        self.app_root.select_tag_window(w)

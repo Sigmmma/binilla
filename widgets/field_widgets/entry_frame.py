@@ -7,8 +7,8 @@ from traceback import format_exc
 
 from binilla.util import float_to_str, FLOAT_PREC, DOUBLE_PREC
 
-from binilla.field_widgets import field_widget
-from binilla.field_widgets import data_frame
+from binilla.widgets.field_widgets import field_widget
+from binilla.widgets.field_widgets import data_frame
 
 
 def float_from_bytes(val, end='<'):

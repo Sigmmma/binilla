@@ -6,13 +6,13 @@ from tkinter.filedialog import asksaveasfilename, askopenfilename
 from traceback import format_exc
 
 from binilla.edit_manager import EditState
-from binilla import widgets
 from binilla import editor_constants as e_c
+from binilla.widgets.binilla_widget import BinillaWidget
 
 
 # These classes are used for laying out the visual structure
 # of many sub-widgets, and effectively the whole window.
-class FieldWidget(widgets.BinillaWidget):
+class FieldWidget(BinillaWidget):
     '''
     Provides the basic methods and attributes for widgets
     to utilize and interact with supyr_structs node trees.
@@ -97,7 +97,7 @@ class FieldWidget(widgets.BinillaWidget):
     _initialized = False
 
     def __init__(self, *args, **kwargs):
-        widgets.BinillaWidget.__init__(self)
+        BinillaWidget.__init__(self)
 
         self.f_widgets = {}
         self.f_widget_ids = []
@@ -153,7 +153,7 @@ class FieldWidget(widgets.BinillaWidget):
                 self.pack_pady = self.horizontal_pady
 
     def apply_style(self, seen=None):
-        widgets.BinillaWidget.apply_style(self, seen)
+        BinillaWidget.apply_style(self, seen)
         if self.comment_frame:
             self.comment_frame.config(bd=self.comment_depth,
                                       bg=self.comment_bg_color)

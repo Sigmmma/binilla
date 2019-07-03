@@ -11,9 +11,10 @@ from tkinter import constants as t_c
 from traceback import format_exc
 
 from binilla.edit_manager import EditManager
-from binilla.field_widgets import *
-from binilla.widgets import BinillaWidget, get_mouse_delta
-from binilla.widget_picker import *
+from binilla.widgets.field_widgets import *
+from binilla.widgets.field_widget_picker import *
+from binilla.widgets.binilla_widget import BinillaWidget
+from binilla.widgets import get_mouse_delta
 
 
 __all__ = ("TagWindow", "ConfigWindow",

@@ -8,7 +8,7 @@ from traceback import format_exc
 import threadsafe_tkinter as tk
 
 from tkinter import messagebox
-from binilla.widgets import BinillaWidget
+from binilla.widgets.binilla_widget import BinillaWidget
 
 VALID_MODULE_CHARACTERS = frozenset(string.ascii_letters + "_" + string.digits)
 

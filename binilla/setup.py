@@ -28,7 +28,9 @@ setup(
     license='MIT',
     packages=[
         'binilla',
-        'binilla.field_widgets',
+        'binilla.widgets',
+        'binilla.widgets.field_widgets',
+        'binilla.windows',
         ],
     package_data={
         '': ['*.txt', '*.md', '*.rst', '*.pyw'],

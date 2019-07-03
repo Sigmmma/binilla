@@ -2,7 +2,7 @@ import threadsafe_tkinter as tk
 
 from tkinter.colorchooser import askcolor
 
-from binilla.field_widgets import container_frame
+from binilla.widgets.field_widgets import container_frame
 
 
 class ColorPickerFrame(container_frame.ContainerFrame):

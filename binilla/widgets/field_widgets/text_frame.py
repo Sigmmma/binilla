@@ -2,7 +2,7 @@ import threadsafe_tkinter as tk
 
 from traceback import format_exc
 
-from binilla.field_widgets import data_frame
+from binilla.widgets.field_widgets import data_frame
 
 
 class TextFrame(data_frame.DataFrame):

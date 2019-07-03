@@ -4,10 +4,10 @@ import tkinter.ttk as ttk
 from copy import deepcopy
 from traceback import format_exc
 
-from binilla import widgets
 from binilla import editor_constants as e_c
-from binilla.field_widgets import field_widget
-from binilla.field_widgets import container_frame
+from binilla.widgets.scroll_menu import ScrollMenu
+from binilla.widgets.field_widgets import field_widget
+from binilla.widgets.field_widgets import container_frame
 
 
 class ArrayFrame(container_frame.ContainerFrame):
@@ -66,7 +66,7 @@ class ArrayFrame(container_frame.ContainerFrame):
         self.show_btn = ttk.Checkbutton(
             title, width=3, text=toggle_text, command=self.toggle_visible,
             style='ShowButton.TButton')
-        self.sel_menu = widgets.ScrollMenu(
+        self.sel_menu = ScrollMenu(
             title, f_widget_parent=self,
             sel_index=self.sel_index, max_index=node_len-1,
             option_getter=self.get_options, callback=self.select_option)

@@ -5,8 +5,8 @@ from traceback import format_exc
 
 from supyr_struct.buffer import get_rawdata_context
 
-from binilla.field_widgets import field_widget
 from binilla import editor_constants as e_c
+from binilla.widgets.field_widgets import field_widget
 
 
 class DataFrame(field_widget.FieldWidget, tk.Frame):

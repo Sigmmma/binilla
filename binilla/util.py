@@ -14,11 +14,12 @@ from time import sleep
 from supyr_struct.defs.util import *
 from traceback import format_exc
 
+from binilla.editor_constants import IS_LNX
+
 POS_INF = float("inf")
 NEG_INF = float("-inf")
 FLOAT_PREC  = 23*log(2, 10)
 DOUBLE_PREC = 52*log(2, 10)
-IS_LINUX = "linux" in platform.system().lower()
 
 
 def is_main_frozen():
@@ -95,7 +96,7 @@ def do_subprocess(exec_path, cmd_args=(), exec_args=(), **kw):
     proc_controller = kw.pop("proc_controller", ProcController())
     try:
 
-        if IS_LINUX:
+        if IS_LNX:
             args = (exec_path, ) + exec_args
         else:
             cmd_args  = ''.join((" /%s" % a.lower()) for a in cmd_args)

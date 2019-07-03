@@ -2,10 +2,10 @@ import threadsafe_tkinter as tk
 
 from traceback import format_exc
 
-from binilla import widgets
 from binilla import editor_constants as e_c
-from binilla.field_widgets import field_widget
-from binilla.field_widgets import data_frame
+from binilla.widgets.scroll_menu import ScrollMenu
+from binilla.widgets.field_widgets import field_widget
+from binilla.widgets.field_widgets import data_frame
 
 
 class EnumFrame(data_frame.DataFrame):
@@ -42,7 +42,7 @@ class EnumFrame(data_frame.DataFrame):
             bg=self.default_bg_color, fg=self.text_normal_color,
             disabledforeground=self.text_disabled_color,
             font=self.get_font("default"))
-        self.sel_menu = widgets.ScrollMenu(
+        self.sel_menu = ScrollMenu(
             self.content, f_widget_parent=self, menu_width=label_width,
             sel_index=sel_index, max_index=self.desc.get('ENTRIES', 0) - 1,
             disabled=self.disabled, default_text="<INVALID>",
@@ -208,7 +208,7 @@ class DynamicEnumFrame(EnumFrame):
             justify='left', anchor='w', width=self.title_size,
             bg=self.default_bg_color, fg=self.text_normal_color,
             disabledforeground=self.text_disabled_color)
-        self.sel_menu = widgets.ScrollMenu(
+        self.sel_menu = ScrollMenu(
             self.content, f_widget_parent=self, menu_width=self.widget_width,
             sel_index=sel_index, max_index=0,
             disabled=self.disabled, default_text="<INVALID>",

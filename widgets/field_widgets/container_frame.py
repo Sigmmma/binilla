@@ -4,7 +4,7 @@ import tkinter.ttk as ttk
 from traceback import format_exc
 
 from binilla import editor_constants as e_c
-from binilla.widgets.field_widgets import field_widget
+from binilla.widgets.field_widgets import field_widget, data_frame
 
 
 class ContainerFrame(tk.Frame, field_widget.FieldWidget):
@@ -294,8 +294,8 @@ class ContainerFrame(tk.Frame, field_widget.FieldWidget):
                                     attr_index=i, desc=sub_desc, **kwargs)
             except Exception:
                 print(format_exc())
-                widget = NullFrame(content, node=sub_node,
-                                   attr_index=i, desc=sub_desc, **kwargs)
+                widget = data_frame.NullFrame(
+                    content, node=sub_node, attr_index=i, desc=sub_desc, **kwargs)
 
             wid = id(widget)
             self.f_widget_ids.append(wid)

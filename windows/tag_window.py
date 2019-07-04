@@ -11,8 +11,8 @@ from tkinter import constants as t_c
 from traceback import format_exc
 
 from binilla.edit_manager import EditManager
-from binilla.widgets.field_widgets import *
-from binilla.widgets.field_widget_picker import *
+from binilla.widgets.field_widgets import FieldWidget
+from binilla.widgets.field_widget_picker import def_widget_picker
 from binilla.widgets.binilla_widget import BinillaWidget
 from binilla.widgets import get_mouse_delta
 

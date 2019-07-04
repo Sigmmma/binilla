@@ -11,10 +11,10 @@ from io import StringIO
 
 from math import log, ceil
 from time import sleep
-from supyr_struct.defs.util import *
 from traceback import format_exc
 
 from binilla.editor_constants import IS_LNX
+from supyr_struct.defs.util import sanitize_path
 
 POS_INF = float("inf")
 NEG_INF = float("-inf")

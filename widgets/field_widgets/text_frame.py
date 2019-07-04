@@ -2,7 +2,7 @@ import threadsafe_tkinter as tk
 
 from traceback import format_exc
 
-from binilla.widgets.field_widgets import data_frame
+from binilla.widgets.field_widgets import field_widget, data_frame
 
 
 class TextFrame(data_frame.DataFrame):
@@ -94,7 +94,7 @@ class TextFrame(data_frame.DataFrame):
             pass
 
     def unload_node_data(self):
-        FieldWidget.unload_node_data(self)
+        field_widget.FieldWidget.unload_node_data(self)
         if not self.data_text: return
         self.data_text.config(state=tk.NORMAL)
         self.data_text.delete(1.0, tk.END)
@@ -121,7 +121,7 @@ class TextFrame(data_frame.DataFrame):
     def edit_apply(self=None, *, edit_state, undo=True):
         attr_index = edit_state.attr_index
 
-        w_parent, parent = FieldWidget.get_widget_and_node(
+        w_parent, parent = field_widget.FieldWidget.get_widget_and_node(
             nodepath=edit_state.nodepath, tag_window=edit_state.tag_window)
 
         if undo:

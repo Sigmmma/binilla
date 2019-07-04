@@ -6,8 +6,8 @@ from traceback import format_exc
 
 from binilla import editor_constants as e_c
 from binilla.widgets.scroll_menu import ScrollMenu
-from binilla.widgets.field_widgets import field_widget
-from binilla.widgets.field_widgets import container_frame
+from binilla.widgets.field_widgets import field_widget, container_frame,\
+     data_frame
 
 
 class ArrayFrame(container_frame.ContainerFrame):
@@ -628,7 +628,7 @@ class ArrayFrame(container_frame.ContainerFrame):
                     f_widget_parent=self, disabled=self.disabled)
             except Exception:
                 print(format_exc())
-                widget = NullFrame(
+                widget = data_frame.NullFrame(
                     self.content, node=sub_node, parent=node,
                     show_title=False, dont_padx_fields=True,
                     attr_index=self.sel_index, tag_window=self.tag_window,

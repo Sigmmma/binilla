@@ -6,9 +6,9 @@ __author__ = "Devin Bobadilla"
 __date__ = "2019.03.31"
 __version__ = (1, 0, 2)
 __all__ = (
+    'widgets', 'windows',
     'app_window', 'config_def', 'constants', 'edit_manager',
-    'editor_constants', 'field_widgets', 'handler',
-    'tag_window', 'widget_picker', 'widgets',
+    'editor_constants', 'handler',
     )
 
 from binilla import constants

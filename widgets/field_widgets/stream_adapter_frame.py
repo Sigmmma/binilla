@@ -4,9 +4,8 @@ import tkinter.ttk as ttk
 from traceback import format_exc
 
 from binilla import editor_constants as e_c
-from binilla.widgets.field_widgets import field_widget
-from binilla.widgets.field_widgets import container_frame
-from binilla.widgets.field_widgets import union_frame
+from binilla.widgets.field_widgets import field_widget, container_frame,\
+     union_frame, data_frame
 
 
 class StreamAdapterFrame(container_frame.ContainerFrame):
@@ -106,7 +105,7 @@ class StreamAdapterFrame(container_frame.ContainerFrame):
                 widget = widget_cls(self.content, **kwargs)
             except Exception:
                 print(format_exc())
-                widget = NullFrame(self.content, **kwargs)
+                widget = data_frame.NullFrame(self.content, **kwargs)
 
             wid = id(widget)
             f_widget_ids.append(wid)

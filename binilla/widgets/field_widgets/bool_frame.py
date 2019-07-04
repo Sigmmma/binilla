@@ -4,8 +4,8 @@ import threadsafe_tkinter as tk
 from traceback import format_exc
 
 from binilla import editor_constants as e_c
-from binilla.widgets.field_widgets import field_widget
-from binilla.widgets.field_widgets import data_frame
+from binilla import widgets
+from binilla.widgets.field_widgets import field_widget, data_frame
 
 
 class BoolFrame(data_frame.DataFrame):

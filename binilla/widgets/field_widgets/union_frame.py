@@ -5,8 +5,8 @@ from traceback import format_exc
 
 from binilla import editor_constants as e_c
 from binilla.widgets.scroll_menu import ScrollMenu
-from binilla.widgets.field_widgets import field_widget
-from binilla.widgets.field_widgets import container_frame
+from binilla.widgets.field_widgets import field_widget, container_frame,\
+     data_frame
 
 
 class UnionFrame(container_frame.ContainerFrame):
@@ -269,7 +269,7 @@ class UnionFrame(container_frame.ContainerFrame):
                         active_widget = widget_cls(self.content, **kwargs)
                     except Exception:
                         print(format_exc())
-                        active_widget = NullFrame(self.content, **kwargs)
+                        active_widget = data_frame.NullFrame(self.content, **kwargs)
                 else:
                     active_widget = self.raw_frame
 

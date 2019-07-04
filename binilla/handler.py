@@ -27,8 +27,8 @@ from supyr_struct.tag import Tag
 from supyr_struct.defs.tag_def import TagDef
 
 # make sure the new constants are injected and used
-from binilla.constants import *
-from binilla.util import *
+from binilla.constants import PATHDIV, BPI
+from binilla.util import sanitize_path, is_main_frozen
 
 
 ######################################################

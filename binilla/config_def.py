@@ -4,7 +4,7 @@ from supyr_struct.defs.tag_def import TagDef
 from supyr_struct.field_types import *
 from binilla.widgets.field_widgets.color_picker_frame import ColorPickerFrame
 from binilla.widgets.field_widgets.array_frame import DynamicArrayFrame
-from binilla.constants import *
+from binilla.constants import GUI_NAME, NAME, TOOLTIP, VALUE, NODE_PRINT_INDENT
 from binilla.editor_constants import widget_depth_names, color_names,\
      font_names
 

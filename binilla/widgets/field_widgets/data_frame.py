@@ -239,7 +239,6 @@ class RawdataFrame(DataFrame):
             undo_node = self.node
             curr_size = self.parent.get_size(attr_index=index)
 
-            writable = kwargs.pop('writable', False)
             with get_rawdata_context(writable=False, filepath=filepath) as rawdata:
                 try:
                     self.parent.set_size(len(rawdata), attr_index=index)

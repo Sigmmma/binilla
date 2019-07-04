@@ -11,7 +11,6 @@ tk.TkWrapper.idle_time = 2
 
 from datetime import datetime
 from time import time, sleep
-from tkinter.constants import *
 from tkinter.filedialog import askopenfilenames, askopenfilename,\
      askdirectory, asksaveasfilename
 from traceback import format_exc
@@ -28,7 +27,7 @@ from binilla.widgets.field_widget_picker import WidgetPicker
 from binilla.widgets.binilla_widget import BinillaWidget
 from binilla.widgets.tooltip_handler import ToolTipHandler
 from binilla.handler import Handler
-from binilla.util import *
+from binilla.util import sanitize_path, get_cwd, IORedirecter
 from binilla.windows.about_window import AboutWindow
 from binilla.windows.def_selector_window import DefSelectorWindow
 from binilla.windows.tag_window import TagWindow, ConfigWindow,\
@@ -351,8 +350,8 @@ class Binilla(tk.Tk, BinillaWidget):
 
         # make the canvas for anything in the main window
         self.root_frame = tk.Frame(self, bd=3, highlightthickness=0,
-                                   relief=SUNKEN)
-        self.root_frame.pack(fill=BOTH, side=LEFT, expand=True)
+                                   relief=tk.SUNKEN)
+        self.root_frame.pack(fill=tk.BOTH, side=tk.LEFT, expand=True)
         self.tooltip_handler = ToolTipHandler(self)
 
         # make the io redirector and redirect sys.stdout to it
@@ -455,17 +454,17 @@ class Binilla(tk.Tk, BinillaWidget):
 
         self.io_frame = tk.Frame(master, highlightthickness=0)
         self.io_text = tk.Text(
-            self.io_frame, font=self.get_font("console"), state=DISABLED,
+            self.io_frame, font=self.get_font("console"), state=tk.DISABLED,
             fg=self.io_fg_color, bg=self.io_bg_color)
         self.io_text.font_type = "console"
-        self.io_scroll_y = tk.Scrollbar(self.io_frame, orient=VERTICAL)
+        self.io_scroll_y = tk.Scrollbar(self.io_frame, orient=tk.VERTICAL)
 
         self.io_scroll_y.config(command=self.io_text.yview)
         self.io_text.config(yscrollcommand=self.io_scroll_y.set)
 
-        self.io_scroll_y.pack(fill=Y, side=RIGHT)
-        self.io_text.pack(fill=BOTH, expand=True)
-        self.io_frame.pack(fill=BOTH, expand=True)
+        self.io_scroll_y.pack(fill=tk.Y, side=tk.RIGHT)
+        self.io_text.pack(fill=tk.BOTH, expand=True)
+        self.io_frame.pack(fill=tk.BOTH, expand=True)
 
         try:
             flags = self.config_file.data.header.flags
@@ -560,9 +559,9 @@ class Binilla(tk.Tk, BinillaWidget):
 
     def clear_console(self, e=None):
         try:
-            self.io_text.config(state=NORMAL)
-            self.io_text.delete('1.0', END)
-            self.io_text.config(state=DISABLED)
+            self.io_text.config(state=tk.NORMAL)
+            self.io_text.delete('1.0', tk.END)
+            self.io_text.config(state=tk.DISABLED)
         except Exception:
             print(format_exc())
 
@@ -1312,7 +1311,7 @@ class Binilla(tk.Tk, BinillaWidget):
         try:
             self.last_load_dir = os.path.dirname(filepath)
             if tag.handler.tagsdir_relative:
-                filepath = os.path.relpath(filepath, tags_dir)
+                filepath = os.path.relpath(filepath, tag.tags_dir)
 
             self.add_tag(tag, filepath)
             w.save(temp=False)

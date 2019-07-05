@@ -174,6 +174,9 @@ class Binilla(tk.Tk, BinillaWidget):
     app_offset_x = 0
     app_offset_y = 0
 
+    sync_offset_x = 0
+    sync_offset_y = 0
+
     scroll_increment_x = 50
     scroll_increment_y = 50
 
@@ -296,7 +299,7 @@ class Binilla(tk.Tk, BinillaWidget):
         self.main_menu.add_cascade(label="File",    menu=self.file_menu)
         #self.main_menu.add_cascade(label="Edit",   menu=self.edit_menu)
         self.main_menu.add_cascade(label="Settings", menu=self.settings_menu)
-        self.main_menu.add_cascade(label="Windows", menu=self.windows_menu)
+        self.main_menu.add_cascade(label="Tag Windows", menu=self.windows_menu)
         #self.main_menu.add_command(label="Help")
         self.main_menu.add_command(label="About", command=self.show_about_window)
         try:
@@ -381,6 +384,9 @@ class Binilla(tk.Tk, BinillaWidget):
                 self.load_last_workspace()
         except Exception:
             pass
+
+        self.sync_offset_x = self.winfo_x()
+        self.sync_offset_y = self.winfo_y()
         self._initialized = True
 
     def add_to_recent(self, filepath):
@@ -1446,8 +1452,14 @@ class Binilla(tk.Tk, BinillaWidget):
 
     def sync_tag_window_pos(self, e):
         '''Syncs TagWindows to move with the app.'''
-        dx = int(self.winfo_x()) - self.app_offset_x
-        dy = int(self.winfo_y()) - self.app_offset_y
+        if not(self._window_geometry_initialized and self._initialized):
+            return
+
+        dx = int(self.winfo_x()) - self.sync_offset_x
+        dy = int(self.winfo_y()) - self.sync_offset_y
+
+        self.sync_offset_x = self.winfo_x()
+        self.sync_offset_y = self.winfo_y()
 
         if not self.sync_window_movement:
             return

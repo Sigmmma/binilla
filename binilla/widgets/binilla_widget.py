@@ -83,6 +83,7 @@ class BinillaWidget():
 
     # FONTS
     _fonts = {}
+    _ttk_font_style = None
 
     font_settings = dict(
         # "default" font is required to be here at the very least
@@ -108,6 +109,9 @@ class BinillaWidget():
         heading=FontConfig(
             family=e_c.HEADING_FONT_FAMILY, size=e_c.HEADING_FONT_SIZE,
             weight=e_c.HEADING_FONT_WEIGHT, slant=e_c.HEADING_FONT_SLANT),
+        heading_small=FontConfig(
+            family=e_c.HEADING_SMALL_FONT_FAMILY, size=e_c.HEADING_SMALL_FONT_SIZE,
+            weight=e_c.HEADING_SMALL_FONT_WEIGHT, slant=e_c.HEADING_SMALL_FONT_SLANT),
         frame_title=FontConfig(
             family=e_c.CONTAINER_TITLE_FONT_FAMILY, size=e_c.CONTAINER_TITLE_FONT_SIZE,
             weight=e_c.CONTAINER_TITLE_FONT_WEIGHT, slant=e_c.CONTAINER_TITLE_FONT_SLANT),
@@ -203,6 +207,15 @@ class BinillaWidget():
 
         return self._fonts[font_type]
 
+    def setup_style_font(self, font_type, ttk_class_names):
+        font = self.get_font(font_type)
+
+        for ttk_class_name in ttk_class_names:
+            if self._ttk_font_style is None:
+                self._ttk_font_style = ttk.Style(self._root())
+
+            self._ttk_font_style.configure(ttk_class_name, font=font)
+
     def get_font_config(self, font_type):
         return FontConfig(**self.font_settings.get(font_type, {}))
 
@@ -217,13 +230,14 @@ class BinillaWidget():
         if font_types is None:
             font_types = self.font_settings.keys()
 
+        root = self._root()
         for typ in sorted(font_types):
             settings = self.get_font_config(typ)
             if settings is None:
                 continue
 
             if typ not in self._fonts or self._fonts[typ].actual() != settings:
-                self._fonts[typ] = tkinter.font.Font(**settings)
+                self._fonts[typ] = tkinter.font.Font(root, **settings)
 
     def delete_all_traces(self, modes="rwu"):
         for mode, traces in (("r", self.read_traces),
@@ -336,26 +350,23 @@ class BinillaWidget():
                 elif w is not self:
                     seen.add(id(w))
 
-                font = self.get_font(getattr(w, "font_type", self.font_type))
+                font_type = getattr(w, "font_type", self.font_type)
+                font = self.get_font(font_type)
 
                 if isinstance(w, tk.Menu):
                     w.config(fg=self.text_normal_color, bg=self.default_bg_color,
                              font=font)
-                    next_widgets.extend(w.children.values())
                 elif isinstance(w, tk.PanedWindow):
                     w.config(bd=self.frame_depth, bg=self.default_bg_color)
-                    next_widgets.extend(w.children.values())
                 elif isinstance(w, tk.Listbox):
                     w.config(bg=self.enum_normal_color, fg=self.text_normal_color,
                              selectbackground=self.enum_highlighted_color,
                              selectforeground=self.text_highlighted_color,
                              font=font)
-                    next_widgets.extend(w.children.values())
                 elif isinstance(w, tk.Text):
                     w.config(bg=self.entry_normal_color, fg=self.text_normal_color,
                              selectbackground=self.entry_highlighted_color,
                              selectforeground=self.text_highlighted_color, font=font)
-                    next_widgets.extend(w.children.values())
                 elif isinstance(w, tk.Spinbox):
                     w.config(bg=self.entry_normal_color, fg=self.text_normal_color,
                              disabledbackground=self.entry_disabled_color,
@@ -365,30 +376,24 @@ class BinillaWidget():
                              activebackground=self.default_bg_color,
                              readonlybackground=self.entry_disabled_color,
                              buttonbackground=self.default_bg_color, font=font,)
-                    next_widgets.extend(w.children.values())
                 elif isinstance(w, tk.LabelFrame):
                     w.config(fg=self.text_normal_color, bg=self.default_bg_color,
                              font=font)
-                    next_widgets.extend(w.children.values())
                 elif isinstance(w, tk.Label):
                     w.config(fg=self.text_normal_color, bg=self.default_bg_color,
                              font=font)
-                    next_widgets.extend(w.children.values())
                 elif isinstance(w, (tk.Frame, tk.Canvas, tk.Toplevel)):
                     w.config(bg=self.default_bg_color)
-                    next_widgets.extend(w.children.values())
                 elif isinstance(w, (tk.Radiobutton, tk.Checkbutton)):
                     w.config(disabledforeground=self.text_disabled_color,
                              bg=self.default_bg_color, fg=self.text_normal_color,
                              activebackground=self.default_bg_color,
                              activeforeground=self.text_normal_color,
                              selectcolor=self.entry_normal_color, font=font,)
-                    next_widgets.extend(w.children.values())
                 elif isinstance(w, tk.Button):
                     w.config(bg=self.button_color, activebackground=self.button_color,
                              fg=self.text_normal_color, bd=self.button_depth,
                              disabledforeground=self.text_disabled_color, font=font)
-                    next_widgets.extend(w.children.values())
                 elif isinstance(w, tk.Entry):
                     w.config(bd=self.entry_depth,
                         bg=self.entry_normal_color, fg=self.text_normal_color,
@@ -397,14 +402,13 @@ class BinillaWidget():
                         selectbackground=self.entry_highlighted_color,
                         selectforeground=self.text_highlighted_color,
                         readonlybackground=self.entry_disabled_color, font=font,)
-                    next_widgets.extend(w.children.values())
-
-                # starting on ttk shit
                 elif isinstance(w, ttk.Treeview):
-                    w.tag_configure(
-                        'item', background=self.entry_normal_color,
-                        foreground=self.text_normal_color, font=font)
+                    self.setup_style_font("treeview", ("Treeview", ))
+                    self.setup_style_font("heading_small", ("Treeview.Heading", ))
                 elif isinstance(w, ttk.Notebook):
+                    self.setup_style_font("heading_small", ("TNotebook.Tab", ))
+
+                if hasattr(w, "children"):
                     next_widgets.extend(w.children.values())
 
             widgets = next_widgets

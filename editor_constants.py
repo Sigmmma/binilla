@@ -111,6 +111,10 @@ FIXED_FONT_SLANT  = "roman"
 
 HEADING_FONT_WEIGHT = "bold"
 HEADING_FONT_SLANT = "italic"
+HEADING_SMALL_FONT_FAMILY = DEFAULT_FONT_FAMILY
+HEADING_SMALL_FONT_SIZE   = DEFAULT_FONT_SIZE
+HEADING_SMALL_FONT_WEIGHT = DEFAULT_FONT_WEIGHT
+HEADING_SMALL_FONT_SLANT  = DEFAULT_FONT_SLANT
 CONTAINER_TITLE_FONT_FAMILY = FIXED_FONT_FAMILY
 CONTAINER_TITLE_FONT_SIZE   = FIXED_FONT_SIZE + 1
 CONTAINER_TITLE_FONT_WEIGHT = "bold"
@@ -153,8 +157,8 @@ color_names = (
     )
 
 font_names = (
-    "default", "fixed", "fixed_small", "heading", "frame_title",
-    "treeview", "console", "comment", "tooltip"
+    "default", "fixed", "fixed_small", "heading", "heading_small",
+    "frame_title", "treeview", "console", "comment", "tooltip"
     )
 
 

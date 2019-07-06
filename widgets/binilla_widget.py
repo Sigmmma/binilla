@@ -83,7 +83,7 @@ class BinillaWidget():
 
     # FONTS
     _fonts = {}
-    _ttk_font_style = None
+    _ttk_style = None
 
     font_settings = dict(
         # "default" font is required to be here at the very least
@@ -154,6 +154,7 @@ class BinillaWidget():
     disabled = False
 
     font_type = "default"  # the type of font to use
+    ttk_theme = "alt"
 
     read_traces = ()
     write_traces = ()
@@ -207,14 +208,25 @@ class BinillaWidget():
 
         return self._fonts[font_type]
 
-    def setup_style_font(self, font_type, ttk_class_names):
-        font = self.get_font(font_type)
-
+    def configure_ttk_style(self, ttk_class_names, **config_kw):
+        config_kw = self._setup_ttk_style(ttk_class_names, **config_kw)
         for ttk_class_name in ttk_class_names:
-            if self._ttk_font_style is None:
-                self._ttk_font_style = ttk.Style(self._root())
+            self._ttk_style.configure(ttk_class_name, **config_kw)
 
-            self._ttk_font_style.configure(ttk_class_name, font=font)
+    def map_ttk_style(self, ttk_class_names, **config_kw):
+        config_kw = self._setup_ttk_style(ttk_class_names, **config_kw)
+        for ttk_class_name in ttk_class_names:
+            self._ttk_style.map(ttk_class_name, **config_kw)
+
+    def _setup_ttk_style(self, ttk_class_names, **config_kw):
+        if "font" in config_kw:
+            config_kw["font"] = self.get_font(config_kw["font"])
+
+        if self._ttk_style is None:
+            self._ttk_style = ttk.Style(self._root())
+
+        self._ttk_style.theme_use(self.ttk_theme)
+        return config_kw
 
     def get_font_config(self, font_type):
         return FontConfig(**self.font_settings.get(font_type, {}))
@@ -354,46 +366,53 @@ class BinillaWidget():
                 font = self.get_font(font_type)
 
                 if isinstance(w, tk.Menu):
-                    w.config(fg=self.text_normal_color, bg=self.default_bg_color,
-                             font=font)
+                    w.config(
+                        fg=self.text_normal_color, bg=self.default_bg_color,
+                        font=font)
                 elif isinstance(w, tk.PanedWindow):
                     w.config(bd=self.frame_depth, bg=self.default_bg_color)
                 elif isinstance(w, tk.Listbox):
-                    w.config(bg=self.enum_normal_color, fg=self.text_normal_color,
-                             selectbackground=self.enum_highlighted_color,
-                             selectforeground=self.text_highlighted_color,
-                             font=font)
+                    w.config(
+                        bg=self.enum_normal_color, fg=self.text_normal_color,
+                        selectbackground=self.enum_highlighted_color,
+                        selectforeground=self.text_highlighted_color, font=font)
                 elif isinstance(w, tk.Text):
-                    w.config(bg=self.entry_normal_color, fg=self.text_normal_color,
-                             selectbackground=self.entry_highlighted_color,
-                             selectforeground=self.text_highlighted_color, font=font)
+                    w.config(
+                        bg=self.entry_normal_color, fg=self.text_normal_color,
+                        selectbackground=self.entry_highlighted_color,
+                        selectforeground=self.text_highlighted_color, font=font)
                 elif isinstance(w, tk.Spinbox):
-                    w.config(bg=self.entry_normal_color, fg=self.text_normal_color,
-                             disabledbackground=self.entry_disabled_color,
-                             disabledforeground=self.text_disabled_color,
-                             selectbackground=self.entry_highlighted_color,
-                             selectforeground=self.text_highlighted_color,
-                             activebackground=self.default_bg_color,
-                             readonlybackground=self.entry_disabled_color,
-                             buttonbackground=self.default_bg_color, font=font,)
+                    w.config(
+                        bg=self.entry_normal_color, fg=self.text_normal_color,
+                        disabledbackground=self.entry_disabled_color,
+                        disabledforeground=self.text_disabled_color,
+                        selectbackground=self.entry_highlighted_color,
+                        selectforeground=self.text_highlighted_color,
+                        activebackground=self.default_bg_color,
+                        readonlybackground=self.entry_disabled_color,
+                        buttonbackground=self.default_bg_color, font=font,)
                 elif isinstance(w, tk.LabelFrame):
-                    w.config(fg=self.text_normal_color, bg=self.default_bg_color,
-                             font=font)
+                    w.config(
+                        fg=self.text_normal_color, bg=self.default_bg_color,
+                        font=font)
                 elif isinstance(w, tk.Label):
-                    w.config(fg=self.text_normal_color, bg=self.default_bg_color,
-                             font=font)
+                    w.config(
+                        fg=self.text_normal_color, bg=self.default_bg_color,
+                        font=font)
                 elif isinstance(w, (tk.Frame, tk.Canvas, tk.Toplevel)):
                     w.config(bg=self.default_bg_color)
                 elif isinstance(w, (tk.Radiobutton, tk.Checkbutton)):
-                    w.config(disabledforeground=self.text_disabled_color,
-                             bg=self.default_bg_color, fg=self.text_normal_color,
-                             activebackground=self.default_bg_color,
-                             activeforeground=self.text_normal_color,
-                             selectcolor=self.entry_normal_color, font=font,)
+                    w.config(
+                        disabledforeground=self.text_disabled_color,
+                        bg=self.default_bg_color, fg=self.text_normal_color,
+                        activebackground=self.default_bg_color,
+                        activeforeground=self.text_normal_color,
+                        selectcolor=self.entry_normal_color, font=font,)
                 elif isinstance(w, tk.Button):
-                    w.config(bg=self.button_color, activebackground=self.button_color,
-                             fg=self.text_normal_color, bd=self.button_depth,
-                             disabledforeground=self.text_disabled_color, font=font)
+                    w.config(
+                        bg=self.button_color, activebackground=self.button_color,
+                        fg=self.text_normal_color, bd=self.button_depth,
+                        disabledforeground=self.text_disabled_color, font=font)
                 elif isinstance(w, tk.Entry):
                     w.config(bd=self.entry_depth,
                         bg=self.entry_normal_color, fg=self.text_normal_color,
@@ -402,11 +421,34 @@ class BinillaWidget():
                         selectbackground=self.entry_highlighted_color,
                         selectforeground=self.text_highlighted_color,
                         readonlybackground=self.entry_disabled_color, font=font,)
+
+                # NOTE: These ttk widgets will need to have proper style
+                # colors applied when they are actually used in the future
                 elif isinstance(w, ttk.Treeview):
-                    self.setup_style_font("treeview", ("Treeview", ))
-                    self.setup_style_font("heading_small", ("Treeview.Heading", ))
+                    self.configure_ttk_style(
+                        ("Treeview", ), font="treeview",
+                        background=self.default_bg_color,
+                        foreground=self.text_normal_color,
+                        fieldbackground=self.default_bg_color,
+                        )
+                    self.configure_ttk_style(
+                        ("Treeview.Row", "Treeview.Item", "Treeview.Cell"),
+                        font="treeview", background=self.default_bg_color,
+                        foreground=self.text_normal_color,
+                        )
+                    self.configure_ttk_style(
+                        ("Treeview.Heading", ), font="heading_small",
+                        background=self.default_bg_color,
+                        foreground=self.text_normal_color
+                        )
+                    self.map_ttk_style(
+                        ("Treeview.Heading", ),
+                        background=[("active", self.default_bg_color)],
+                        foreground=[("active", self.text_normal_color)]
+                        )
                 elif isinstance(w, ttk.Notebook):
-                    self.setup_style_font("heading_small", ("TNotebook.Tab", ))
+                    self.configure_ttk_style(
+                        ("TNotebook.Tab", ), font="heading_small")
 
                 if hasattr(w, "children"):
                     next_widgets.extend(w.children.values())

@@ -1,3 +1,4 @@
+from tkinter import ttk
 import tkinter.font
 
 from supyr_struct.defs.tag_def import TagDef
@@ -10,15 +11,16 @@ from binilla.editor_constants import widget_depth_names, color_names,\
 
 
 __all__ = (
-    "font_families", "get", "style_def", "config_def",
+    "font_families", "theme_names", "get", "style_def", "config_def",
     )
 
-
 font_families = ()
+theme_names = ()
 try:
     font_families = tuple(sorted(tkinter.font.families()))
+    theme_names = tuple(sorted(ttk.Style().theme_names()))
 except Exception:
-    print("Cannot import list of font families. Create Tkinter "
+    print("Cannot import list of font families or theme names. Create Tkinter "
           "interpreter instance before attempting to import config.")
 
 
@@ -358,9 +360,20 @@ font = Struct("font",
         ),
     )
 
-config_header = Struct("header",
+theme_name = StrUtf8Enum("theme_name",
+    *({NAME:"_%s_%s" % (i, theme_names[i]),
+       GUI_NAME: theme_names[i], VALUE: theme_names[i]}
+      for i in range(len(theme_names))),
+    SIZE=64
+    )
+
+config_version = Struct("config_version",
     UEnum32("id", ('Bnla', 'alnB'), VISIBLE=False, DEFAULT='alnB'),
-    UInt32("version", DEFAULT=1, VISIBLE=False, EDITABLE=False),
+    UInt32("version", DEFAULT=2, VISIBLE=False, EDITABLE=False),
+    SIZE=8
+    )
+
+config_header = Struct("header",
     Bool32("flags",
         {NAME: "sync_window_movement", TOOLTIP: flag_tooltips[0]},
         {NAME: "load_last_workspace", TOOLTIP: flag_tooltips[1]},
@@ -452,17 +465,21 @@ config_header = Struct("header",
 
     UInt16("backup_count", DEFAULT=1, MIN=1, MAX=1, VISIBLE=False,
         TOOLTIP="Max number of backups to make before overwriting the oldest"),
-    SIZE=128,
+    SIZE=120,
     GUI_NAME='general settings'
     )
 
 
-style_header = Struct("header",
+style_version = Struct("style_version",
     UInt32("id", DEFAULT='lytS', VISIBLE=False),
-    UInt32("version", DEFAULT=1, VISIBLE=False),
+    UInt32("version", DEFAULT=2, VISIBLE=False),
+    SIZE=8
+    )
+
+style_header = Struct("header",
     Timestamp32("date_created"),
     Timestamp32("date_modified"),
-    SIZE=128
+    SIZE=120
     )
 
 array_counts = Struct("array_counts",
@@ -600,7 +617,32 @@ fonts = Array("fonts",
     NAME_MAP=font_names,
     )
 
+config_v2_def = TagDef("binilla_v2_config",
+    config_header,
+    array_counts,
+    app_window,
+    widgets,
+    open_tags,
+    recent_tags,
+    directory_paths,
+    colors,
+    hotkeys,
+    tag_window_hotkeys,
+    ENDIAN='<', ext=".cfg",
+    )
+
+style_v2_def = TagDef("binilla_v2_style",
+    style_header,
+    array_counts,
+    widgets,
+    colors,
+    fonts,
+    theme_name,
+    ENDIAN='<', ext=".sty",
+    )
+
 config_def = TagDef("binilla_config",
+    config_version,
     config_header,
     array_counts,
     app_window,
@@ -612,17 +654,22 @@ config_def = TagDef("binilla_config",
     hotkeys,
     tag_window_hotkeys,
     fonts,
+    theme_name,
     ENDIAN='<', ext=".cfg",
     )
 
 style_def = TagDef("binilla_style",
+    style_version,
     style_header,
     array_counts,
     widgets,
     colors,
-    fonts,
     ENDIAN='<', ext=".sty",
     )
 
+config_version_def = TagDef(config_version)
+
+style_version_def = TagDef(style_version)
+
 def get():
-    return (config_def, style_def)
+    return (config_def, config_v2_def, style_def, style_v2_def)

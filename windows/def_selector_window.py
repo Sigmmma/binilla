@@ -11,7 +11,8 @@ class DefSelectorWindow(tk.Toplevel, BinillaWidget):
         except AttributeError:
             title = "Tag definitions"
 
-        title = kwargs.pop('title', title)
+        title = "%s (%s total)" % (kwargs.pop('title', title),
+                                   len(self.app_root.handler.defs))
         tk.Toplevel.__init__(self, app_root, *args, **kwargs)
         self.title(title)
 

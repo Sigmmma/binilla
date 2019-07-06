@@ -134,8 +134,13 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Config properties'''
     style_def = None
     config_def = None
+    config_version_def = None
+    style_version_def = None
+    old_style_defs = ()
+    old_config_defs = ()
 
-    config_version = 1
+    config_version = 2
+    style_version = 2
     config_path = default_config_path
     config_window = None
     # the tag that holds all the config settings for this application
@@ -231,9 +236,15 @@ class Binilla(tk.Tk, BinillaWidget):
 
         # NOTE: Do this import AFTER Tk interpreter is set up, otherwise
         # it will fail to get the names of the font families
-        from binilla.config_def import style_def, config_def
+        from binilla.config_def import style_def, config_def,\
+             style_v2_def, config_v2_def, config_version_def, style_version_def
+        self.old_style_defs = (style_v2_def, )
+        self.old_config_defs = (config_v2_def, )
+
         self.style_def = kwargs.pop('style_def', style_def)
         self.config_def  = kwargs.pop('config_def', config_def)
+        self.style_version_def = kwargs.pop('style_version_def', style_version_def)
+        self.config_version_def = kwargs.pop('config_version_def', config_version_def)
 
         if self.config_file is not None:
             pass
@@ -832,16 +843,24 @@ class Binilla(tk.Tk, BinillaWidget):
 
         self.load_style(style_file=self.config_file)
 
+    def upgrade_style_version(self, old_style):
+        pass
+
+    def upgrade_config_version(self, old_config):
+        pass
+
     def load_config(self, filepath=None):
         if filepath is None:
             filepath = self.config_path
         assert os.path.exists(filepath)
 
         # load the config file
-        self.config_file = self.config_def.build(filepath=filepath)
-        if self.config_file.data.header.version != self.config_version:
+        version_info = self.config_version_def.build(filepath=filepath)
+        if version_info.data.version != self.config_version:
             raise ValueError(
                 "Config version is not what this application is expecting.")
+        
+        self.config_file = self.config_def.build(filepath=filepath)
         app_window = self.config_file.data.app_window
 
         self.app_width = app_window.app_width
@@ -882,6 +901,11 @@ class Binilla(tk.Tk, BinillaWidget):
 
             assert os.path.exists(filepath)
             self.styles_dir = os.path.dirname(filepath)
+            version_info = self.style_version_def.build(filepath=filepath)
+            if version_info.data.version != self.style_version:
+                raise ValueError(
+                    "Style version is not what this application is expecting.")
+
             style_file = self.style_def.build(filepath=filepath)
 
         assert hasattr(style_file, 'data')
@@ -935,6 +959,11 @@ class Binilla(tk.Tk, BinillaWidget):
                     )
             except IndexError:
                 pass
+
+        try:
+            BinillaWidget.ttk_theme = style_data.theme_name.data
+        except Exception:
+            pass
 
         if self._initialized:
             self.update_config()
@@ -993,6 +1022,7 @@ class Binilla(tk.Tk, BinillaWidget):
         style_file.data.widgets.depths.extend(len(self.widget_depth_names))
         style_file.data.colors.extend(len(self.color_names))
         style_file.data.fonts.extend(len(self.font_names))
+        style_file.data.theme_name.data = BinillaWidget.ttk_theme
 
         self.update_style(style_file)
         style_file.serialize(temp=0, backup=0, calc_pointers=0)
@@ -1555,6 +1585,7 @@ class Binilla(tk.Tk, BinillaWidget):
         if config_file is None:
             config_file = self.config_file
         config_data = config_file.data
+        config_data.config_version.version = self.config_version
 
         header = config_data.header
 
@@ -1563,7 +1594,6 @@ class Binilla(tk.Tk, BinillaWidget):
         dir_paths = config_data.directory_paths
         app_window = config_data.app_window
 
-        header.version = self.config_version
         header.flags.sync_window_movement = self.sync_window_movement
 
         del recent_tags[:]
@@ -1673,6 +1703,11 @@ class Binilla(tk.Tk, BinillaWidget):
                 font_flags.overstrike = font_cfg.overstrike
             except IndexError:
                 pass
+
+        try:
+            style_file.theme_name.data = BinillaWidget.ttk_theme
+        except Exception:
+            pass
 
     def apply_style(self, seen=None):
         BinillaWidget.apply_style(self, seen)

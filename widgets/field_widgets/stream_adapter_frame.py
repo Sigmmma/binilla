@@ -16,8 +16,7 @@ class StreamAdapterFrame(container_frame.ContainerFrame):
         if self.f_widget_parent is None:
             self.pack_padx = self.pack_pady = 0
 
-        kwargs.update(relief='flat', bd=0, highlightthickness=0,
-                      bg=self.default_bg_color)
+        kwargs.update(relief='flat', bd=0, highlightthickness=0)
 
         show_frame = bool(kwargs.pop('show_frame', not self.blocks_start_hidden))
         if self.is_empty and self.hide_if_blank:
@@ -30,31 +29,22 @@ class StreamAdapterFrame(container_frame.ContainerFrame):
 
         toggle_text = '-' if show_frame else '+'
 
-        btn_kwargs = dict(
-            bg=self.button_color, fg=self.text_normal_color,
-            disabledforeground=self.text_disabled_color,
-            bd=self.button_depth,
-            )
-
-        self.title = tk.Frame(self, relief='raised', bd=self.frame_depth,
-                              bg=self.frame_bg_color)
-        self.content = tk.Frame(self, relief="sunken", bd=self.frame_depth,
-                                bg=self.default_bg_color)
+        self.title = tk.Frame(self, relief='raised')
+        self.content = tk.Frame(self, relief="sunken")
         self.show_btn = ttk.Checkbutton(
             self.title, width=3, text=toggle_text, command=self.toggle_visible,
             style='ShowButton.TButton')
         self.title_label = tk.Label(
             self.title, text=self.gui_name, anchor='w',
             width=self.title_size, justify='left',
-            font=self.get_font("frame_title"),
-            bg=self.frame_bg_color, fg=self.text_normal_color)
+            font=self.get_font("frame_title"))
         self.title_label.font_type = "frame_title"
         self.import_btn = tk.Button(
             self.title, width=5, text='Import',
-            command=self.import_node, **btn_kwargs)
+            command=self.import_node)
         self.export_btn = tk.Button(
             self.title, width=5, text='Export',
-            command=self.export_node, **btn_kwargs)
+            command=self.export_node)
 
         self.show_btn.pack(side="left")
         self.title_label.pack(side="left", fill="x", expand=True)
@@ -65,6 +55,12 @@ class StreamAdapterFrame(container_frame.ContainerFrame):
 
         self.populate()
         self._initialized = True
+
+    def apply_style(self, seen=None):
+        container_frame.ContainerFrame.apply_style(self, seen)
+        self.title.config(bd=self.frame_depth, bg=self.frame_bg_color)
+        self.title_label.config(bg=self.frame_bg_color)
+        self.content.config(bd=self.frame_depth)
 
     def populate(self):
         try:
@@ -97,7 +93,7 @@ class StreamAdapterFrame(container_frame.ContainerFrame):
 
             widget_cls = self.widget_picker.get_widget(data_desc)
             kwargs = dict(node=data, parent=node, show_title=False,
-                          tag_window=self.tag_window, attr_index='data',
+                          tag_window=self.tag_window, attr_index='SUB_STRUCT',
                           disabled=self.disabled, f_widget_parent=self,
                           desc=data_desc, show_frame=self.show.get(),
                           dont_padx_fields=True)
@@ -109,8 +105,8 @@ class StreamAdapterFrame(container_frame.ContainerFrame):
 
             wid = id(widget)
             f_widget_ids.append(wid)
-            f_widget_ids_map['data'] = wid
-            f_widget_ids_map_inv[wid] = 'data'
+            f_widget_ids_map['SUB_STRUCT'] = wid
+            f_widget_ids_map_inv[wid] = 'SUB_STRUCT'
 
             self.build_f_widget_cache()
 
@@ -122,4 +118,16 @@ class StreamAdapterFrame(container_frame.ContainerFrame):
 
     reload = populate
 
-    pose_fields = union_frame.UnionFrame.pose_fields
+    def pose_fields(self):
+        w = self.f_widgets[self.f_widget_ids_map.get("SUB_STRUCT")]
+        for child in self.content.children.values():
+            if child not in (w, self.comment_frame):
+                child.pack_forget()
+
+        if w:
+            # by adding a fixed amount of padding, we fix a problem
+            # with difficult to predict padding based on nesting
+            w.pack(fill='x', anchor='nw',
+                   padx=self.vertical_padx, pady=self.vertical_pady)
+
+        self.content.pack(fill='x', anchor='nw', expand=True)

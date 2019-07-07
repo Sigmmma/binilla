@@ -21,27 +21,19 @@ class TextFrame(data_frame.DataFrame):
         data_frame.DataFrame.__init__(self, *args, **kwargs)
 
         # make the widgets
-        self.content = tk.Frame(self, relief='flat', bd=0,
-                                bg=self.default_bg_color)
+        self.content = tk.Frame(self, relief='flat', bd=0)
 
         self.title_label = tk.Label(
             self.content, text=self.gui_name, justify='left', anchor='w',
-            bg=self.default_bg_color, fg=self.text_normal_color,
-            disabledforeground=self.text_disabled_color,
-            font=self.get_font("default"), width=self.title_size)
+            disabledforeground=self.text_disabled_color, width=self.title_size)
 
         self.data_text = tk.Text(
-            self.content, bd=self.entry_depth, wrap=tk.NONE,
+            self.content, wrap=tk.NONE, maxundo=self.max_undos, undo=True,
             height=self.textbox_height, width=self.textbox_width,
-            maxundo=self.max_undos, undo=True,
-            state=tk.DISABLED if self.disabled else tk.NORMAL,
-            bg=self.entry_normal_color, fg=self.text_normal_color,
-            selectbackground=self.entry_highlighted_color,
-            selectforeground=self.text_highlighted_color,)
+            state=tk.DISABLED if self.disabled else tk.NORMAL)
 
         self.sidetip_label = tk.Label(
-            self.content, anchor='w', justify='left',
-            bg=self.default_bg_color, fg=self.text_normal_color)
+            self.content, anchor='w', justify='left')
 
         self.hsb = tk.Scrollbar(self.content, orient='horizontal',
                                 command=self.data_text.xview)

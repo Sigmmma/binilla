@@ -21,25 +21,22 @@ class BoolFrame(data_frame.DataFrame):
         self.checkbtns = {}
         data_frame.DataFrame.__init__(self, *args, **kwargs)
 
-        self.content = tk.Frame(
-            self, bg=self.default_bg_color, highlightthickness=0)
+        self.content = tk.Frame(self, highlightthickness=0)
 
         self.display_comment()
 
         self.title_label = tk.Label(
             self.content, text=self.gui_name, width=self.title_size, anchor='w',
-            bg=self.default_bg_color, fg=self.text_normal_color,
             disabledforeground=self.text_disabled_color,
             font=self.get_font("default"))
 
         if self.gui_name != '':
             self.title_label.pack(side='left')
 
-        self.check_canvas = tk.Canvas(
-            self.content, bg=self.default_bg_color, highlightthickness=0)
+        self.check_canvas = tk.Canvas(self.content, highlightthickness=0)
         self.check_frame = tk.Frame(
-            self.check_canvas, bg=self.entry_normal_color,
-            bd=self.listbox_depth, relief='sunken',  highlightthickness=0)
+            self.check_canvas, bd=self.listbox_depth,
+            relief='sunken',  highlightthickness=0)
 
         self.scrollbar_y = tk.Scrollbar(self.content, orient='vertical',
                                         command=self.check_canvas.yview)
@@ -287,17 +284,12 @@ class BoolSingleFrame(data_frame.DataFrame):
 
         self.checked = tk.IntVar(self)
         self.checkbutton = tk.Checkbutton(
-            self, variable=self.checked, command=self.check,
-            bg=self.default_bg_color, fg=self.text_normal_color,
-            disabledforeground=self.text_disabled_color,
-            activebackground=self.entry_highlighted_color,
-            activeforeground=self.text_highlighted_color)
+            self, variable=self.checked, command=self.check, text="  ",
+            disabledforeground=self.text_disabled_color)
 
         self.title_label = tk.Label(
             self, text=self.gui_name, width=self.title_size, anchor='w',
-            bg=self.default_bg_color, fg=self.text_normal_color,
-            disabledforeground=self.text_disabled_color,
-            font=self.get_font("default"))
+            disabledforeground=self.text_disabled_color)
 
         if self.gui_name != '':
             self.title_label.pack(side='left')
@@ -323,10 +315,9 @@ class BoolSingleFrame(data_frame.DataFrame):
     def apply_style(self, seen=None):
         field_widget.FieldWidget.apply_style(self, seen)
         self.checkbutton.config(
-            bg=self.entry_normal_color, fg=self.text_normal_color,
-            activebackground=self.entry_highlighted_color,
-            activeforeground=self.text_highlighted_color,
-            selectcolor="")
+            selectcolor=self.entry_normal_color,
+            activebackground=self.default_bg_color,
+            activeforeground=self.text_highlighted_color)
 
     def flush(self): pass
 

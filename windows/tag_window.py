@@ -206,6 +206,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             height = rf.winfo_reqheight() + self.root_hsb.winfo_reqheight() + 2
 
         self.resize_window(width, height)
+        self.apply_style()
 
     @property
     def needs_flushing(self):

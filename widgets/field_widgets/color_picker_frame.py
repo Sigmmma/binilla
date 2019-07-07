@@ -50,8 +50,7 @@ class ColorPickerFrame(container_frame.ContainerFrame):
     def populate(self):
         container_frame.ContainerFrame.populate(self)
         self.color_btn = tk.Button(
-            self.content, width=4, command=self.select_color,
-            bd=self.button_depth)
+            self.content, width=4, command=self.select_color)
         orient = self.desc.get('ORIENT', 'v')[:1].lower()
         side = 'left' if orient == 'h' else 'top'
         self.color_btn.pack(side=side)

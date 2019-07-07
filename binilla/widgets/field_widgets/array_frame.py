@@ -41,25 +41,15 @@ class ArrayFrame(container_frame.ContainerFrame):
         self.sel_index = (node_len > 0) - 1
 
         # make the title, element menu, and all the buttons
-        self.controls = tk.Frame(self, relief='raised', bd=self.frame_depth,
-                                 bg=self.frame_bg_color)
-        self.title = title = tk.Frame(self.controls, relief='flat', bd=0,
-                                      bg=self.frame_bg_color)
-        self.buttons = buttons = tk.Frame(self.controls, relief='flat', bd=0,
-                                          bg=self.frame_bg_color)
+        self.controls = tk.Frame(self, relief='raised', bd=self.frame_depth)
+        self.title = title = tk.Frame(self.controls, relief='flat', bd=0)
+        self.buttons = buttons = tk.Frame(self.controls, relief='flat', bd=0)
 
         toggle_text = '-' if show_frame else '+'
-
-        btn_kwargs = dict(
-            bg=self.button_color, fg=self.text_normal_color,
-            disabledforeground=self.text_disabled_color,
-            bd=self.button_depth,
-            )
 
         self.title_label = tk.Label(
             title, text=self.gui_name, justify='left', anchor='w',
             width=self.title_size, font=self.get_font("frame_title"),
-            bg=self.frame_bg_color, fg=self.text_normal_color,
             disabledforeground=self.text_disabled_color)
         self.title_label.font_type = "frame_title"
 
@@ -73,32 +63,32 @@ class ArrayFrame(container_frame.ContainerFrame):
 
         self.shift_up_btn = tk.Button(
             title, width=6, text='Shift ▲',
-            command=self.shift_entry_up, **btn_kwargs)
+            command=self.shift_entry_up)
         self.shift_down_btn = tk.Button(
             buttons, width=6, text='Shift ▼',
-            command=self.shift_entry_down, **btn_kwargs)
+            command=self.shift_entry_down)
         self.add_btn = tk.Button(
             buttons, width=3, text='Add',
-            command=self.add_entry, **btn_kwargs)
+            command=self.add_entry)
         self.insert_btn = tk.Button(
             buttons, width=5, text='Insert',
-            command=self.insert_entry, **btn_kwargs)
+            command=self.insert_entry)
         self.duplicate_btn = tk.Button(
             buttons, width=7, text='Duplicate',
-            command=self.duplicate_entry, **btn_kwargs)
+            command=self.duplicate_entry)
         self.delete_btn = tk.Button(
             buttons, width=5, text='Delete',
-            command=self.delete_entry, **btn_kwargs)
+            command=self.delete_entry)
         self.delete_all_btn = tk.Button(
             buttons, width=7, text='Delete all',
-            command=self.delete_all_entries, **btn_kwargs)
+            command=self.delete_all_entries)
 
         self.import_btn = tk.Button(
             buttons, width=5, text='Import',
-            command=self.import_node, **btn_kwargs)
+            command=self.import_node)
         self.export_btn = tk.Button(
             buttons, width=5, text='Export',
-            command=self.export_node, **btn_kwargs)
+            command=self.export_node)
 
         # pack the title, menu, and all the buttons
         for w in (self.shift_down_btn, self.export_btn, self.import_btn,
@@ -176,6 +166,8 @@ class ArrayFrame(container_frame.ContainerFrame):
         container_frame.ContainerFrame.apply_style(self, seen)
         self.controls.config(bd=self.frame_depth, bg=self.frame_bg_color)
         self.buttons.config(bd=0, bg=self.frame_bg_color)
+        if self.show.get():
+            self.pose_fields()
 
     def destroy(self):
         # These will linger and take up RAM, even if the widget is destroyed.
@@ -704,6 +696,7 @@ class ArrayFrame(container_frame.ContainerFrame):
                 # if the descriptors are different, gotta repopulate!
                 if w.load_node_data(node, sub_node, self.sel_index, sub_desc):
                     self.populate()
+                    self.apply_style()
                     return
 
                 w.reload()

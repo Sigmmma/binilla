@@ -42,22 +42,13 @@ class UnionFrame(container_frame.ContainerFrame):
 
         toggle_text = '-' if show_frame else '+'
 
-        btn_kwargs = dict(
-            bg=self.button_color, fg=self.text_normal_color,
-            disabledforeground=self.text_disabled_color,
-            bd=self.button_depth, width=5,
-            )
-
-        self.title = tk.Frame(self, relief='raised', bd=self.frame_depth,
-                              bg=self.frame_bg_color)
+        self.title = tk.Frame(self, relief='raised')
         self.show_btn = ttk.Checkbutton(
             self.title, width=3, text=toggle_text, command=self.toggle_visible,
             style='ShowButton.TButton')
         self.title_label = tk.Label(
             self.title, text=self.gui_name, anchor='w',
-            width=self.title_size, justify='left',
-            font=self.get_font("frame_title"),
-            bg=self.frame_bg_color, fg=self.text_normal_color)
+            width=self.title_size, justify='left')
         self.title_label.font_type = "frame_title"
         self.sel_menu = ScrollMenu(
             self.title, f_widget_parent=self, sel_index=u_index,
@@ -69,22 +60,17 @@ class UnionFrame(container_frame.ContainerFrame):
         self.sel_menu.pack(side="left", fill="x")
         self.title.pack(fill="x", expand=True)
 
-        self.content = tk.Frame(self, relief="sunken", bd=self.frame_depth,
-                                bg=self.default_bg_color)
+        self.content = tk.Frame(self, relief="sunken")
 
         # make the default raw bytes union frame
-        self.raw_frame = tk.Frame(
-            self.content, relief="flat", bd=0, bg=self.default_bg_color)
+        self.raw_frame = tk.Frame(self.content, relief="flat", bd=0)
         self.raw_label = tk.Label(
             self.raw_frame, text='DataUnion', width=self.title_size,
-            anchor='w', bg=self.default_bg_color, fg=self.text_normal_color,
-            disabledforeground=self.text_disabled_color)
+            anchor='w', disabledforeground=self.text_disabled_color)
         self.import_btn = tk.Button(
-            self.raw_frame, text='Import',
-            command=self.import_node, **btn_kwargs)
+            self.raw_frame, text='Import', command=self.import_node, width=5)
         self.export_btn = tk.Button(
-            self.raw_frame, text='Export',
-            command=self.export_node, **btn_kwargs)
+            self.raw_frame, text='Export', command=self.export_node, width=5)
 
         self.raw_label.pack(side="left", expand=True, fill='x')
         for w in (self.export_btn, self.import_btn):
@@ -92,6 +78,12 @@ class UnionFrame(container_frame.ContainerFrame):
 
         self.populate()
         self._initialized = True
+
+    def apply_style(self, seen=None):
+        container_frame.ContainerFrame.apply_style(self, seen)
+        self.title.config(bd=self.frame_depth, bg=self.frame_bg_color)
+        self.title_label.config(bg=self.frame_bg_color)
+        self.content.config(bd=self.frame_depth)
 
     def load_child_node_data(self):
         desc = self.desc
@@ -285,6 +277,7 @@ class UnionFrame(container_frame.ContainerFrame):
                     self.populate()
                     return
                 active_widget.reload()
+                active_widget.apply_style()
 
             self.build_f_widget_cache()
             # now that the field widgets are created, position them

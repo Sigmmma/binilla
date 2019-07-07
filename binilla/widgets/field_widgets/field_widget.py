@@ -663,7 +663,7 @@ class FieldWidget(BinillaWidget):
                 if parent_desc['TYPE'].is_array:
                     desc = parent_desc['SUB_STRUCT']
                 else:
-                    desc = parent_desc[self.attr_index]
+                    desc = parent_desc.get(self.attr_index)
                 
         self._desc = desc
         return self._desc != prev_desc

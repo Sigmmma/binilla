@@ -46,23 +46,15 @@ class EntryFrame(data_frame.DataFrame):
 
         # make the widgets
         self.entry_string = tk.StringVar(self)
-        self.content = tk.Frame(self, relief='flat', bd=0,
-                                bg=self.default_bg_color)
+        self.content = tk.Frame(self, relief='flat', bd=0)
 
         self.title_label = tk.Label(
-            self.content, text=self.gui_name, justify='left', anchor='w',
-            bg=self.default_bg_color, fg=self.text_normal_color,
-            font=self.get_font("default"), width=self.title_size,
+            self.content, text=self.gui_name, justify='left',
+            anchor='w', width=self.title_size,
             disabledforeground=self.text_disabled_color)
 
         self.data_entry = tk.Entry(
-            self.content, textvariable=self.entry_string,
-            justify='left', bd=self.entry_depth,
-            bg=self.entry_normal_color, fg=self.text_normal_color,
-            disabledbackground=self.entry_disabled_color,
-            disabledforeground=self.text_disabled_color,
-            selectbackground=self.entry_highlighted_color,
-            selectforeground=self.text_highlighted_color)
+            self.content, textvariable=self.entry_string, justify='left')
 
         self.data_entry.bind('<Return>', self.flush)
         self.data_entry.bind('<FocusOut>', self.flush)
@@ -73,8 +65,7 @@ class EntryFrame(data_frame.DataFrame):
             self.title_label.pack(side="left", fill="x")
 
         self.sidetip_label = tk.Label(
-            self.content, anchor='w', justify='left',
-            bg=self.default_bg_color, fg=self.text_normal_color)
+            self.content, anchor='w', justify='left')
 
         self.populate()
         self._initialized = True
@@ -467,12 +458,6 @@ class TimestampFrame(EntryFrame):
 
     
 class HexEntryFrame(EntryFrame):
-
-    def flush(self):
-        try:
-            self.parent[self.attr_index] = self.entry_string.get()
-        except Exception:
-            print(format_exc())
 
     def flush(self, *args):
         if None in (self.parent, self.node):

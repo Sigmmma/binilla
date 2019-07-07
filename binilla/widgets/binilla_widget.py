@@ -378,11 +378,13 @@ class BinillaWidget():
                         selectforeground=self.text_highlighted_color, font=font)
                 elif isinstance(w, tk.Text):
                     w.config(
+                        bd=self.entry_depth, font=font,
                         bg=self.entry_normal_color, fg=self.text_normal_color,
                         selectbackground=self.entry_highlighted_color,
-                        selectforeground=self.text_highlighted_color, font=font)
+                        selectforeground=self.text_highlighted_color)
                 elif isinstance(w, tk.Spinbox):
                     w.config(
+                        bd=self.entry_depth, font=font,
                         bg=self.entry_normal_color, fg=self.text_normal_color,
                         disabledbackground=self.entry_disabled_color,
                         disabledforeground=self.text_disabled_color,
@@ -390,7 +392,7 @@ class BinillaWidget():
                         selectforeground=self.text_highlighted_color,
                         activebackground=self.default_bg_color,
                         readonlybackground=self.entry_disabled_color,
-                        buttonbackground=self.default_bg_color, font=font,)
+                        buttonbackground=self.default_bg_color,)
                 elif isinstance(w, tk.LabelFrame):
                     w.config(
                         fg=self.text_normal_color, bg=self.default_bg_color,
@@ -414,16 +416,31 @@ class BinillaWidget():
                         fg=self.text_normal_color, bd=self.button_depth,
                         disabledforeground=self.text_disabled_color, font=font)
                 elif isinstance(w, tk.Entry):
-                    w.config(bd=self.entry_depth,
+                    w.config(
+                        bd=self.entry_depth, font=font,
                         bg=self.entry_normal_color, fg=self.text_normal_color,
                         disabledbackground=self.entry_disabled_color,
                         disabledforeground=self.text_disabled_color,
                         selectbackground=self.entry_highlighted_color,
                         selectforeground=self.text_highlighted_color,
-                        readonlybackground=self.entry_disabled_color, font=font,)
+                        readonlybackground=self.entry_disabled_color,)
 
                 # NOTE: These ttk widgets will need to have proper style
                 # colors applied when they are actually used in the future
+                elif isinstance(w, ttk.Checkbutton):
+                    self.configure_ttk_style(
+                        ("ShowButton.TButton", ), font="default",
+                        background=self.button_color,
+                        foreground=self.text_normal_color,
+                        borderwidth=self.button_depth,
+                        )
+                    self.map_ttk_style(
+                        ("ShowButton.TButton", ),
+                        background=[("active", self.button_color),
+                                    ("pressed", self.button_color)],
+                        foreground=[("active", self.text_normal_color),
+                                    ("pressed", self.text_normal_color)]
+                        )
                 elif isinstance(w, ttk.Treeview):
                     self.configure_ttk_style(
                         ("Treeview", ), font="treeview",

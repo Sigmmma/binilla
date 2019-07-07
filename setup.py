@@ -28,6 +28,7 @@ setup(
     license='MIT',
     packages=[
         'binilla',
+        'binilla.defs',
         'binilla.widgets',
         'binilla.widgets.field_widgets',
         'binilla.windows',

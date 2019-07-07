@@ -3,6 +3,7 @@ import tkinter.font
 
 from supyr_struct.defs.tag_def import TagDef
 from supyr_struct.field_types import *
+from binilla.defs.style_def import appearance, widgets, colors, fonts, theme_name
 from binilla.widgets.field_widgets.color_picker_frame import ColorPickerFrame
 from binilla.widgets.field_widgets.array_frame import DynamicArrayFrame
 from binilla.constants import GUI_NAME, NAME, TOOLTIP, VALUE, NODE_PRINT_INDENT
@@ -11,17 +12,8 @@ from binilla.editor_constants import widget_depth_names, color_names,\
 
 
 __all__ = (
-    "font_families", "theme_names", "get", "style_def", "config_def",
+    "get", "config_def",
     )
-
-font_families = ()
-theme_names = ()
-try:
-    font_families = tuple(sorted(tkinter.font.families()))
-    theme_names = tuple(sorted(ttk.Style().theme_names()))
-except Exception:
-    print("Cannot import list of font families or theme names. Create Tkinter "
-          "interpreter instance before attempting to import config.")
 
 
 pad_str = "Padding applied to the %s of widgets oriented %sally"
@@ -104,38 +96,6 @@ app_window_tooltips = (
     "Number of pixels to jump when scrolling horizontally.",
     "Number of pixels to jump when scrolling vertically.",
     )
-
-widget_tooltips = (
-    "Number of characters wide the title of each vertically oriented field is.",
-    ("Default number of characters wide an enumerator widget will be when\n" +
-     "not being used to represent an enumerator(such as in an array or union)"),
-    "Default number of characters wide an enumerator widget will be.",
-    "Minimum number of characters wide an entry field must be.",
-
-    "Width of multi-line text boxes",
-    "Height of multi-line text boxes",
-
-    "Minimum number of pixels wide a boolean frame must be.",
-    "Minimum number of pixels tall a boolean frame must be.",
-    "Maximum number of pixels wide a boolean frame can be.",
-    "Maximum number of pixels tall a boolean frame can be.",
-
-    "Default number of characters wide an integer entry field will be.",
-    "Default number of characters wide a float entry field will be.",
-    "Default number of characters wide a string entry field will be.",
-
-    "Maximum number of characters wide an integer entry field can be.",
-    "Maximum number of characters wide a float entry field can be.",
-    "Maximum number of characters wide a string entry field can be.",
-
-    ("Maximum number of characters wide an enumerator widget can be.\n" +
-     "(This is regardless of what the enumerator widget is being used for)"),
-    ("Maximum number of characters tall an enumerator widget can be.\n" +
-     "(This is regardless of what the enumerator widget is being used for)"),
-    )
-
-depth_tooltip = "\
-Number of pixels to surround the widget with to give an appearance of depth."
 
 modifier_enums = (
     {GUI_NAME: "", NAME: "NONE"},
@@ -311,11 +271,6 @@ hotkey = Struct("hotkey",
         TOOLTIP="Function to run when this hotkey is pressed")
     )
 
-color = QStruct("color",
-    UInt8('r'), UInt8('g'), UInt8('b'),
-    ORIENT='h', WIDGET=ColorPickerFrame
-    )
-
 open_tag = Container("open_tag",
     Struct("header",
         UInt16("width"),
@@ -341,36 +296,6 @@ open_tag = Container("open_tag",
 filepath = Container("filepath",
     UInt16("path_len", VISIBLE=False),
     StrUtf8("path", SIZE=".path_len")
-    )
-
-font = Struct("font",
-    UInt16("size"),
-    Bool16("flags",
-        "bold",
-        "italic",
-        "underline",
-        "overstrike",
-        ),
-    Pad(12),
-    StrUtf8Enum("family",
-        *({NAME:"_%s_%s" % (i, font_families[i]),
-           GUI_NAME: font_families[i], VALUE: font_families[i]}
-          for i in range(len(font_families))),
-        SIZE=240
-        ),
-    )
-
-theme_name = StrUtf8Enum("theme_name",
-    *({NAME:"_%s_%s" % (i, theme_names[i]),
-       GUI_NAME: theme_names[i], VALUE: theme_names[i]}
-      for i in range(len(theme_names))),
-    SIZE=64
-    )
-
-config_version = Struct("config_version",
-    UEnum32("id", ('Bnla', 'alnB'), VISIBLE=False, DEFAULT='alnB'),
-    UInt32("version", DEFAULT=2, VISIBLE=False, EDITABLE=False),
-    SIZE=8
     )
 
 config_header = Struct("header",
@@ -460,26 +385,13 @@ config_header = Struct("header",
         TOOLTIP="Max number of undo/redo operations per tag window."),
 
     UInt16("print_precision", DEFAULT=8, TOOLTIP="unused", VISIBLE=False),
-    UInt16("print_indent", DEFAULT=NODE_PRINT_INDENT,
+    UInt16("print_indent", DEFAULT=NODE_PRINT_INDENT, VISIBLE=False,
         TOOLTIP="Number of spaces to indent each print level."),
 
     UInt16("backup_count", DEFAULT=1, MIN=1, MAX=1, VISIBLE=False,
         TOOLTIP="Max number of backups to make before overwriting the oldest"),
     SIZE=120,
-    GUI_NAME='general settings'
-    )
-
-
-style_version = Struct("style_version",
-    UInt32("id", DEFAULT='lytS', VISIBLE=False),
-    UInt32("version", DEFAULT=2, VISIBLE=False),
-    SIZE=8
-    )
-
-style_header = Struct("header",
-    Timestamp32("date_created"),
-    Timestamp32("date_modified"),
-    SIZE=120
+    GUI_NAME='General settings'
     )
 
 array_counts = Struct("array_counts",
@@ -496,180 +408,119 @@ array_counts = Struct("array_counts",
     )
 
 app_window = Struct("app_window",
-    UInt16("app_width", DEFAULT=640, TOOLTIP=app_window_tooltips[0]),
-    UInt16("app_height", DEFAULT=480, TOOLTIP=app_window_tooltips[1]),
-    SInt16("app_offset_x", TOOLTIP=app_window_tooltips[2]),
-    SInt16("app_offset_y", TOOLTIP=app_window_tooltips[3]),
+    UInt16("app_width", DEFAULT=640, TOOLTIP=app_window_tooltips[0], VISIBLE=False),
+    UInt16("app_height", DEFAULT=480, TOOLTIP=app_window_tooltips[1], VISIBLE=False),
+    SInt16("app_offset_x", TOOLTIP=app_window_tooltips[2], VISIBLE=False),
+    SInt16("app_offset_y", TOOLTIP=app_window_tooltips[3], VISIBLE=False),
 
-    UInt16("window_menu_max_len", DEFAULT=15, TOOLTIP=app_window_tooltips[4]),
+    UInt16("window_menu_max_len", DEFAULT=15,
+        TOOLTIP=app_window_tooltips[4],
+        GUI_NAME="max items in tag window menu"),
 
-    UInt8("max_step_x", DEFAULT=4, TOOLTIP=app_window_tooltips[5]),
-    UInt8("max_step_y", DEFAULT=8, TOOLTIP=app_window_tooltips[6]),
+    QStruct("max_step",
+        UInt8("x", DEFAULT=4, TOOLTIP=app_window_tooltips[5]),
+        UInt8("y", DEFAULT=8, TOOLTIP=app_window_tooltips[6]),
+        ORIENT="h"
+        ),
 
-    UInt16("cascade_stride_x", DEFAULT=60, TOOLTIP=app_window_tooltips[7]),
-    UInt16("tile_stride_x", DEFAULT=120, TOOLTIP=app_window_tooltips[8]),
-    UInt16("tile_stride_y", DEFAULT=30, TOOLTIP=app_window_tooltips[9]),
+    UInt16("cascade_stride", DEFAULT=60, TOOLTIP=app_window_tooltips[7]),
+    QStruct("tile_stride",
+        UInt16("x", DEFAULT=120, TOOLTIP=app_window_tooltips[8]),
+        UInt16("y", DEFAULT=30, TOOLTIP=app_window_tooltips[9]),
+        ORIENT="h"
+        ),
 
-    UInt16("default_tag_window_width", DEFAULT=480,
-        TOOLTIP=app_window_tooltips[10]),
-    UInt16("default_tag_window_height", DEFAULT=640,
-        TOOLTIP=app_window_tooltips[11]),
+    QStruct("default_tag_window_dimensions",
+        UInt16("w", DEFAULT=480, TOOLTIP=app_window_tooltips[10]),
+        UInt16("h", DEFAULT=640, TOOLTIP=app_window_tooltips[11]),
+        ORIENT="h"
+        ),
 
-    UInt16("scroll_increment_x", DEFAULT=50, TOOLTIP=app_window_tooltips[12]),
-    UInt16("scroll_increment_y", DEFAULT=50, TOOLTIP=app_window_tooltips[13]),
+    QStruct("scroll_increment",
+        UInt16("x", DEFAULT=50, TOOLTIP=app_window_tooltips[12]),
+        UInt16("y", DEFAULT=50, TOOLTIP=app_window_tooltips[13]),
+        ORIENT="h"
+        ),
     SIZE=128,
-    GUI_NAME='main window settings'
-    )
-
-widgets = Container("widgets",
-    UInt16("title_width", TOOLTIP=widget_tooltips[0]),
-    UInt16("scroll_menu_width", TOOLTIP=widget_tooltips[1]),
-    UInt16("enum_menu_width", TOOLTIP=widget_tooltips[2]),
-    UInt16("min_entry_width", TOOLTIP=widget_tooltips[3]),
-
-    UInt16("textbox_width", TOOLTIP=widget_tooltips[4]),
-    UInt16("textbox_height", TOOLTIP=widget_tooltips[5]),
-
-    UInt16("bool_frame_min_width", TOOLTIP=widget_tooltips[6]),
-    UInt16("bool_frame_min_height", TOOLTIP=widget_tooltips[7]),
-    UInt16("bool_frame_max_width", TOOLTIP=widget_tooltips[8]),
-    UInt16("bool_frame_max_height", TOOLTIP=widget_tooltips[9]),
-
-    UInt16("def_int_entry_width", TOOLTIP=widget_tooltips[10]),
-    UInt16("def_float_entry_width", TOOLTIP=widget_tooltips[11]),
-    UInt16("def_string_entry_width", TOOLTIP=widget_tooltips[12]),
-
-    UInt16("max_int_entry_width", TOOLTIP=widget_tooltips[13]),
-    UInt16("max_float_entry_width", TOOLTIP=widget_tooltips[14]),
-    UInt16("max_string_entry_width", TOOLTIP=widget_tooltips[15]),
-
-    UInt16("scroll_menu_max_width", TOOLTIP=widget_tooltips[16]),
-    UInt16("scroll_menu_max_height", TOOLTIP=widget_tooltips[17]),
-
-    # UPDATE THIS PADDING WHEN ADDING STUFF ABOVE IT
-    Pad(64 - 2*18),
-
-    QStruct("vertical_padx",
-        UInt16("l", TOOLTIP=pad_str % ('left', 'vertic')),
-        UInt16("r", TOOLTIP=pad_str % ('right', 'vertic')),
-        ORIENT='h', TOOLTIP=pad_str % ('left/right', 'vertic')
-        ),
-    QStruct("vertical_pady",
-        UInt16("t", TOOLTIP=pad_str % ('top', 'vertic')),
-        UInt16("b", TOOLTIP=pad_str % ('bottom', 'vertic')),
-        ORIENT='h', TOOLTIP=pad_str % ('top/bottom', 'vertic')
-        ),
-    QStruct("horizontal_padx",
-        UInt16("l", TOOLTIP=pad_str % ('left', 'horizont')),
-        UInt16("r", TOOLTIP=pad_str % ('right', 'horizont')),
-        ORIENT='h', TOOLTIP=pad_str % ('left/right', 'horizont')
-        ),
-    QStruct("horizontal_pady",
-        UInt16("t", TOOLTIP=pad_str % ('top', 'horizont')),
-        UInt16("b", TOOLTIP=pad_str % ('bottom', 'horizont')),
-        ORIENT='h', TOOLTIP=pad_str % ('top/bottom', 'horizont')
-        ),
-
-    # UPDATE THIS PADDING WHEN ADDING STUFF ABOVE IT
-    Pad(64 - 2*2*4),
-
-    Array("depths",
-        SUB_STRUCT=UInt16("depth", TOOLTIP=depth_tooltip),
-        SIZE="..array_counts.widget_depth_count",
-        MAX=len(widget_depth_names), MIN=len(widget_depth_names),
-        NAME_MAP=widget_depth_names
-        ),
-    GUI_NAME='widget settings'
+    GUI_NAME='Main window settings'
     )
 
 open_tags = Array("open_tags",
-    SUB_STRUCT=open_tag, SIZE=".array_counts.open_tag_count", VISIBLE=False
+    SUB_STRUCT=open_tag, SIZE="array_counts.open_tag_count", VISIBLE=False
     )
 
 recent_tags = Array("recent_tags",
-    SUB_STRUCT=filepath, SIZE=".array_counts.recent_tag_count", VISIBLE=False
+    SUB_STRUCT=filepath, SIZE="array_counts.recent_tag_count", VISIBLE=False
     )
 
 directory_paths = Array("directory_paths",
-    SUB_STRUCT=filepath, SIZE=".array_counts.directory_path_count",
+    SUB_STRUCT=filepath, SIZE="array_counts.directory_path_count",
     NAME_MAP=("last_load_dir", "last_defs_dir", "last_imp_dir", "curr_dir",
               "tags_dir", "debug_log_path", "styles_dir",),
     VISIBLE=False
     )
 
-colors = Array("colors",
-    SUB_STRUCT=color, SIZE=".array_counts.color_count",
-    MAX=len(color_names), MIN=len(color_names),
-    NAME_MAP=color_names,
-    )
-
 hotkeys = Array("hotkeys",
     SUB_STRUCT=hotkey, DYN_NAME_PATH='.method.enum_name',
-    SIZE=".array_counts.hotkey_count", WIDGET=DynamicArrayFrame)
+    SIZE="array_counts.hotkey_count", WIDGET=DynamicArrayFrame,
+    GUI_NAME="Main window hotkeys"
+    )
 
 tag_window_hotkeys = Array(
     "tag_window_hotkeys", SUB_STRUCT=hotkey, DYN_NAME_PATH='.method.enum_name',
-    SIZE=".array_counts.tag_window_hotkey_count", WIDGET=DynamicArrayFrame)
-
-fonts = Array("fonts",
-    SUB_STRUCT=font, SIZE=".array_counts.font_count",
-    MAX=len(font_names), MIN=len(font_names),
-    NAME_MAP=font_names,
+    SIZE="array_counts.tag_window_hotkey_count", WIDGET=DynamicArrayFrame,
+    GUI_NAME="Tag window hotkeys"
     )
 
-config_v2_def = TagDef("binilla_v2_config",
-    config_header,
-    array_counts,
-    app_window,
-    widgets,
-    open_tags,
-    recent_tags,
-    directory_paths,
-    colors,
+config_version = Struct("config_version",
+    UEnum32("id", ('Bnla', 'alnB'), VISIBLE=False, DEFAULT='alnB'),
+    UInt32("version", DEFAULT=2, VISIBLE=False, EDITABLE=False),
+    SIZE=8
+    )
+
+all_hotkeys = Container("all_hotkeys",
     hotkeys,
     tag_window_hotkeys,
-    ENDIAN='<', ext=".cfg",
-    )
-
-style_v2_def = TagDef("binilla_v2_style",
-    style_header,
-    array_counts,
-    widgets,
-    colors,
-    fonts,
-    theme_name,
-    ENDIAN='<', ext=".sty",
+    GUI_NAME="Hotkeys"
     )
 
 config_def = TagDef("binilla_config",
-    config_version,
+    config_version,  # not visible
     config_header,
-    array_counts,
+    array_counts,  # not visible
     app_window,
-    widgets,
-    open_tags,
-    recent_tags,
-    directory_paths,
-    colors,
-    hotkeys,
-    tag_window_hotkeys,
-    fonts,
-    theme_name,
+    open_tags, # not visible
+    recent_tags,  # not visible
+    directory_paths,  # not visible
+    appearance,
+    all_hotkeys,
     ENDIAN='<', ext=".cfg",
-    )
-
-style_def = TagDef("binilla_style",
-    style_version,
-    style_header,
-    array_counts,
-    widgets,
-    colors,
-    ENDIAN='<', ext=".sty",
     )
 
 config_version_def = TagDef(config_version)
 
-style_version_def = TagDef(style_version)
+# OLD STRUCT VERSIONS
+v1_config_version = Struct("config_version",
+    UEnum32("id", ('Bnla', 'alnB'), VISIBLE=False, DEFAULT='alnB'),
+    UInt32("version", DEFAULT=1, VISIBLE=False, EDITABLE=False),
+    SIZE=8
+    )
+
+v1_config_def = TagDef("v1_binilla_config",
+    v1_config_version,
+    config_header,
+    array_counts,
+    app_window,
+    widgets,
+    open_tags,
+    recent_tags,
+    directory_paths,
+    colors,
+    hotkeys,
+    tag_window_hotkeys,
+    ENDIAN='<', ext=".cfg",
+    )
+
 
 def get():
-    return (config_def, config_v2_def, style_def, style_v2_def)
+    return config_def

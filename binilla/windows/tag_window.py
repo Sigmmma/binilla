@@ -429,7 +429,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
 
         if new_hotkeys is None:
             new_hotkeys = {}
-            for hotkey in self.app_root.config_file.data.tag_window_hotkeys:
+            for hotkey in self.app_root.config_file.data.all_hotkeys.tag_window_hotkeys:
                 combo = make_hotkey_string(hotkey)
                 if combo is None or not hotkey.method.enum_name:
                     continue
@@ -633,7 +633,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
     def unbind_hotkeys(self, hotkeys=None):
         if hotkeys is None:
             hotkeys = {}
-            for hotkey in self.app_root.config_file.data.tag_window_hotkeys:
+            for hotkey in self.app_root.config_file.data.all_hotkeys.tag_window_hotkeys:
                 combo = make_hotkey_string(hotkey)
                 if combo is None or not hotkey.method.enum_name:
                     continue

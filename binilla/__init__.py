@@ -6,7 +6,7 @@ __author__ = "Devin Bobadilla"
 __date__ = "2019.07.05"
 __version__ = (1, 1, 0)
 __all__ = (
-    'widgets', 'windows',
+    'defs', 'widgets', 'windows',
     'app_window', 'config_def', 'constants', 'edit_manager',
     'editor_constants', 'handler',
     )

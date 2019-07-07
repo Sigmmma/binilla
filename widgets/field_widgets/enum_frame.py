@@ -14,8 +14,7 @@ class EnumFrame(data_frame.DataFrame):
     option_cache = None
 
     def __init__(self, *args, **kwargs):
-        kwargs.update(relief='flat', bd=0, highlightthickness=0,
-                      bg=self.default_bg_color)
+        kwargs.update(relief='flat', bd=0, highlightthickness=0)
         data_frame.DataFrame.__init__(self, *args, **kwargs)
 
         try:
@@ -30,17 +29,14 @@ class EnumFrame(data_frame.DataFrame):
                 label_width = max(label_width, len(s))
 
         # make the widgets
-        self.content = tk.Frame(self, relief='flat', bd=0,
-                                bg=self.default_bg_color)
+        self.content = tk.Frame(self, relief='flat', bd=0)
 
         self.display_comment()
 
         self.title_label = tk.Label(
             self.content, text=self.gui_name,
             justify='left', anchor='w', width=self.title_size,
-            bg=self.default_bg_color, fg=self.text_normal_color,
-            disabledforeground=self.text_disabled_color,
-            font=self.get_font("default"))
+            disabledforeground=self.text_disabled_color)
         self.sel_menu = ScrollMenu(
             self.content, f_widget_parent=self, menu_width=label_width,
             sel_index=sel_index, max_index=self.desc.get('ENTRIES', 0) - 1,
@@ -193,19 +189,16 @@ class DynamicEnumFrame(EnumFrame):
     options_sane = False
 
     def __init__(self, *args, **kwargs):
-        kwargs.update(relief='flat', bd=0, highlightthickness=0,
-                      bg=self.default_bg_color)
+        kwargs.update(relief='flat', bd=0, highlightthickness=0)
         data_frame.DataFrame.__init__(self, *args, **kwargs)
 
         sel_index = -1 if self.node is None else self.node + 1
 
         # make the widgets
-        self.content = tk.Frame(self, relief='flat', bd=0,
-                                bg=self.default_bg_color)
+        self.content = tk.Frame(self, relief='flat', bd=0)
         self.title_label = tk.Label(
-            self.content, text=self.gui_name, font=self.get_font("default"),
+            self.content, text=self.gui_name,
             justify='left', anchor='w', width=self.title_size,
-            bg=self.default_bg_color, fg=self.text_normal_color,
             disabledforeground=self.text_disabled_color)
         self.sel_menu = ScrollMenu(
             self.content, f_widget_parent=self, menu_width=self.widget_width,

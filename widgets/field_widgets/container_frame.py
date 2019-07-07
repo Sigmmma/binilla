@@ -28,8 +28,7 @@ class ContainerFrame(tk.Frame, field_widget.FieldWidget):
         if self.f_widget_parent is None:
             self.pack_padx = self.pack_pady = 0
 
-        kwargs.update(relief='flat', bd=0, highlightthickness=0,
-                      bg=self.default_bg_color)
+        kwargs.update(relief='flat', bd=0, highlightthickness=0)
 
         show_frame = True
         if self.f_widget_parent is not None:
@@ -47,14 +46,7 @@ class ContainerFrame(tk.Frame, field_widget.FieldWidget):
             self.show.set(show_frame)
             toggle_text = '-' if show_frame else '+'
 
-            btn_kwargs = dict(
-                bg=self.button_color, fg=self.text_normal_color,
-                disabledforeground=self.text_disabled_color,
-                bd=self.button_depth,
-                )
-
-            self.title = tk.Frame(self, relief='raised', bd=self.frame_depth,
-                                  bg=self.frame_bg_color)
+            self.title = tk.Frame(self, relief='raised')
 
             self.show_btn = ttk.Checkbutton(
                 self.title, width=3, text=toggle_text,
@@ -62,15 +54,14 @@ class ContainerFrame(tk.Frame, field_widget.FieldWidget):
             self.title_label = tk.Label(
                 self.title, text=self.gui_name, anchor='w',
                 width=self.title_size, justify='left',
-                font=self.get_font("frame_title"),
-                bg=self.frame_bg_color, fg=self.text_normal_color)
+                font=self.get_font("frame_title"))
             self.title_label.font_type = "frame_title"
             self.import_btn = tk.Button(
                 self.title, width=5, text='Import',
-                command=self.import_node, **btn_kwargs)
+                command=self.import_node)
             self.export_btn = tk.Button(
                 self.title, width=5, text='Export',
-                command=self.export_node, **btn_kwargs)
+                command=self.export_node)
 
             self.show_btn.pack(side="left")
             if self.gui_name != '':
@@ -130,6 +121,10 @@ class ContainerFrame(tk.Frame, field_widget.FieldWidget):
         if w:
             if self.desc.get('ORIENT', 'v')[:1].lower() == 'v':
                 w.config(bd=0, bg=self.frame_bg_color)
+
+        if self.show.get():
+            self.pose_fields()
+
     @property
     def visible_field_count(self):
         desc = self.desc
@@ -325,6 +320,7 @@ class ContainerFrame(tk.Frame, field_widget.FieldWidget):
             # then this widget will need to be repopulated.
             if self.load_child_node_data():
                 self.populate()
+                self.apply_style()
                 return
 
             for wid in self.f_widget_ids:

@@ -50,13 +50,10 @@ class NullFrame(DataFrame):
     def populate(self):
         self.title_label = tk.Label(
             self, text=self.gui_name, width=self.title_size, anchor='w',
-            bg=self.default_bg_color, fg=self.text_normal_color,
-            disabledforeground=self.text_disabled_color,
-            font=self.get_font("default"))
+            disabledforeground=self.text_disabled_color)
         self.field_type_name = tk.Label(
-            self, text='<%s>'%self.desc['TYPE'].name,
+            self, text='<%s>' % self.desc['TYPE'].name,
             anchor='w', justify='left',
-            bg=self.default_bg_color, fg=self.text_normal_color,
             disabledforeground=self.text_disabled_color)
 
         for w in (self, self.title_label, self.field_type_name):
@@ -127,27 +124,22 @@ class RawdataFrame(DataFrame):
     def populate(self):
         self.title_label = tk.Label(
             self, text=self.gui_name, width=self.title_size, anchor='w',
-            bg=self.default_bg_color, fg=self.text_normal_color,
-            disabledforeground=self.text_disabled_color,
-            font=self.get_font("default"))
+            disabledforeground=self.text_disabled_color)
 
         self.tooltip_string = self.desc.get('TOOLTIP')
         self.title_label.tooltip_string = self.tooltip_string
         for w in (self, self.title_label):
             w.tooltip_string = self.desc.get('TOOLTIP')
 
-        btn_kwargs = dict(
-            bg=self.button_color, fg=self.text_normal_color,
-            disabledforeground=self.text_disabled_color, bd=self.button_depth)
         self.import_btn = tk.Button(
             self, width=6, text='Import',
-            command=self.import_node, **btn_kwargs)
+            command=self.import_node)
         self.export_btn = tk.Button(
             self, width=6, text='Export',
-            command=self.export_node, **btn_kwargs)
+            command=self.export_node)
         self.delete_btn = tk.Button(
             self, width=6, text='Delete',
-            command=self.delete_node, **btn_kwargs)
+            command=self.delete_node)
 
         # now that the field widgets are created, position them
         self.pose_fields()
@@ -277,7 +269,7 @@ class RawdataFrame(DataFrame):
                 self.parent.set_size(curr_size, attr_index=index)
 
     def pose_fields(self):
-        padx, pady, side= self.horizontal_padx, self.horizontal_pady, 'top'
+        padx, pady = self.horizontal_padx, self.horizontal_pady
         if self.gui_name != '':
             self.title_label.pack(side='left')
         self.import_btn.pack(side='left', fill="x", padx=padx, pady=pady)
@@ -300,12 +292,9 @@ class VoidFrame(DataFrame):
     def populate(self):
         self.title_label = tk.Label(
             self, text=self.gui_name, width=self.title_size, anchor='w',
-            bg=self.default_bg_color, fg=self.text_normal_color,
-            disabledforeground=self.text_disabled_color,
-            font=self.get_font("default"))
+            disabledforeground=self.text_disabled_color)
         self.field_type_name = tk.Label(
             self, text='<VOIDED>', anchor='w', justify='left',
-            bg=self.default_bg_color, fg=self.text_normal_color,
             disabledforeground=self.text_disabled_color)
 
         for w in (self, self.title_label, self.field_type_name):

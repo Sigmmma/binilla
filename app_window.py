@@ -136,8 +136,8 @@ class Binilla(tk.Tk, BinillaWidget):
     config_def = None
     config_version_def = None
     style_version_def = None
-    old_style_defs = ()
-    old_config_defs = ()
+    style_defs = ()
+    config_defs = ()
 
     config_version = 2
     style_version = 2
@@ -165,7 +165,7 @@ class Binilla(tk.Tk, BinillaWidget):
     curr_step_x = 0
     curr_step_y = 0
 
-    cascade_stride_x = 60
+    cascade_stride = 60
     tile_stride_x = 120
     tile_stride_y = 30
 
@@ -236,16 +236,20 @@ class Binilla(tk.Tk, BinillaWidget):
 
         # NOTE: Do this import AFTER Tk interpreter is set up, otherwise
         # it will fail to get the names of the font families
-        from binilla.config_def import style_def, config_def,\
-             style_v2_def, config_v2_def, config_version_def, style_version_def
-        self.old_style_defs = (style_v2_def, )
-        self.old_config_defs = (config_v2_def, )
+        from binilla.defs.config_def import config_def, v1_config_def,\
+             config_version_def
+        from binilla.defs.style_def import style_def, v1_style_def,\
+             style_version_def
 
-        self.style_def = kwargs.pop('style_def', style_def)
-        self.config_def  = kwargs.pop('config_def', config_def)
-        self.style_version_def = kwargs.pop('style_version_def', style_version_def)
+        style_defs  = {1: v1_style_def,  2: style_def}
+        config_defs = {1: v1_config_def, 2: config_def}
+
+        self.style_def  = kwargs.pop('style_def', style_def)
+        self.config_def = kwargs.pop('config_def', config_def)
+        self.style_defs  = kwargs.pop('style_defs', style_defs)
+        self.config_defs = kwargs.pop('config_defs', config_defs)
+        self.style_version_def  = kwargs.pop('style_version_def', style_version_def)
         self.config_version_def = kwargs.pop('config_version_def', config_version_def)
-
         if self.config_file is not None:
             pass
         elif os.path.exists(self.config_path):
@@ -500,7 +504,7 @@ class Binilla(tk.Tk, BinillaWidget):
         '''
         if new_hotkeys is None:
             new_hotkeys = {}
-            for hotkey in self.config_file.data.hotkeys:
+            for hotkey in self.config_file.data.all_hotkeys.hotkeys:
                 combo = make_hotkey_string(hotkey)
                 if combo is None or not hotkey.method.enum_name:
                     continue
@@ -529,7 +533,7 @@ class Binilla(tk.Tk, BinillaWidget):
         # reset the offsets to 0 and get the strides
         self.curr_step_y = 0
         self.curr_step_x = 0
-        x_stride = self.cascade_stride_x
+        x_stride = self.cascade_stride
         y_stride = self.tile_stride_y
 
         # reposition the window
@@ -812,9 +816,19 @@ class Binilla(tk.Tk, BinillaWidget):
             for tagpath in recent_tags:
                 paths.append(tagpath.path)
 
-        for s in app_window.NAME_MAP.keys():
-            try: setattr(self, s, app_window[s])
-            except IndexError: pass
+        try:
+            for s in app_window.NAME_MAP.keys():
+                if hasattr(self, s):
+                    setattr(self, s, app_window[s])
+
+            self.max_step_x, self.max_step_y = app_window.max_step
+            self.tile_stride_x, self.tile_stride_y = app_window.tile_stride
+            self.default_tag_window_width, self.default_tag_window_height = \
+                                           app_window.default_tag_window_dimensions
+            self.scroll_increment_x, self.scroll_increment_y = \
+                                     app_window.scroll_increment
+        except Exception:
+            print(format_exc())
 
         for s in ('recent_tag_max', 'max_undos'):
             try: setattr(self, s, header[s])
@@ -843,24 +857,22 @@ class Binilla(tk.Tk, BinillaWidget):
 
         self.load_style(style_file=self.config_file)
 
-    def upgrade_style_version(self, old_style):
-        pass
-
-    def upgrade_config_version(self, old_config):
-        pass
-
     def load_config(self, filepath=None):
         if filepath is None:
             filepath = self.config_path
         assert os.path.exists(filepath)
 
         # load the config file
-        version_info = self.config_version_def.build(filepath=filepath)
-        if version_info.data.version != self.config_version:
-            raise ValueError(
-                "Config version is not what this application is expecting.")
-        
-        self.config_file = self.config_def.build(filepath=filepath)
+        version_info = self.config_version_def.build(filepath=filepath).data
+        if version_info.id.data != version_info.id.DEFAULT:
+            raise ValueError("Config header signature is invalid.")
+
+        if version_info.version == self.config_version:
+            self.config_file = self.config_def.build(filepath=filepath)
+        else:
+            print("Upgrading config to version %s" % self.config_version)
+            self.config_file = self.upgrade_config_version(filepath)
+
         app_window = self.config_file.data.app_window
 
         self.app_width = app_window.app_width
@@ -870,8 +882,8 @@ class Binilla(tk.Tk, BinillaWidget):
 
         self.apply_config()
 
-        hotkeys = self.config_file.data.hotkeys
-        tag_window_hotkeys = self.config_file.data.tag_window_hotkeys
+        hotkeys = self.config_file.data.all_hotkeys.hotkeys
+        tag_window_hotkeys = self.config_file.data.all_hotkeys.tag_window_hotkeys
 
         for hotkey in hotkeys:
             combo = make_hotkey_string(hotkey)
@@ -901,23 +913,27 @@ class Binilla(tk.Tk, BinillaWidget):
 
             assert os.path.exists(filepath)
             self.styles_dir = os.path.dirname(filepath)
-            version_info = self.style_version_def.build(filepath=filepath)
-            if version_info.data.version != self.style_version:
-                raise ValueError(
-                    "Style version is not what this application is expecting.")
 
-            style_file = self.style_def.build(filepath=filepath)
+            version_info = self.style_version_def.build(filepath=filepath).data
+            if version_info.id.data != version_info.id.DEFAULT:
+                raise ValueError("Style header signature is invalid.")
+
+            if version_info.version == self.style_version:
+                style_file = self.style_def.build(filepath=filepath)
+            else:
+                print("Upgrading style to version %s" % self.style_version)
+                style_file = self.upgrade_style_version(filepath)
 
         assert hasattr(style_file, 'data')
 
         style_data = style_file.data
 
         header = style_data.header
-        widgets = style_data.widgets
+        widgets = style_data.appearance.widgets
 
         widget_depths = widgets.depths
-        colors = style_data.colors
-        fonts = style_data.fonts
+        colors = style_data.appearance.colors
+        fonts = style_data.appearance.fonts
 
         for s in ('title_width', 'scroll_menu_width', 'enum_menu_width',
                   'min_entry_width', 'textbox_width', 'textbox_height',
@@ -961,7 +977,7 @@ class Binilla(tk.Tk, BinillaWidget):
                 pass
 
         try:
-            BinillaWidget.ttk_theme = style_data.theme_name.data
+            BinillaWidget.ttk_theme = style_data.appearance.theme_name.data
         except Exception:
             pass
 
@@ -980,7 +996,8 @@ class Binilla(tk.Tk, BinillaWidget):
         data = self.config_file.data
 
         # make sure these have as many entries as they're supposed to
-        for block in (data.directory_paths, data.widgets.depths, data.colors):
+        for block in (data.directory_paths, data.appearance.colors,
+                      data.appearance.widgets.depths):
             block.extend(len(block.NAME_MAP))
 
         self.curr_hotkeys = dict(default_hotkeys)
@@ -988,8 +1005,8 @@ class Binilla(tk.Tk, BinillaWidget):
 
         self.update_config()
 
-        c_hotkeys = data.hotkeys
-        c_tag_window_hotkeys = data.tag_window_hotkeys
+        c_hotkeys = data.all_hotkeys.hotkeys
+        c_tag_window_hotkeys = data.all_hotkeys.tag_window_hotkeys
 
         for k_set, b in ((default_hotkeys, c_hotkeys),
                          (default_tag_window_hotkeys, c_tag_window_hotkeys)):
@@ -1019,10 +1036,11 @@ class Binilla(tk.Tk, BinillaWidget):
         style_file = self.style_def.build()
         style_file.filepath = filepath
 
-        style_file.data.widgets.depths.extend(len(self.widget_depth_names))
-        style_file.data.colors.extend(len(self.color_names))
-        style_file.data.fonts.extend(len(self.font_names))
-        style_file.data.theme_name.data = BinillaWidget.ttk_theme
+        appearance = style_file.data.appearance
+        appearance.widgets.depths.extend(len(self.widget_depth_names))
+        appearance.colors.extend(len(self.color_names))
+        appearance.fonts.extend(len(self.font_names))
+        appearance.theme_name.data = BinillaWidget.ttk_theme
 
         self.update_style(style_file)
         style_file.serialize(temp=0, backup=0, calc_pointers=0)
@@ -1605,9 +1623,19 @@ class Binilla(tk.Tk, BinillaWidget):
             self.app_offset_y = self.winfo_y()
 
         if self._initialized:
-            for s in app_window.NAME_MAP.keys():
-                try: app_window[s] = getattr(self, s)
-                except IndexError: pass
+            try:
+                for s in app_window.NAME_MAP.keys():
+                    if hasattr(self, s):
+                        app_window[s] = getattr(self, s)
+
+                app_window.max_step[:] = (self.max_step_x, self.max_step_y)
+                app_window.tile_stride[:] = (self.tile_stride_x, self.tile_stride_y)
+                app_window.default_tag_window_dimensions[:] = (self.default_tag_window_width,
+                                                               self.default_tag_window_height)
+                app_window.scroll_increment[:] = (self.scroll_increment_x,
+                                                  self.scroll_increment_y)
+            except Exception:
+                print(format_exc())
 
         # make sure there are enough tagsdir entries in the directory_paths
         if len(dir_paths.NAME_MAP) > len(dir_paths):
@@ -1636,11 +1664,11 @@ class Binilla(tk.Tk, BinillaWidget):
         config_data = self.config_file.data
 
         header = style_data.header
-        widgets = style_data.widgets
+        widgets = style_data.appearance.widgets
 
         widget_depths = widgets.depths
-        colors = style_data.colors
-        fonts = style_data.fonts
+        colors = style_data.appearance.colors
+        fonts = style_data.appearance.fonts
 
         header.parse(attr_index='date_modified')
         for s in ('title_width', 'scroll_menu_width', 'enum_menu_width',
@@ -1731,3 +1759,53 @@ class Binilla(tk.Tk, BinillaWidget):
             iconbitmap=self.icon_filepath, app_name=self.app_name,
             messages=self.about_messages)
         self.place_window_relative(self.about_window, 30, 50)
+
+    def upgrade_config_version(self, filepath):
+        old_version = self.config_version_def.build(filepath=filepath).data.version
+        if old_version == 1:
+            new_config = self.upgrade_config_v1_to_v2(
+                self.config_defs[1].build(filepath=filepath),
+                self.config_defs[2].build())
+        else:
+            raise ValueError("Config header version is not valid")
+
+        return new_config
+
+    def upgrade_style_version(self, filepath):
+        old_version = self.style_version_def.build(filepath=filepath).data.version
+        if old_version == 1:
+            new_style = self.upgrade_style_v1_to_v2(
+                self.style_defs[1].build(filepath=filepath),
+                self.style_defs[2].build())
+        else:
+            raise ValueError("Style header version is not valid")
+
+        return new_style
+
+    def upgrade_config_v1_to_v2(self, old_config, new_config):
+        self.upgrade_style_v1_to_v2(old_config, new_config)
+
+        old_data, new_data = old_config.data, new_config.data
+
+        new_data.app_window.parse(initdata=old_data.app_window)
+        new_data.open_tags.parse(initdata=old_data.open_tags)
+        new_data.recent_tags.parse(initdata=old_data.recent_tags)
+        new_data.directory_paths.parse(initdata=old_data.directory_paths)
+        new_data.all_hotkeys.hotkeys.parse(
+            initdata=old_data.hotkeys)
+        new_data.all_hotkeys.tag_window_hotkeys.parse(
+            initdata=old_data.tag_window_hotkeys)
+        return new_config
+
+    def upgrade_style_v1_to_v2(self, old_style, new_style):
+        new_style.filepath = old_style.filepath
+
+        new_style.data.header.parse(initdata=old_style.data.header)
+        try:
+            new_style.data.appearance.theme_name.set_to("_alt")
+        except Exception:
+            new_style.data.appearance.theme_name.set_to("_default")
+
+        new_style.data.appearance.widgets.parse(initdata=old_style.data.widgets)
+        new_style.data.appearance.colors.parse(initdata=old_style.data.colors)
+        return new_style

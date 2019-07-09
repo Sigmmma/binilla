@@ -10,6 +10,7 @@ class TagWindowManager(tk.Toplevel, BinillaWidget):
 
     def __init__(self, app_root, *args, **kwargs):
         self.app_root = app_root
+        BinillaWidget.__init__(self)
         tk.Toplevel.__init__(self, app_root, *args, **kwargs)
 
         self.list_index_to_window = []

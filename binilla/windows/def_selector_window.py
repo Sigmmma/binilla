@@ -13,6 +13,8 @@ class DefSelectorWindow(tk.Toplevel, BinillaWidget):
 
         title = "%s (%s total)" % (kwargs.pop('title', title),
                                    len(self.app_root.handler.defs))
+
+        BinillaWidget.__init__(self)
         tk.Toplevel.__init__(self, app_root, *args, **kwargs)
         self.title(title)
 

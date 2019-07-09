@@ -228,6 +228,7 @@ class Binilla(tk.Tk, BinillaWidget):
         except AttributeError:
             _tk = None
 
+        BinillaWidget.__init__(self)
         if _tk is None:
             tk.Tk.__init__(self, *args, **{
                 k: v for k, v in kwargs.items() if k in (
@@ -929,30 +930,40 @@ class Binilla(tk.Tk, BinillaWidget):
         style_data = style_file.data
 
         header = style_data.header
-        widgets = style_data.appearance.widgets
 
-        widget_depths = widgets.depths
+        w_and_h = style_data.appearance.widths_and_heights
+        padding = style_data.appearance.padding
+        depths = style_data.appearance.depths
         colors = style_data.appearance.colors
         fonts = style_data.appearance.fonts
 
-        for s in ('title_width', 'scroll_menu_width', 'enum_menu_width',
-                  'min_entry_width', 'textbox_width', 'textbox_height',
-                  'bool_frame_min_width', 'bool_frame_min_height',
-                  'bool_frame_max_width', 'bool_frame_max_height',
-                  'def_int_entry_width',    'max_int_entry_width',
-                  'def_float_entry_width',  'max_float_entry_width',
-                  'def_string_entry_width', 'max_string_entry_width',
-                  'scroll_menu_max_width', 'scroll_menu_max_height', ):
-            try: setattr(BinillaWidget, s, widgets[s])
-            except IndexError: pass
+        try:
+            BinillaWidget.title_width = w_and_h.title_width
+            BinillaWidget.scroll_menu_width = w_and_h.scroll_menu_width
+            BinillaWidget.enum_menu_width = w_and_h.enum_menu_width
+            BinillaWidget.min_entry_width = w_and_h.min_entry_width
+
+            BinillaWidget.textbox_width, BinillaWidget.textbox_height = w_and_h.textbox
+            BinillaWidget.scroll_menu_max_width, BinillaWidget.scroll_menu_max_height = w_and_h.scroll_menu
+            BinillaWidget.bool_frame_min_width, BinillaWidget.bool_frame_max_width = w_and_h.bool_frame_width
+            BinillaWidget.bool_frame_min_height, BinillaWidget.bool_frame_max_height = w_and_h.bool_frame_height
+
+            BinillaWidget.def_int_entry_width, BinillaWidget.def_float_entry_width,\
+                                               BinillaWidget.def_string_entry_width\
+                                               = w_and_h.default_entry_widths
+            BinillaWidget.max_int_entry_width, BinillaWidget.max_float_entry_width,\
+                                               BinillaWidget.max_string_entry_width\
+                                               = w_and_h.max_entry_widths
+        except Exception:
+            print(format_exc())
 
         for s in ('vertical_padx', 'vertical_pady',
                   'horizontal_padx', 'horizontal_pady'):
-            try: setattr(BinillaWidget, s, tuple(widgets[s]))
+            try: setattr(BinillaWidget, s, tuple(padding[s]))
             except IndexError: pass
 
-        for s in self.widget_depth_names[:len(widget_depths)]:
-            try: setattr(BinillaWidget, s + '_depth', widget_depths[s])
+        for s in self.widget_depth_names[:len(depths)]:
+            try: setattr(BinillaWidget, s + '_depth', depths[s])
             except IndexError: pass
 
         for i in range(len(colors)):
@@ -997,7 +1008,7 @@ class Binilla(tk.Tk, BinillaWidget):
 
         # make sure these have as many entries as they're supposed to
         for block in (data.directory_paths, data.appearance.colors,
-                      data.appearance.widgets.depths):
+                      data.appearance.depths):
             block.extend(len(block.NAME_MAP))
 
         self.curr_hotkeys = dict(default_hotkeys)
@@ -1037,7 +1048,7 @@ class Binilla(tk.Tk, BinillaWidget):
         style_file.filepath = filepath
 
         appearance = style_file.data.appearance
-        appearance.widgets.depths.extend(len(self.widget_depth_names))
+        appearance.depths.extend(len(self.widget_depth_names))
         appearance.colors.extend(len(self.color_names))
         appearance.fonts.extend(len(self.font_names))
         appearance.theme_name.data = BinillaWidget.ttk_theme
@@ -1664,31 +1675,45 @@ class Binilla(tk.Tk, BinillaWidget):
         config_data = self.config_file.data
 
         header = style_data.header
-        widgets = style_data.appearance.widgets
 
-        widget_depths = widgets.depths
+        w_and_h = style_data.appearance.widths_and_heights
+        padding = style_data.appearance.padding
+        depths = style_data.appearance.depths
         colors = style_data.appearance.colors
         fonts = style_data.appearance.fonts
 
         header.parse(attr_index='date_modified')
-        for s in ('title_width', 'scroll_menu_width', 'enum_menu_width',
-                  'min_entry_width', 'textbox_width', 'textbox_height',
-                  'bool_frame_min_width', 'bool_frame_min_height',
-                  'bool_frame_max_width', 'bool_frame_max_height',
-                  'def_int_entry_width',    'max_int_entry_width',
-                  'def_float_entry_width',  'max_float_entry_width',
-                  'def_string_entry_width', 'max_string_entry_width',
-                  'scroll_menu_max_width', 'scroll_menu_max_height', ):
-            try: widgets[s] = getattr(BinillaWidget, s)
-            except IndexError: pass
+
+        try:
+            w_and_h.title_width = BinillaWidget.title_width
+            w_and_h.scroll_menu_width = BinillaWidget.scroll_menu_width
+            w_and_h.enum_menu_width = BinillaWidget.enum_menu_width
+            w_and_h.min_entry_width = BinillaWidget.min_entry_width
+
+            w_and_h.textbox[:] = (BinillaWidget.textbox_width,
+                                  BinillaWidget.textbox_height)
+            w_and_h.scroll_menu[:] = (BinillaWidget.scroll_menu_max_width,
+                                      BinillaWidget.scroll_menu_max_height)
+            w_and_h.bool_frame_width[:] = (BinillaWidget.bool_frame_min_width,
+                                           BinillaWidget.bool_frame_max_width)
+            w_and_h.bool_frame_height[:] = (BinillaWidget.bool_frame_min_height,
+                                            BinillaWidget.bool_frame_max_height)
+            w_and_h.default_entry_widths[:] = (BinillaWidget.def_int_entry_width,
+                                               BinillaWidget.def_float_entry_width,
+                                               BinillaWidget.def_string_entry_width)
+            w_and_h.max_entry_widths[:] = (BinillaWidget.max_int_entry_width,
+                                           BinillaWidget.max_float_entry_width,
+                                           BinillaWidget.max_string_entry_width)
+        except Exception:
+            print(format_exc())
 
         for s in ('vertical_padx', 'vertical_pady',
                   'horizontal_padx', 'horizontal_pady'):
-            try: widgets[s][:] = tuple(getattr(BinillaWidget, s))
+            try: padding[s][:] = tuple(getattr(BinillaWidget, s))
             except IndexError: pass
 
         for s in self.widget_depth_names:
-            try: widget_depths[s] = getattr(BinillaWidget, s + '_depth')
+            try: depths[s] = getattr(BinillaWidget, s + '_depth')
             except IndexError: pass
 
         for i in range(len(self.color_names)):
@@ -1737,15 +1762,32 @@ class Binilla(tk.Tk, BinillaWidget):
         except Exception:
             pass
 
+    def enter_style_change(self):
+        # force all tag windows to unpack their root frame to make updating fast
+        try:
+            for w in self.tag_windows.values():
+                w.enter_style_change()
+        except Exception:
+            pass
+
+    def exit_style_change(self):
+        try:
+            for w in self.tag_windows.values():
+                w.exit_style_change()
+        except Exception:
+            pass
+
     def apply_style(self, seen=None):
-        BinillaWidget.apply_style(self, seen)
-        self.io_text.config(fg=self.io_fg_color, bg=self.io_bg_color)
-        if not self._window_geometry_initialized:
-            self._window_geometry_initialized = True
-            self.update()
-            self.geometry("%sx%s+%s+%s" %
-                          (self.app_width, self.app_height,
-                           self.app_offset_x, self.app_offset_y))
+        with self.style_change_lock as lock_depth:
+            self.update_ttk_style()
+            BinillaWidget.apply_style(self, seen)
+            self.io_text.config(fg=self.io_fg_color, bg=self.io_bg_color)
+            if not self._window_geometry_initialized:
+                self._window_geometry_initialized = True
+                self.update()
+                self.geometry("%sx%s+%s+%s" %
+                              (self.app_width, self.app_height,
+                               self.app_offset_x, self.app_offset_y))
 
     def show_about_window(self):
         w = getattr(self, "about_window", None)
@@ -1801,11 +1843,38 @@ class Binilla(tk.Tk, BinillaWidget):
         new_style.filepath = old_style.filepath
 
         new_style.data.header.parse(initdata=old_style.data.header)
+        new_appearance = new_style.data.appearance
         try:
-            new_style.data.appearance.theme_name.set_to("_alt")
+            new_appearance.theme_name.set_to("_alt")
         except Exception:
-            new_style.data.appearance.theme_name.set_to("_default")
+            new_appearance.theme_name.set_to("_default")
 
-        new_style.data.appearance.widgets.parse(initdata=old_style.data.widgets)
-        new_style.data.appearance.colors.parse(initdata=old_style.data.colors)
+        new_appearance.widths_and_heights.parse(initdata=old_style.data.widths_and_heights)
+        bool_frame_min = old_style.data.widths_and_heights.bool_frame_min
+        bool_frame_max = old_style.data.widths_and_heights.bool_frame_max
+        new_appearance.widths_and_heights.bool_frame_width[:] = (
+            bool_frame_min.width, bool_frame_max.width)
+        new_appearance.widths_and_heights.bool_frame_height[:] = (
+            bool_frame_min.height, bool_frame_max.height)
+
+        new_appearance.padding.parse(initdata=old_style.data.padding)
+        new_appearance.depths.parse(initdata=old_style.data.depths)
+        del new_appearance.colors[:]
+        new_appearance.colors.extend(len(new_appearance.colors.NAME_MAP))
+
+        for name in new_appearance.colors.NAME_MAP:
+            new_color = new_appearance.colors[name]
+            binilla_color = getattr(BinillaWidget, name + '_color', None)
+
+            try:
+                new_color[:] = old_style.data.colors[name]
+            except Exception:
+                if binilla_color is not None:
+                    binilla_color = binilla_color[1:]
+                    new_color[0] = int(binilla_color[0:2], 16)
+                    new_color[1] = int(binilla_color[2:4], 16)
+                    new_color[2] = int(binilla_color[4:6], 16)
+
+        new_appearance.colors.button_border_light[:] = new_appearance.colors.button
+        new_appearance.colors.button_border_dark[:] = new_appearance.colors.button
         return new_style

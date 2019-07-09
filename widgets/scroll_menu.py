@@ -1,4 +1,5 @@
 import threadsafe_tkinter as tk
+import tkinter.ttk as ttk
 
 from binilla import editor_constants as e_c
 from binilla.widgets.binilla_widget import BinillaWidget
@@ -74,16 +75,16 @@ class ScrollMenu(tk.Frame, BinillaWidget):
             bd=2, relief='groove',
             width=self.menu_width if self.menu_width else self.enum_menu_width)
         # the button_frame is to force the button to be a certain size
-        self.button_frame = tk.Frame(self, relief='flat', height=18, width=18,
-                                     bd=0, bg=self.default_bg_color)
+        self.button_frame = tk.Frame(self, relief='flat', height=18, width=18, bd=0)
         self.button_frame.pack_propagate(0)
-        self.arrow_button = tk.Button(
-            self.button_frame, bd=self.button_depth, text="▼", width=1,
-            bg=self.button_color, activebackground=self.button_color,
-            fg=self.text_normal_color, disabledforeground=self.text_disabled_color)
+        self.arrow_button = tk.Button(self.button_frame, text="▼", width=2)
+        self.arrow_button.font_type = "fixed_small"
+        self.arrow_button.pack()
+        #self.arrow_button = ttk.Button(self.button_frame, text="▼", width=2)
+        #self.arrow_button.grid(row=1, column=1, sticky='news',
+        #                       ipadx=0, ipady=0, padx=0, pady=0)
         self.sel_label.pack(side="left", fill="both", expand=True)
-        self.button_frame.pack(side="left", fill=None, expand=False)
-        self.arrow_button.pack(side="left", fill='both', expand=True)
+        self.button_frame.pack(side="left", fill="both", expand=True)
 
         # make the option box to populate
         option_frame_root = self.winfo_toplevel()

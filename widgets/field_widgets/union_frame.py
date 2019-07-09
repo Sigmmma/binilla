@@ -67,10 +67,10 @@ class UnionFrame(container_frame.ContainerFrame):
         self.raw_label = tk.Label(
             self.raw_frame, text='DataUnion', width=self.title_size,
             anchor='w', disabledforeground=self.text_disabled_color)
-        self.import_btn = tk.Button(
-            self.raw_frame, text='Import', command=self.import_node, width=5)
-        self.export_btn = tk.Button(
-            self.raw_frame, text='Export', command=self.export_node, width=5)
+        self.import_btn = ttk.Button(
+            self.raw_frame, text='Import', command=self.import_node, width=7)
+        self.export_btn = ttk.Button(
+            self.raw_frame, text='Export', command=self.export_node, width=7)
 
         self.raw_label.pack(side="left", expand=True, fill='x')
         for w in (self.export_btn, self.import_btn):

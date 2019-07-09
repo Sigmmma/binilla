@@ -6,8 +6,8 @@ from supyr_struct.field_types import *
 from binilla.widgets.field_widgets.color_picker_frame import ColorPickerFrame
 from binilla.widgets.field_widgets.array_frame import DynamicArrayFrame
 from binilla.constants import GUI_NAME, NAME, TOOLTIP, VALUE, NODE_PRINT_INDENT
-from binilla.editor_constants import widget_depth_names, color_names,\
-     font_names
+from binilla.editor_constants import widget_depth_names, v1_color_names,\
+     color_names, font_names
 
 
 __all__ = (
@@ -19,6 +19,8 @@ theme_names = ()
 try:
     font_families = tuple(sorted(tkinter.font.families()))
     theme_names = tuple(sorted(ttk.Style().theme_names()))
+    # classic just looks like total ass for the buttons
+    theme_names = tuple(n for n in theme_names if n != "classic")
 except Exception:
     print("Cannot import list of font families or theme names. Create Tkinter "
           "interpreter instance before attempting to import config.")
@@ -93,55 +95,59 @@ style_header = Struct("header",
     SIZE=120
     )
 
-v1_array_counts = Struct("array_counts",
-    UInt32("open_tag_count", VISIBLE=False),
-    UInt32("recent_tag_count", VISIBLE=False),
-    UInt32("directory_path_count", VISIBLE=False),
-    UInt32("widget_depth_count", VISIBLE=False),
-    UInt32("color_count", VISIBLE=False),
-    UInt32("hotkey_count", VISIBLE=False),
-    UInt32("tag_window_hotkey_count", VISIBLE=False),
-    UInt32("font_count", VISIBLE=False),
-    SIZE=128, VISIBLE=False,
-    COMMENT="You really shouldnt be messing with these."
-    )
-
 array_counts = Struct("array_counts",
-    UInt32("widget_depth_count", VISIBLE=False),
+    UInt32("depth_count", VISIBLE=False),
     UInt32("color_count", VISIBLE=False),
     UInt32("font_count", VISIBLE=False),
     SIZE=128, VISIBLE=False,
     COMMENT="You really shouldnt be messing with these."
     )
 
-widgets = Container("widgets",
+widths_and_heights = Struct("widths_and_heights",
     UInt16("title_width", TOOLTIP=widget_tooltips[0]),
     UInt16("scroll_menu_width", TOOLTIP=widget_tooltips[1]),
     UInt16("enum_menu_width", TOOLTIP=widget_tooltips[2]),
     UInt16("min_entry_width", TOOLTIP=widget_tooltips[3]),
 
-    UInt16("textbox_width", TOOLTIP=widget_tooltips[4]),
-    UInt16("textbox_height", TOOLTIP=widget_tooltips[5]),
+    Struct("textbox",
+        UInt16("max_width", TOOLTIP=widget_tooltips[4]),
+        UInt16("max_height", TOOLTIP=widget_tooltips[5]),
+        ORIENT="h"
+        ),
+    Struct("scroll_menu",
+        UInt16("max_width", TOOLTIP=widget_tooltips[16]),
+        UInt16("max_height", TOOLTIP=widget_tooltips[17]),
+        ORIENT="h"
+        ),
 
-    UInt16("bool_frame_min_width", TOOLTIP=widget_tooltips[6]),
-    UInt16("bool_frame_min_height", TOOLTIP=widget_tooltips[7]),
-    UInt16("bool_frame_max_width", TOOLTIP=widget_tooltips[8]),
-    UInt16("bool_frame_max_height", TOOLTIP=widget_tooltips[9]),
+    Struct("bool_frame_width",
+        UInt16("min", TOOLTIP=widget_tooltips[6]),
+        UInt16("max", TOOLTIP=widget_tooltips[8]),
+        ORIENT="h"
+        ),
+    Struct("bool_frame_height",
+        UInt16("min", TOOLTIP=widget_tooltips[7]),
+        UInt16("max", TOOLTIP=widget_tooltips[9]),
+        ORIENT="h"
+        ),
 
-    UInt16("def_int_entry_width", TOOLTIP=widget_tooltips[10]),
-    UInt16("def_float_entry_width", TOOLTIP=widget_tooltips[11]),
-    UInt16("def_string_entry_width", TOOLTIP=widget_tooltips[12]),
+    Struct("default_entry_widths",
+        UInt16("integer", TOOLTIP=widget_tooltips[10]),
+        UInt16("float", TOOLTIP=widget_tooltips[11]),
+        UInt16("string", TOOLTIP=widget_tooltips[12]),
+        ORIENT="h"
+        ),
+    Struct("max_entry_widths",
+        UInt16("integer", TOOLTIP=widget_tooltips[13]),
+        UInt16("float", TOOLTIP=widget_tooltips[14]),
+        UInt16("string", TOOLTIP=widget_tooltips[15]),
+        ORIENT="h"
+        ),
 
-    UInt16("max_int_entry_width", TOOLTIP=widget_tooltips[13]),
-    UInt16("max_float_entry_width", TOOLTIP=widget_tooltips[14]),
-    UInt16("max_string_entry_width", TOOLTIP=widget_tooltips[15]),
+    SIZE=64, GUI_NAME="Widths / heights"
+    )
 
-    UInt16("scroll_menu_max_width", TOOLTIP=widget_tooltips[16]),
-    UInt16("scroll_menu_max_height", TOOLTIP=widget_tooltips[17]),
-
-    # UPDATE THIS PADDING WHEN ADDING STUFF ABOVE IT
-    Pad(64 - 2*18),
-
+padding = Struct("padding",
     QStruct("vertical_padx",
         UInt16("l", TOOLTIP=pad_str % ('left', 'vertic')),
         UInt16("r", TOOLTIP=pad_str % ('right', 'vertic')),
@@ -162,18 +168,15 @@ widgets = Container("widgets",
         UInt16("b", TOOLTIP=pad_str % ('bottom', 'horizont')),
         ORIENT='h', TOOLTIP=pad_str % ('top/bottom', 'horizont')
         ),
+    GUI_NAME='Padding', SIZE=64
+    )
 
-    # UPDATE THIS PADDING WHEN ADDING STUFF ABOVE IT
-    Pad(64 - 2*2*4),
-
-    Array("depths",
-        SUB_STRUCT=UInt16("depth", TOOLTIP=depth_tooltip),
-        SIZE="array_counts.widget_depth_count",
-        MAX=len(widget_depth_names), MIN=len(widget_depth_names),
-        NAME_MAP=widget_depth_names,
-        GUI_NAME="Widget depths"
-        ),
-    GUI_NAME='Field widget settings'
+depths = Array("depths",
+    SUB_STRUCT=UInt16("depth", TOOLTIP=depth_tooltip),
+    SIZE="array_counts.depth_count",
+    MAX=len(widget_depth_names), MIN=len(widget_depth_names),
+    NAME_MAP=widget_depth_names,
+    GUI_NAME="Depths"
     )
 
 colors = Array("colors",
@@ -182,6 +185,7 @@ colors = Array("colors",
     NAME_MAP=color_names,
     GUI_NAME="Colors"
     )
+
 fonts = Array("fonts",
     SUB_STRUCT=font, SIZE="array_counts.font_count",
     MAX=len(font_names), MIN=len(font_names),
@@ -197,7 +201,9 @@ style_version = Struct("style_version",
 
 appearance = Container("appearance",
     theme_name,
-    widgets,
+    widths_and_heights,
+    padding,
+    depths,
     colors,
     fonts,
     GUI_NAME="Appearance"
@@ -216,17 +222,58 @@ style_version_def = TagDef(style_version)
 
 # OLD STRUCT VERSIONS
 v1_style_version = Struct("style_version",
-    UInt32("id", DEFAULT='lytS', VISIBLE=False),
-    UInt32("version", DEFAULT=1, VISIBLE=False),
+    UInt32("id", DEFAULT='lytS'),
+    UInt32("version", DEFAULT=1),
     SIZE=8
+    )
+
+v1_array_counts = Struct("array_counts",
+    UInt32("open_tag_count"),
+    UInt32("recent_tag_count"),
+    UInt32("directory_path_count"),
+    UInt32("depth_count"),
+    UInt32("color_count"),
+    UInt32("hotkey_count"),
+    UInt32("tag_window_hotkey_count"),
+    UInt32("font_count"),
+    SIZE=128
+    )
+
+v1_widths_and_heights = Struct("widths_and_heights",
+    UInt16("title_width"),
+    UInt16("scroll_menu_width"),
+    UInt16("enum_menu_width"),
+    UInt16("min_entry_width"),
+    Struct("textbox",
+        UInt16("max_width"), UInt16("max_height")),
+    Struct("bool_frame_min",
+        UInt16("width"), UInt16("height")),
+    Struct("bool_frame_max",
+        UInt16("width"), UInt16("height")),
+    Struct("default_entry_widths",
+        UInt16("integer"), UInt16("float"), UInt16("string")),
+    Struct("max_entry_widths",
+        UInt16("integer"), UInt16("float"), UInt16("string")),
+    Struct("scroll_menu",
+        UInt16("max_width"), UInt16("max_height")),
+    SIZE=64,
+    )
+
+v1_colors = Array("colors",
+    SUB_STRUCT=color, SIZE="array_counts.color_count",
+    MAX=len(v1_color_names), MIN=len(v1_color_names),
+    NAME_MAP=v1_color_names,
+    GUI_NAME="Colors"
     )
 
 v1_style_def = TagDef("v1_binilla_style",
     v1_style_version,
     style_header,
     v1_array_counts,
-    widgets,
-    colors,
+    v1_widths_and_heights,
+    padding,
+    depths,
+    v1_colors,
     ENDIAN='<', ext=".sty",
     )
 

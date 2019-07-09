@@ -673,10 +673,6 @@ class BitmapDisplayButton(BinillaWidget, ttk.Button):
         self.change_bitmap(kwargs.pop('bitmap_tag', None))
         kwargs.setdefault("command", self.show_window)
         kwargs.setdefault("text", "Bitmap preview")
-        kwargs.setdefault("bg", self.button_color)
-        kwargs.setdefault("fg", self.text_normal_color)
-        kwargs.setdefault("disabledforeground", self.text_disabled_color)
-        kwargs.setdefault("bd", self.button_depth)
         ttk.Button.__init__(self, master, *args, **kwargs)
 
     def set_disabled(self, disable=True):

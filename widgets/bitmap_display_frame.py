@@ -7,6 +7,7 @@ from traceback import format_exc
 from tkinter.filedialog import asksaveasfilename
 
 import threadsafe_tkinter as tk
+import tkinter.ttk as ttk
 
 from binilla import editor_constants as e_c
 from binilla.widgets.binilla_widget import BinillaWidget
@@ -306,7 +307,7 @@ class BitmapDisplayFrame(BinillaWidget, tk.Frame):
                                             variable=self.cube_display_index,
                                             options=("cross", "linear"), can_scroll=True)
 
-        self.save_button = tk.Button(self.controls_frame2, width=11,
+        self.save_button = ttk.Button(self.controls_frame2, width=11,
                                      text="Browse", command=self.save_as)
         self.depth_menu.default_text = self.mipmap_menu.default_text =\
                                        self.bitmap_menu.default_text =\
@@ -662,7 +663,7 @@ class BitmapDisplayFrame(BinillaWidget, tk.Frame):
                                  (0, -self.depth_index.get()*self.curr_depth))
 
 
-class BitmapDisplayButton(BinillaWidget, tk.Button):
+class BitmapDisplayButton(BinillaWidget, ttk.Button):
     bitmap_tag = None
     display_frame = None
     display_frame_class = BitmapDisplayFrame
@@ -676,7 +677,7 @@ class BitmapDisplayButton(BinillaWidget, tk.Button):
         kwargs.setdefault("fg", self.text_normal_color)
         kwargs.setdefault("disabledforeground", self.text_disabled_color)
         kwargs.setdefault("bd", self.button_depth)
-        tk.Button.__init__(self, master, *args, **kwargs)
+        ttk.Button.__init__(self, master, *args, **kwargs)
 
     def set_disabled(self, disable=True):
         if bool(disable) != self.disabled:
@@ -697,7 +698,7 @@ class BitmapDisplayButton(BinillaWidget, tk.Button):
     def destroy(self, e=None):
         self.bitmap_tag = None
         self.f_widget_parent = None
-        tk.Button.destroy(self)
+        ttk.Button.destroy(self)
         self.delete_all_traces()
         self.delete_all_widget_refs()
 

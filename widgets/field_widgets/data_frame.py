@@ -1,4 +1,5 @@
 import threadsafe_tkinter as tk
+import tkinter.ttk as ttk
 
 from tkinter.filedialog import askopenfilename
 from traceback import format_exc
@@ -131,13 +132,13 @@ class RawdataFrame(DataFrame):
         for w in (self, self.title_label):
             w.tooltip_string = self.desc.get('TOOLTIP')
 
-        self.import_btn = tk.Button(
+        self.import_btn = ttk.Button(
             self, width=6, text='Import',
             command=self.import_node)
-        self.export_btn = tk.Button(
+        self.export_btn = ttk.Button(
             self, width=6, text='Export',
             command=self.export_node)
-        self.delete_btn = tk.Button(
+        self.delete_btn = ttk.Button(
             self, width=6, text='Delete',
             command=self.delete_node)
 

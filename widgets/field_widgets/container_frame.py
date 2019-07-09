@@ -56,11 +56,11 @@ class ContainerFrame(tk.Frame, field_widget.FieldWidget):
                 width=self.title_size, justify='left',
                 font=self.get_font("frame_title"))
             self.title_label.font_type = "frame_title"
-            self.import_btn = tk.Button(
-                self.title, width=5, text='Import',
+            self.import_btn = ttk.Button(
+                self.title, width=7, text='Import',
                 command=self.import_node)
-            self.export_btn = tk.Button(
-                self.title, width=5, text='Export',
+            self.export_btn = ttk.Button(
+                self.title, width=7, text='Export',
                 command=self.export_node)
 
             self.show_btn.pack(side="left")
@@ -122,8 +122,8 @@ class ContainerFrame(tk.Frame, field_widget.FieldWidget):
             if self.desc.get('ORIENT', 'v')[:1].lower() == 'v':
                 w.config(bd=0, bg=self.frame_bg_color)
 
-        if self.show.get():
-            self.pose_fields()
+        #if self.show.get():
+        #    self.pose_fields()
 
     @property
     def visible_field_count(self):

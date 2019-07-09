@@ -145,8 +145,13 @@ class TagWindow(tk.Toplevel, BinillaWidget):
 
         kwargs.update(bg=self.default_bg_color)
 
+        BinillaWidget.__init__(self)
         tk.Toplevel.__init__(self, master, *args, **kwargs)
         self.update_title()
+        self.creating_label = tk.Label(
+            self, text=("Creating widgets. Please wait..."))
+        self.styling_label = tk.Label(
+            self, text=("Styling widgets. Please wait..."))
 
         self.edit_manager = EditManager(max_undos)
 
@@ -175,16 +180,13 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         if self.app_root:
             self.transient(self.app_root)
 
-        # do this before populating as otherwise it'll call populate again
-        self.apply_style()
-
         # populate the window
+        self.creating_label.pack(fill="both", expand=True)
         self.populate()
 
         # pack da stuff
         self.root_hsb.pack(side=t_c.BOTTOM, fill='x')
         self.root_vsb.pack(side=t_c.RIGHT,  fill='y')
-        rc.pack(side='left', fill='both', expand=True)
 
         # set the hotkey bindings
         self.bind_hotkeys()
@@ -197,16 +199,18 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             try: self.field_widget.set_edited()
             except Exception: pass
 
-        self.update()
-        if use_def_dims:
-            width  = config_data.app_window.default_tag_window_width
-            height = config_data.app_window.default_tag_window_height
-        else:
-            width  = rf.winfo_reqwidth()  + self.root_vsb.winfo_reqwidth()  + 2
-            height = rf.winfo_reqheight() + self.root_hsb.winfo_reqheight() + 2
+        self.creating_label.pack_forget()
+        with self.style_change_lock:
+            self.update()
+            if use_def_dims:
+                width  = config_data.app_window.default_tag_window_width
+                height = config_data.app_window.default_tag_window_height
+            else:
+                width  = rf.winfo_reqwidth()  + self.root_vsb.winfo_reqwidth()  + 2
+                height = rf.winfo_reqheight() + self.root_hsb.winfo_reqheight() + 2
 
-        self.resize_window(width, height)
-        self.apply_style()
+            self.resize_window(width, height)
+            self.apply_style()
 
     @property
     def needs_flushing(self):
@@ -594,6 +598,15 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         if new_width == old_width and new_height == old_height:
             return
         self.geometry('%sx%s' % (new_width, new_height))
+
+    def enter_style_change(self):
+        self.root_canvas.pack_forget()
+        self.styling_label.pack(fill="both", expand=True)
+        self.update()
+
+    def exit_style_change(self):
+        self.styling_label.pack_forget()
+        self.root_canvas.pack(side='left', fill='both', expand=True)
 
     def apply_style(self, seen=None):
         BinillaWidget.apply_style(self, seen)

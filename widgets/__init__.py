@@ -2,7 +2,8 @@ from binilla import editor_constants as e_c
 
 __all__ = (
     "binilla_widget", "bitmap_display_frame", "field_widget_picker",
-    "scroll_menu", "tooltip_handler", "field_widgets"
+    "field_widgets", "font_config", "scroll_menu",
+    "style_change_lock", "tooltip_handler",
     )
 
 

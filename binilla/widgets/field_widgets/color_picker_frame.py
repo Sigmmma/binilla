@@ -1,4 +1,5 @@
 import threadsafe_tkinter as tk
+import tkinter.ttk as ttk
 
 from tkinter.colorchooser import askcolor
 

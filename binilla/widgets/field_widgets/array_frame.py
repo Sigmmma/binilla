@@ -61,33 +61,33 @@ class ArrayFrame(container_frame.ContainerFrame):
             sel_index=self.sel_index, max_index=node_len-1,
             option_getter=self.get_options, callback=self.select_option)
 
-        self.shift_up_btn = tk.Button(
-            title, width=6, text='Shift ▲',
+        self.shift_up_btn = ttk.Button(
+            title, width=7, text='Shift ▲',
             command=self.shift_entry_up)
-        self.shift_down_btn = tk.Button(
-            buttons, width=6, text='Shift ▼',
+        self.shift_down_btn = ttk.Button(
+            buttons, width=7, text='Shift ▼',
             command=self.shift_entry_down)
-        self.add_btn = tk.Button(
-            buttons, width=3, text='Add',
+        self.add_btn = ttk.Button(
+            buttons, width=4, text='Add',
             command=self.add_entry)
-        self.insert_btn = tk.Button(
-            buttons, width=5, text='Insert',
+        self.insert_btn = ttk.Button(
+            buttons, width=6, text='Insert',
             command=self.insert_entry)
-        self.duplicate_btn = tk.Button(
-            buttons, width=7, text='Duplicate',
+        self.duplicate_btn = ttk.Button(
+            buttons, width=9, text='Duplicate',
             command=self.duplicate_entry)
-        self.delete_btn = tk.Button(
-            buttons, width=5, text='Delete',
+        self.delete_btn = ttk.Button(
+            buttons, width=6, text='Delete',
             command=self.delete_entry)
-        self.delete_all_btn = tk.Button(
-            buttons, width=7, text='Delete all',
+        self.delete_all_btn = ttk.Button(
+            buttons, width=10, text='Delete all',
             command=self.delete_all_entries)
 
-        self.import_btn = tk.Button(
-            buttons, width=5, text='Import',
+        self.import_btn = ttk.Button(
+            buttons, width=6, text='Import',
             command=self.import_node)
-        self.export_btn = tk.Button(
-            buttons, width=5, text='Export',
+        self.export_btn = ttk.Button(
+            buttons, width=6, text='Export',
             command=self.export_node)
 
         # pack the title, menu, and all the buttons
@@ -99,11 +99,11 @@ class ArrayFrame(container_frame.ContainerFrame):
         if self.gui_name != '':
             self.title_label.pack(side="left", fill="x", expand=True)
         self.sel_menu.pack(side="left", fill="x", expand=True, padx=(0, 4))
-        self.shift_up_btn.pack(side="right", padx=(4, 4), pady=(2, 2))
+        self.shift_up_btn.pack(side="right", padx=(0, 4), pady=(2, 2))
 
-        self.title.pack(fill="x", expand=True)
-        self.buttons.pack(fill="x", expand=True)
-        self.controls.pack(fill="x", expand=True)
+        self.title.pack(fill="x", expand=True, padx=0)
+        self.buttons.pack(fill="x", expand=True, padx=0)
+        self.controls.pack(fill="x", expand=True, padx=0)
 
         self.populate()
         self._initialized = True
@@ -165,9 +165,11 @@ class ArrayFrame(container_frame.ContainerFrame):
     def apply_style(self, seen=None):
         container_frame.ContainerFrame.apply_style(self, seen)
         self.controls.config(bd=self.frame_depth, bg=self.frame_bg_color)
-        self.buttons.config(bd=0, bg=self.frame_bg_color)
-        if self.show.get():
-            self.pose_fields()
+        self.title.config(bg=self.frame_bg_color)
+        self.title_label.config(bg=self.frame_bg_color)
+        self.buttons.config(bg=self.frame_bg_color)
+        #if self.show.get():
+        #    self.pose_fields()
 
     def destroy(self):
         # These will linger and take up RAM, even if the widget is destroyed.

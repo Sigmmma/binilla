@@ -1,4 +1,5 @@
 import tkinter as tk
+
 from traceback import format_exc
 from binilla.widgets.field_widgets import text_frame
 

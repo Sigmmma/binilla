@@ -3,7 +3,8 @@ import tkinter.font
 
 from supyr_struct.defs.tag_def import TagDef
 from supyr_struct.field_types import *
-from binilla.defs.style_def import appearance, widgets, colors, fonts, theme_name
+from binilla.defs.style_def import appearance, v1_widths_and_heights,\
+     widths_and_heights, padding, depths, v1_colors, colors, fonts, theme_name
 from binilla.widgets.field_widgets.color_picker_frame import ColorPickerFrame
 from binilla.widgets.field_widgets.array_frame import DynamicArrayFrame
 from binilla.constants import GUI_NAME, NAME, TOOLTIP, VALUE, NODE_PRINT_INDENT
@@ -398,7 +399,7 @@ array_counts = Struct("array_counts",
     UInt32("open_tag_count", VISIBLE=False),
     UInt32("recent_tag_count", VISIBLE=False),
     UInt32("directory_path_count", VISIBLE=False),
-    UInt32("widget_depth_count", VISIBLE=False),
+    UInt32("depth_count", VISIBLE=False),
     UInt32("color_count", VISIBLE=False),
     UInt32("hotkey_count", VISIBLE=False),
     UInt32("tag_window_hotkey_count", VISIBLE=False),
@@ -501,8 +502,8 @@ config_version_def = TagDef(config_version)
 
 # OLD STRUCT VERSIONS
 v1_config_version = Struct("config_version",
-    UEnum32("id", ('Bnla', 'alnB'), VISIBLE=False, DEFAULT='alnB'),
-    UInt32("version", DEFAULT=1, VISIBLE=False, EDITABLE=False),
+    UEnum32("id", ('Bnla', 'alnB'), DEFAULT='alnB'),
+    UInt32("version", DEFAULT=1),
     SIZE=8
     )
 
@@ -511,11 +512,13 @@ v1_config_def = TagDef("v1_binilla_config",
     config_header,
     array_counts,
     app_window,
-    widgets,
+    v1_widths_and_heights,
+    padding,
+    depths,
     open_tags,
     recent_tags,
     directory_paths,
-    colors,
+    v1_colors,
     hotkeys,
     tag_window_hotkeys,
     ENDIAN='<', ext=".cfg",

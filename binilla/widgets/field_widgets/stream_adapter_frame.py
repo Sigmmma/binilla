@@ -39,11 +39,11 @@ class StreamAdapterFrame(container_frame.ContainerFrame):
             width=self.title_size, justify='left',
             font=self.get_font("frame_title"))
         self.title_label.font_type = "frame_title"
-        self.import_btn = tk.Button(
-            self.title, width=5, text='Import',
+        self.import_btn = ttk.Button(
+            self.title, width=7, text='Import',
             command=self.import_node)
-        self.export_btn = tk.Button(
-            self.title, width=5, text='Export',
+        self.export_btn = ttk.Button(
+            self.title, width=7, text='Export',
             command=self.export_node)
 
         self.show_btn.pack(side="left")

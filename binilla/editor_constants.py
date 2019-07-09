@@ -69,10 +69,12 @@ LISTBOX_DEPTH = ENTRY_DEPTH = BUTTON_DEPTH = 1
 FRAME_DEPTH = 1
 
 
-DEFAULT_BG_COLOR = '#%02x%02x%02x' % (240, 240, 240)
+DEFAULT_BG_COLOR = '#%02x%02x%02x' % (230, 230, 230)
 COMMENT_BG_COLOR = '#%02x%02x%02x' % (200, 200, 200)
 FRAME_BG_COLOR = '#%02x%02x%02x' % (160, 160, 160)
 BUTTON_COLOR = DEFAULT_BG_COLOR
+BUTTON_BORDER_LIGHT_COLOR = '#%02x%02x%02x' % (255, 255, 255)
+BUTTON_BORDER_DARK_COLOR = '#%02x%02x%02x' % (200, 200, 200)
 BITMAP_CANVAS_BG_COLOR = '#%02x%02x%02x' % (0, 0, 255)
 BITMAP_CANVAS_OUTLINE_COLOR = '#%02x%02x%02x' % (0, 255, 0)
 
@@ -146,9 +148,20 @@ widget_depth_names = (
     "frame", "button", "entry", "listbox", "comment"
     )
 
-color_names = (
+v1_color_names = (
     "io_fg", "io_bg",
     "default_bg", "comment_bg", "frame_bg", "button",
+    "text_normal", "text_disabled", "text_highlighted",
+    "enum_normal", "enum_disabled", "enum_highlighted",
+    "entry_normal", "entry_disabled", "entry_highlighted",
+    "invalid_path", "tooltip_bg",
+    "bitmap_canvas_bg", "bitmap_canvas_outline"
+    )
+
+color_names = (
+    "io_fg", "io_bg",
+    "default_bg", "comment_bg", "frame_bg",
+    "button", "button_border_light", "button_border_dark",
     "text_normal", "text_disabled", "text_highlighted",
     "enum_normal", "enum_disabled", "enum_highlighted",
     "entry_normal", "entry_disabled", "entry_highlighted",

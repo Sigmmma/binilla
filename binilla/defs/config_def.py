@@ -7,7 +7,7 @@ from binilla.defs.hotkey_enums import method_enums, modifier_enums, hotkey_enums
 from binilla.defs.style_def import appearance, widths_and_heights, padding,\
      depths, colors, fonts, theme_name
 from binilla.widgets.field_widgets.array_frame import DynamicArrayFrame
-from binilla.constants import GUI_NAME, NAME, TOOLTIP, VALUE, NODE_PRINT_INDENT
+from binilla.constants import GUI_NAME, NAME, TOOLTIP, VALUE, VISIBLE, NODE_PRINT_INDENT
 from binilla.editor_constants import widget_depth_names, color_names,\
      font_names
 
@@ -136,54 +136,56 @@ filepath = Container("filepath",
     StrUtf8("path", SIZE=".path_len")
     )
 
-general_flags = Bool32("flags",
-    {NAME: "sync_window_movement", TOOLTIP: flag_tooltips[0]},
+main_window_flags = Bool32("flags",
     {NAME: "load_last_workspace", TOOLTIP: flag_tooltips[1]},
     {NAME: "log_output",    TOOLTIP: flag_tooltips[2]},
     {NAME: "log_tag_print", TOOLTIP: flag_tooltips[3]},
     {NAME: "debug_mode",    TOOLTIP: flag_tooltips[4]},
     {NAME: "disable_io_redirect", TOOLTIP: flag_tooltips[5]},
        
-    DEFAULT=sum([1<<i for i in (0, 2, 3)]),
-    GUI_NAME="general flags"
+    DEFAULT=sum([1<<i for i in (1, 2)])
     )
 
-handler_flags = Bool32("handler_flags",
+file_handling_flags = Bool32("file_handling_flags",
     {NAME: "backup_tags",   TOOLTIP: handler_flag_tooltips[0]},
     {NAME: "write_as_temp", TOOLTIP: handler_flag_tooltips[1]},
     {NAME: "allow_corrupt", TOOLTIP: handler_flag_tooltips[2]},
     {NAME: "integrity_test", TOOLTIP: handler_flag_tooltips[3]},
-    DEFAULT=sum([1<<i for i in (0, 3)]),
-    GUI_NAME="file handling flags"
+    DEFAULT=sum([1<<i for i in (0, 3)])
     )
 
-tag_window_flags = Bool32("tag_window_flags",
+field_widget_flags = Bool32("widget_flags",
     {NAME: "edit_uneditable", TOOLTIP: tag_window_flag_tooltips[0]},
     {NAME: "show_invisible",  TOOLTIP: tag_window_flag_tooltips[1]},
     #"row_row_fight_powuh",
+    {NAME: "show_comments", TOOLTIP: tag_window_flag_tooltips[7]},
+    {NAME: "show_tooltips", TOOLTIP: tag_window_flag_tooltips[8]},
+    {NAME: "show_sidetips", TOOLTIP: tag_window_flag_tooltips[9]},
+    {NAME: "show_all_bools", TOOLTIP: tag_window_flag_tooltips[-1]},
+
     {NAME: "enforce_max", TOOLTIP: tag_window_flag_tooltips[2]},
     {NAME: "enforce_min", TOOLTIP: tag_window_flag_tooltips[3]},
     {NAME: "use_unit_scales", TOOLTIP: tag_window_flag_tooltips[4]},
     {NAME: "use_gui_names", TOOLTIP: tag_window_flag_tooltips[5]},
 
     {NAME: "blocks_start_hidden", TOOLTIP: tag_window_flag_tooltips[6]},
-    {NAME: "show_comments", TOOLTIP: tag_window_flag_tooltips[7]},
-    {NAME: "show_tooltips", TOOLTIP: tag_window_flag_tooltips[8]},
-    {NAME: "show_sidetips", TOOLTIP: tag_window_flag_tooltips[9]},
+    {NAME: "empty_blocks_start_hidden", TOOLTIP: tag_window_flag_tooltips[17]},
 
+    {NAME: "scroll_unselected", TOOLTIP: tag_window_flag_tooltips[14]}, # RENAMED
+    {NAME: "evaluate_entry_fields", TOOLTIP: tag_window_flag_tooltips[18]},
+    DEFAULT=sum([1<<i for i in (2, 3, 4, 6, 7, 8, 9, 10)])
+    )
+
+tag_window_flags = Bool32("window_flags",
+    {NAME: "sync_window_movement", TOOLTIP: flag_tooltips[0], VISIBLE: False},
+    {NAME: "use_default_window_dimensions", TOOLTIP: tag_window_flag_tooltips[13]},
     {NAME: "cap_window_size", TOOLTIP: tag_window_flag_tooltips[10]},
     {NAME: "dont_shrink_width", TOOLTIP: tag_window_flag_tooltips[11]},
     {NAME: "dont_shrink_height", TOOLTIP: tag_window_flag_tooltips[12]},
-    {NAME: "use_default_window_dimensions", TOOLTIP: tag_window_flag_tooltips[13]},
-    {NAME: "scroll_unselected_widgets", TOOLTIP: tag_window_flag_tooltips[14]},
     {NAME: "auto_resize_width", TOOLTIP: tag_window_flag_tooltips[15]},
     {NAME: "auto_resize_height", TOOLTIP: tag_window_flag_tooltips[16]},
-    {NAME: "empty_blocks_start_hidden", TOOLTIP: tag_window_flag_tooltips[17]},
-    {NAME: "evaluate_entry_fields", TOOLTIP: tag_window_flag_tooltips[18]},
 
-    {NAME: "show_all_bools", TOOLTIP: tag_window_flag_tooltips[-1],
-     VALUE: (1 << 31)},
-    DEFAULT=sum([1<<i for i in (2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15)])
+    DEFAULT=sum([1<<i for i in (0, 2, 4, 5)])
     )
 
 block_print_flags = Bool32("block_print",
@@ -212,41 +214,15 @@ block_print_flags = Bool32("block_print",
     TOOLTIP="Flags governing what is shown when a tag is printed."
     )
 
-general = Struct("general",
-    general_flags,
-    handler_flags,
-    tag_window_flags,
-    block_print_flags,
-
+app_window = Struct("app_window",
+    main_window_flags,
     UInt16("recent_tag_max", DEFAULT=20,
         TOOLTIP="Max number of files in the 'recent' menu."),
-    UInt16("max_undos", DEFAULT=1000,
-        TOOLTIP="Max number of undo/redo operations per tag window."),
-
-    UInt16("print_precision", DEFAULT=8, TOOLTIP="unused", VISIBLE=False),
-    UInt16("print_indent", DEFAULT=NODE_PRINT_INDENT, VISIBLE=False,
-        TOOLTIP="Number of spaces to indent each print level."),
-
     UInt16("backup_count", DEFAULT=1, MIN=1, MAX=1, VISIBLE=False,
         TOOLTIP="Max number of backups to make before overwriting the oldest"),
-    SIZE=112,
-    GUI_NAME='General settings'
-    )
 
-array_counts = Struct("array_counts",
-    UInt32("open_tag_count", VISIBLE=False),
-    UInt32("recent_tag_count", VISIBLE=False),
-    UInt32("directory_path_count", VISIBLE=False),
-    UInt32("depth_count", VISIBLE=False),
-    UInt32("color_count", VISIBLE=False),
-    UInt32("hotkey_count", VISIBLE=False),
-    UInt32("tag_window_hotkey_count", VISIBLE=False),
-    UInt32("font_count", VISIBLE=False),
-    SIZE=128, VISIBLE=False,
-    COMMENT="You really shouldnt be messing with these."
-    )
+    Pad(32 - 4*1 - 2*2),
 
-app_window = Struct("app_window",
     UInt16("app_width", DEFAULT=640, TOOLTIP=app_window_tooltips[0], VISIBLE=False),
     UInt16("app_height", DEFAULT=480, TOOLTIP=app_window_tooltips[1], VISIBLE=False),
     SInt16("app_offset_x", TOOLTIP=app_window_tooltips[2], VISIBLE=False),
@@ -268,8 +244,21 @@ app_window = Struct("app_window",
         UInt16("y", DEFAULT=30, TOOLTIP=app_window_tooltips[9]),
         ORIENT="h"
         ),
+    SIZE=64,
+    GUI_NAME='Main window settings'
+    )
 
-    QStruct("default_tag_window_dimensions",
+tag_windows = Struct("tag_windows",
+    file_handling_flags,
+    tag_window_flags,
+    field_widget_flags,
+
+    UInt16("max_undos", DEFAULT=1000,
+        TOOLTIP="Max number of undo/redo operations per tag window."),
+
+    Pad(32 - 4*3 - 2*1),
+
+    QStruct("default_window_dimensions",
         UInt16("w", DEFAULT=480, TOOLTIP=app_window_tooltips[10]),
         UInt16("h", DEFAULT=640, TOOLTIP=app_window_tooltips[11]),
         ORIENT="h"
@@ -280,8 +269,33 @@ app_window = Struct("app_window",
         UInt16("y", DEFAULT=50, TOOLTIP=app_window_tooltips[13]),
         ORIENT="h"
         ),
-    SIZE=128,
-    GUI_NAME='Main window settings'
+
+    SIZE=64,
+    GUI_NAME='Tag window settings'
+    )
+
+tag_printing = Struct("tag_printing",
+    block_print_flags,
+
+    UInt16("print_precision", DEFAULT=8, TOOLTIP="unused", VISIBLE=False),
+    UInt16("print_indent", DEFAULT=NODE_PRINT_INDENT, VISIBLE=False,
+        TOOLTIP="Number of spaces to indent each print level."),
+
+    SIZE=16, VISIBLE=False,
+    GUI_NAME='Tag printing settings'
+    )
+
+array_counts = Struct("array_counts",
+    UInt32("open_tag_count", VISIBLE=False),
+    UInt32("recent_tag_count", VISIBLE=False),
+    UInt32("directory_path_count", VISIBLE=False),
+    UInt32("depth_count", VISIBLE=False),
+    UInt32("color_count", VISIBLE=False),
+    UInt32("hotkey_count", VISIBLE=False),
+    UInt32("tag_window_hotkey_count", VISIBLE=False),
+    UInt32("font_count", VISIBLE=False),
+    SIZE=128, VISIBLE=False,
+    COMMENT="You really shouldnt be messing with these."
     )
 
 open_tags = Array("open_tags",
@@ -328,8 +342,9 @@ all_hotkeys = Container("all_hotkeys",
 config_def = TagDef("binilla_config",
     version_info,  # not visible
     array_counts,  # not visible
-    general,
     app_window,
+    tag_windows,
+    tag_printing,
     open_tags, # not visible
     recent_tags,  # not visible
     directory_paths,  # not visible

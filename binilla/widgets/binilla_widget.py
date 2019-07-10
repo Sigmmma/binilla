@@ -343,21 +343,15 @@ class BinillaWidget():
                     continue
 
                 if isinstance(w, BinillaWidget):
-                    if w is self:
-                        seen.add(id(w))
-
                     if w.style_change_lock is None:
                         print("TELL MOSES HE FUCKED UP:", type(w))
                         dunfuckedup
 
-                    with w.style_change_lock:
-                        w.apply_style(seen)
-
-                    next_widgets.extend(w.children.values())
                     if w is not self:
-                        continue
-                elif w is not self:
-                    seen.add(id(w))
+                        with w.style_change_lock as depth:
+                            w.apply_style(seen)
+
+                seen.add(id(w))
 
                 font_type = getattr(w, "font_type", self.font_type)
                 font = self.get_font(font_type)
@@ -436,7 +430,7 @@ class BinillaWidget():
             foreground=self.text_normal_color,
             selectbackground=self.button_color,
             selectforeground=self.text_disabled_color,
-            disabledforeground=self.text_normal_color,
+            disabledforeground=self.text_disabled_color,
             bordercolor=self.button_border_light_color,
             lightcolor=self.button_border_light_color,
             darkcolor=self.button_border_dark_color,
@@ -450,7 +444,10 @@ class BinillaWidget():
                         ("focus", self.button_color)],
             foreground=[("active", self.text_normal_color),
                         ("pressed", self.text_normal_color),
-                        ("disabled", self.text_disabled_color)],
+                        ("selected", self.text_disabled_color),
+                        ("focus", self.text_normal_color),# alt theme uses this
+                        #                                   as a border outline
+                        ],
             bordercolor=[("active", self.button_color),
                          ("pressed", self.button_color),
                          ("focus", self.button_color)],

@@ -237,10 +237,10 @@ class Binilla(tk.Tk, BinillaWidget):
 
         # NOTE: Do this import AFTER Tk interpreter is set up, otherwise
         # it will fail to get the names of the font families
-        from binilla.defs.config_def import config_def, v1_config_def,\
-             config_version_def
-        from binilla.defs.style_def import style_def, v1_style_def,\
-             style_version_def
+        from binilla.defs.config_def import config_def, config_version_def
+        from binilla.defs.style_def import style_def, style_version_def
+        from binilla.defs.v1_config_def import v1_config_def
+        from binilla.defs.v1_style_def import v1_style_def
 
         style_defs  = {1: v1_style_def,  2: style_def}
         config_defs = {1: v1_config_def, 2: config_def}
@@ -1805,7 +1805,7 @@ class Binilla(tk.Tk, BinillaWidget):
     def upgrade_config_version(self, filepath):
         old_version = self.config_version_def.build(filepath=filepath).data.version
         if old_version == 1:
-            new_config = self.upgrade_config_v1_to_v2(
+            new_config = binilla.defs.upgrade_config.upgrade_v1_to_v2(
                 self.config_defs[1].build(filepath=filepath),
                 self.config_defs[2].build())
         else:
@@ -1816,65 +1816,10 @@ class Binilla(tk.Tk, BinillaWidget):
     def upgrade_style_version(self, filepath):
         old_version = self.style_version_def.build(filepath=filepath).data.version
         if old_version == 1:
-            new_style = self.upgrade_style_v1_to_v2(
+            new_style = binilla.defs.upgrade_style.upgrade_v1_to_v2(
                 self.style_defs[1].build(filepath=filepath),
                 self.style_defs[2].build())
         else:
             raise ValueError("Style header version is not valid")
 
-        return new_style
-
-    def upgrade_config_v1_to_v2(self, old_config, new_config):
-        self.upgrade_style_v1_to_v2(old_config, new_config)
-
-        old_data, new_data = old_config.data, new_config.data
-
-        new_data.app_window.parse(initdata=old_data.app_window)
-        new_data.open_tags.parse(initdata=old_data.open_tags)
-        new_data.recent_tags.parse(initdata=old_data.recent_tags)
-        new_data.directory_paths.parse(initdata=old_data.directory_paths)
-        new_data.all_hotkeys.hotkeys.parse(
-            initdata=old_data.hotkeys)
-        new_data.all_hotkeys.tag_window_hotkeys.parse(
-            initdata=old_data.tag_window_hotkeys)
-        return new_config
-
-    def upgrade_style_v1_to_v2(self, old_style, new_style):
-        new_style.filepath = old_style.filepath
-
-        new_style.data.header.parse(initdata=old_style.data.header)
-        new_appearance = new_style.data.appearance
-        try:
-            new_appearance.theme_name.set_to("_alt")
-        except Exception:
-            new_appearance.theme_name.set_to("_default")
-
-        new_appearance.widths_and_heights.parse(initdata=old_style.data.widths_and_heights)
-        bool_frame_min = old_style.data.widths_and_heights.bool_frame_min
-        bool_frame_max = old_style.data.widths_and_heights.bool_frame_max
-        new_appearance.widths_and_heights.bool_frame_width[:] = (
-            bool_frame_min.width, bool_frame_max.width)
-        new_appearance.widths_and_heights.bool_frame_height[:] = (
-            bool_frame_min.height, bool_frame_max.height)
-
-        new_appearance.padding.parse(initdata=old_style.data.padding)
-        new_appearance.depths.parse(initdata=old_style.data.depths)
-        del new_appearance.colors[:]
-        new_appearance.colors.extend(len(new_appearance.colors.NAME_MAP))
-
-        for name in new_appearance.colors.NAME_MAP:
-            new_color = new_appearance.colors[name]
-            binilla_color = getattr(BinillaWidget, name + '_color', None)
-
-            try:
-                new_color[:] = old_style.data.colors[name]
-            except Exception:
-                if binilla_color is not None:
-                    binilla_color = binilla_color[1:]
-                    new_color[0] = int(binilla_color[0:2], 16)
-                    new_color[1] = int(binilla_color[2:4], 16)
-                    new_color[2] = int(binilla_color[4:6], 16)
-
-        new_appearance.colors.button_border_light[:] = new_appearance.colors.button
-        new_appearance.colors.button_border_dark[:] = new_appearance.colors.button
         return new_style

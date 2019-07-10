@@ -7,6 +7,7 @@ def upgrade_v1_to_v2(old_config, new_config):
 
     old_data, new_data = old_config.data, new_config.data
 
+    new_data.general.parse(initdata=old_data.general)
     new_data.app_window.parse(initdata=old_data.app_window)
     new_data.open_tags.parse(initdata=old_data.open_tags)
     new_data.recent_tags.parse(initdata=old_data.recent_tags)

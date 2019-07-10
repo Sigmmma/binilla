@@ -11,13 +11,13 @@ __all__ = (
     )
 
 
-v1_config_version = Struct("config_version",
+v1_version_info = Struct("version_info",
     UEnum32("id", ('Bnla', 'alnB'), DEFAULT='alnB'),
     UInt32("version", DEFAULT=1),
     SIZE=8
     )
 
-v1_config_header = Struct("header",
+v1_general = Struct("general",
     general_flags,
     handler_flags,
     tag_window_flags,
@@ -58,8 +58,8 @@ v1_app_window = Struct("app_window",
     )
 
 v1_config_def = TagDef("v1_binilla_config",
-    v1_config_version,
-    v1_config_header,
+    v1_version_info,
+    v1_general,
     v1_array_counts,
     v1_app_window,
     v1_widths_and_heights,

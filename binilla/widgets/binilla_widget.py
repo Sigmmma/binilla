@@ -273,9 +273,8 @@ class BinillaWidget():
             focus = self.focus_get()
             widget = self
             try:
-                scroll_unselect = self.f_widget_parent.tag_window.app_root.\
-                                  config_file.data.header.tag_window_flags.\
-                                  scroll_unselected_widgets
+                scroll_unselect = self.f_widget_parent.tag_window.\
+                                  appearance_flags.scroll_unselected_widgets
             except AttributeError:
                 scroll_unselect = True
 

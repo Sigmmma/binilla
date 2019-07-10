@@ -3,6 +3,7 @@ import tkinter.font
 
 from supyr_struct.defs.tag_def import TagDef
 from supyr_struct.field_types import *
+from binilla.defs.hotkey_enums import method_enums, modifier_enums, hotkey_enums
 from binilla.defs.style_def import appearance, widths_and_heights, padding,\
      depths, colors, fonts, theme_name
 from binilla.widgets.field_widgets.array_frame import DynamicArrayFrame
@@ -95,169 +96,6 @@ app_window_tooltips = (
     "Default height of tag windows if not auto-sizing them.",
     "Number of pixels to jump when scrolling horizontally.",
     "Number of pixels to jump when scrolling vertically.",
-    )
-
-modifier_enums = (
-    {GUI_NAME: "", NAME: "NONE"},
-    "Alt",
-    "Shift",
-    "Control",
-
-    {NAME: "Alt_Shift", GUI_NAME: "Alt+Shift"},
-    {NAME: "Alt_Control", GUI_NAME: "Alt+Control"},
-    {NAME: "Control_Shift", GUI_NAME: "Control+Shift"},
-
-    {NAME: "Alt_Control_Shift", GUI_NAME: "Alt+Control+Shift"},
-    )
-
-hotkey_enums = (
-    {GUI_NAME: "", NAME: "NONE"},
-    {GUI_NAME: "  1", NAME: "_1"}, {GUI_NAME: "  2", NAME: "_2"},
-    {GUI_NAME: "  3", NAME: "_3"}, {GUI_NAME: "  4", NAME: "_4"},
-    {GUI_NAME: "  5", NAME: "_5"}, {GUI_NAME: "  6", NAME: "_6"},
-    {GUI_NAME: "  7", NAME: "_7"}, {GUI_NAME: "  8", NAME: "_8"},
-    {GUI_NAME: "  9", NAME: "_9"}, {GUI_NAME: "  0", NAME: "_0"},
-
-    {GUI_NAME: "  a", NAME: "a"}, {GUI_NAME: "  b", NAME: "b"},
-    {GUI_NAME: "  c", NAME: "c"}, {GUI_NAME: "  d", NAME: "d"},
-    {GUI_NAME: "  e", NAME: "e"}, {GUI_NAME: "  f", NAME: "f"},
-    {GUI_NAME: "  g", NAME: "g"}, {GUI_NAME: "  h", NAME: "h"},
-    {GUI_NAME: "  i", NAME: "i"}, {GUI_NAME: "  j", NAME: "j"},
-    {GUI_NAME: "  k", NAME: "k"}, {GUI_NAME: "  l", NAME: "l"},
-    {GUI_NAME: "  m", NAME: "m"}, {GUI_NAME: "  n", NAME: "n"},
-    {GUI_NAME: "  o", NAME: "o"}, {GUI_NAME: "  p", NAME: "p"},
-    {GUI_NAME: "  q", NAME: "q"}, {GUI_NAME: "  r", NAME: "r"},
-    {GUI_NAME: "  s", NAME: "s"}, {GUI_NAME: "  t", NAME: "t"},
-    {GUI_NAME: "  u", NAME: "u"}, {GUI_NAME: "  v", NAME: "v"},
-    {GUI_NAME: "  w", NAME: "w"}, {GUI_NAME: "  x", NAME: "x"},
-    {GUI_NAME: "  y", NAME: "y"}, {GUI_NAME: "  z", NAME: "z"},
-
-    {GUI_NAME: "  A", NAME: "A"}, {GUI_NAME: "  B", NAME: "B"},
-    {GUI_NAME: "  C", NAME: "C"}, {GUI_NAME: "  D", NAME: "D"},
-    {GUI_NAME: "  E", NAME: "E"}, {GUI_NAME: "  F", NAME: "F"},
-    {GUI_NAME: "  G", NAME: "G"}, {GUI_NAME: "  H", NAME: "H"},
-    {GUI_NAME: "  I", NAME: "I"}, {GUI_NAME: "  J", NAME: "J"},
-    {GUI_NAME: "  K", NAME: "K"}, {GUI_NAME: "  L", NAME: "L"},
-    {GUI_NAME: "  M", NAME: "M"}, {GUI_NAME: "  N", NAME: "N"},
-    {GUI_NAME: "  O", NAME: "O"}, {GUI_NAME: "  P", NAME: "P"},
-    {GUI_NAME: "  Q", NAME: "Q"}, {GUI_NAME: "  R", NAME: "R"},
-    {GUI_NAME: "  S", NAME: "S"}, {GUI_NAME: "  T", NAME: "T"},
-    {GUI_NAME: "  U", NAME: "U"}, {GUI_NAME: "  V", NAME: "V"},
-    {GUI_NAME: "  W", NAME: "W"}, {GUI_NAME: "  X", NAME: "X"},
-    {GUI_NAME: "  Y", NAME: "Y"}, {GUI_NAME: "  Z", NAME: "Z"},
-
-    {GUI_NAME: "  Space", NAME: "space"},
-    {GUI_NAME: "  <", NAME: "less"},
-    {GUI_NAME: "  >", NAME: "greater"},
-    {GUI_NAME: "  ,", NAME: "comma"},
-    {GUI_NAME: "  .", NAME: "period"},
-    {GUI_NAME: "  /", NAME: "slash"},
-    {GUI_NAME: "  ?", NAME: "question"},
-    {GUI_NAME: "  ;", NAME: "semicolon"},
-    {GUI_NAME: "  :", NAME: "colon"},
-    {GUI_NAME: "  '", NAME: "quoteright"},
-    {GUI_NAME: '  "', NAME: "quotedbl"},
-    {GUI_NAME: "  [", NAME: "bracketright"},
-    {GUI_NAME: "  ]", NAME: "bracketleft"},
-    {GUI_NAME: "  {", NAME: "braceright"},
-    {GUI_NAME: "  }", NAME: "braceleft"},
-    {GUI_NAME: "  \\", NAME: "backslash"},
-    {GUI_NAME: "  |", NAME: "bar"},
-    {GUI_NAME: "  -", NAME: "minus"},
-    {GUI_NAME: "  +", NAME: "plus"},
-    {GUI_NAME: "  _", NAME: "underscore"},
-    {GUI_NAME: "  =", NAME: "equal"},
-    {GUI_NAME: "  `", NAME: "quoteleft"},
-    {GUI_NAME: "  ~", NAME: "asciitilde"},
-    {GUI_NAME: "  !", NAME: "exclam"},
-    {GUI_NAME: "  @", NAME: "at"},
-    {GUI_NAME: "  #", NAME: "numbersign"},
-    {GUI_NAME: "  $", NAME: "dollar"},
-    {GUI_NAME: "  %", NAME: "percent"},
-    {GUI_NAME: "  ^", NAME: "caret"},
-    {GUI_NAME: "  &", NAME: "ampersand"},
-    {GUI_NAME: "  *", NAME: "asterisk"},
-    {GUI_NAME: "  (", NAME: "parenleft"},
-    {GUI_NAME: "  )", NAME: "parenright"},
-
-    {GUI_NAME: "  Keypad 1", NAME: "KP_1"},
-    {GUI_NAME: "  Keypad 2", NAME: "KP_2"},
-    {GUI_NAME: "  Keypad 3", NAME: "KP_3"},
-    {GUI_NAME: "  Keypad 4", NAME: "KP_4"},
-    {GUI_NAME: "  Keypad 5", NAME: "KP_5"},
-    {GUI_NAME: "  Keypad 6", NAME: "KP_6"},
-    {GUI_NAME: "  Keypad 7", NAME: "KP_7"},
-    {GUI_NAME: "  Keypad 8", NAME: "KP_8"},
-    {GUI_NAME: "  Keypad 9", NAME: "KP_9"},
-    {GUI_NAME: "  Keypad 0", NAME: "KP_0"},
-
-    {GUI_NAME: "  Keypad .", NAME: "KP_Decimal"},
-    {GUI_NAME: "  Keypad +", NAME: "KP_Add"},
-    {GUI_NAME: "  Keypad =", NAME: "KP_Subtract"},
-    {GUI_NAME: "  Keypad /", NAME: "KP_Divide"},
-    {GUI_NAME: "  Keypad *", NAME: "KP_Multiply"},
-    {GUI_NAME: "  Keypad Delete", NAME: "KP_Delete"},
-    {GUI_NAME: "  Keypad Enter", NAME: "KP_Enter"},
-
-    {GUI_NAME: "  Break", NAME: "Cancel"},
-    {GUI_NAME: "  Backspace", NAME: "BackSpace"},
-    {GUI_NAME: "  Enter", NAME: "Return"},
-    {GUI_NAME: "  Caps Lock", NAME: "Caps_Lock"},
-    {GUI_NAME: "  Num Lock", NAME: "Num_Lock"},
-    {GUI_NAME: "  Scroll Lock", NAME: "Scroll_Lock"},
-    {GUI_NAME: "  Pageup", NAME: "Prior"},
-    {GUI_NAME: "  Pagedown", NAME: "Next"},
-    {GUI_NAME: "  Printscreen", NAME: "Print"},
-    {GUI_NAME: "  Tab", NAME: "Tab"},
-    {GUI_NAME: "  Pause", NAME: "Pause"},
-    {GUI_NAME: "  Escape", NAME: "Escape"},
-    {GUI_NAME: "  End", NAME: "End"},
-    {GUI_NAME: "  Home", NAME: "Home"},
-    {GUI_NAME: "  Alt L", NAME: "Alt_L"},
-    {GUI_NAME: "  Alt R", NAME: "Alt_R"},
-    {GUI_NAME: "  Control L", NAME: "Control_L"},
-    {GUI_NAME: "  Control R", NAME: "Control_R"},
-    {GUI_NAME: "  Shift L", NAME: "Shift_L"},
-    {GUI_NAME: "  Shift R", NAME: "Shift_R"},
-    {GUI_NAME: "  Left", NAME: "Left"},
-    {GUI_NAME: "  Up", NAME: "Up"},
-    {GUI_NAME: "  Right", NAME: "Down"},
-    {GUI_NAME: "  Insert", NAME: "Insert"},
-    {GUI_NAME: "  Delete", NAME: "Delete"},
-    {GUI_NAME: "  F1", NAME: "F1"}, {GUI_NAME: "  F2", NAME: "F2"},
-    {GUI_NAME: "  F3", NAME: "F3"}, {GUI_NAME: "  F4", NAME: "F4"},
-    {GUI_NAME: "  F5", NAME: "F5"}, {GUI_NAME: "  F6", NAME: "F6"},
-    {GUI_NAME: "  F7", NAME: "F7"}, {GUI_NAME: "  F8", NAME: "F8"},
-    {GUI_NAME: "  F9", NAME: "F9"}, {GUI_NAME: "  F10", NAME: "F10"},
-    {GUI_NAME: "  F11", NAME: "F11"}, {GUI_NAME: "  F12", NAME: "F12"},
-    {GUI_NAME: "  Mousewheel", NAME: "MouseWheel"},
-    )
-
-method_enums = (
-    {GUI_NAME: "undo", NAME: "edit_undo"},
-    {GUI_NAME: "redo", NAME: "edit_redo"},
-    {GUI_NAME: "mousewheel scroll x", NAME: "mousewheel_scroll_x"},
-    {GUI_NAME: "mousewheel scroll y", NAME: "mousewheel_scroll_y"},
-    {GUI_NAME: "close window", NAME: "close_selected_window"},
-    {GUI_NAME: "load tags", NAME: "load"},
-    {GUI_NAME: "new tag", NAME: "new"},
-    {GUI_NAME: "save tag", NAME: "save"},
-    {GUI_NAME: "show defs", NAME: "show_defs"},
-    {GUI_NAME: "show window manager", NAME: "show_window_manager"},
-    {GUI_NAME: "load tag as", NAME: "load_as"},
-    {GUI_NAME: "save tag as", NAME: "save_as"},
-    {GUI_NAME: "save all open tags", NAME: "save_all"},
-    {GUI_NAME: "print tag", NAME: "print_tag"},
-
-    {GUI_NAME: "cascade windows", NAME: "cascade"},
-    {GUI_NAME: "tile windows vertically", NAME: "tile_vertical"},
-    {GUI_NAME: "tile windows horizontally", NAME: "tile_horizontal"},
-    {GUI_NAME: "minimize all windows", NAME: "minimize_all"},
-    {GUI_NAME: "restore all windows", NAME: "restore_all"},
-    {GUI_NAME: "open config window", NAME: "show_config_file"},
-    {GUI_NAME: "apply config", NAME: "apply_config"},
-    {GUI_NAME: "exit program", NAME: "exit"},
-    {GUI_NAME: "clear console", NAME: "clear_console"},
     )
 
 hotkey = Struct("hotkey",
@@ -367,7 +205,6 @@ block_print_flags = Bool32("block_print",
     "show_binsize",
     "show_ramsize",
 
-
     ("show_all", 1<<31),
     DEFAULT=sum([1<<i for i in (
         0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 15, 16)]),
@@ -375,13 +212,11 @@ block_print_flags = Bool32("block_print",
     TOOLTIP="Flags governing what is shown when a tag is printed."
     )
 
-config_header = Struct("header",
+general = Struct("general",
     general_flags,
     handler_flags,
     tag_window_flags,
     block_print_flags,
-    Timestamp32("date_created", EDITABLE=False),
-    Timestamp32("date_modified", EDITABLE=False),
 
     UInt16("recent_tag_max", DEFAULT=20,
         TOOLTIP="Max number of files in the 'recent' menu."),
@@ -394,7 +229,7 @@ config_header = Struct("header",
 
     UInt16("backup_count", DEFAULT=1, MIN=1, MAX=1, VISIBLE=False,
         TOOLTIP="Max number of backups to make before overwriting the oldest"),
-    SIZE=120,
+    SIZE=112,
     GUI_NAME='General settings'
     )
 
@@ -476,10 +311,12 @@ tag_window_hotkeys = Array(
     GUI_NAME="Tag window hotkeys"
     )
 
-config_version = Struct("config_version",
+version_info = Struct("version_info",
     UEnum32("id", ('Bnla', 'alnB'), VISIBLE=False, DEFAULT='alnB'),
     UInt32("version", DEFAULT=2, VISIBLE=False, EDITABLE=False),
-    SIZE=8
+    Timestamp32("date_created", EDITABLE=False),
+    Timestamp32("date_modified", EDITABLE=False),
+    SIZE=16, VISIBLE=False
     )
 
 all_hotkeys = Container("all_hotkeys",
@@ -489,9 +326,9 @@ all_hotkeys = Container("all_hotkeys",
     )
 
 config_def = TagDef("binilla_config",
-    config_version,  # not visible
-    config_header,
+    version_info,  # not visible
     array_counts,  # not visible
+    general,
     app_window,
     open_tags, # not visible
     recent_tags,  # not visible
@@ -501,7 +338,7 @@ config_def = TagDef("binilla_config",
     ENDIAN='<', ext=".cfg",
     )
 
-config_version_def = TagDef(config_version)
+config_version_def = TagDef(version_info)
 
 def get():
     return config_def

@@ -169,27 +169,21 @@ class FieldWidget(BinillaWidget):
     @property
     def blocks_start_hidden(self):
         try:
-            flags = self.tag_window.app_root.config_file.data.\
-                    header.tag_window_flags
-            return bool(flags.blocks_start_hidden)
+            return bool(self.tag_window.appearance_flags.blocks_start_hidden)
         except Exception:
             return True
 
     @property
     def evaluate_entry_fields(self):
         try:
-            flags = self.tag_window.app_root.config_file.data.\
-                    header.tag_window_flags
-            return bool(flags.evaluate_entry_fields)
+            return bool(self.tag_window.appearance_flags.evaluate_entry_fields)
         except Exception:
             return False
 
     @property
     def hide_if_blank(self):
         try:
-            flags = self.tag_window.app_root.config_file.data.\
-                    header.tag_window_flags
-            return bool(flags.empty_blocks_start_hidden)
+            return bool(self.tag_window.appearance_flags.empty_blocks_start_hidden)
         except Exception:
             return False
 

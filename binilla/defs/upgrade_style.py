@@ -5,7 +5,18 @@ __all__ = ("upgrade_v1_to_v2", )
 def upgrade_v1_to_v2(old_style, new_style):
     new_style.filepath = old_style.filepath
 
-    new_style.data.header.parse(initdata=old_style.data.header)
+    new_version_info = new_style.data.version_info
+    new_version_info.parse(attr_index='date_modified')
+
+    if hasattr(old_style.data.version_info, "date_created"):
+        date_created = old_style.data.version_info.date_created
+    elif hasattr(old_style.data.general, "date_created"):
+        date_created = old_style.data.general.date_created
+    else:
+        date_created = new_version_info.date_modified
+
+    new_version_info.date_created = date_created
+
     new_appearance = new_style.data.appearance
     try:
         new_appearance.theme_name.set_to("_alt")

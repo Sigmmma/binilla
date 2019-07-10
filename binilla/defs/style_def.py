@@ -87,12 +87,6 @@ theme_name = StrUtf8Enum("theme_name",
     SIZE=64
     )
 
-style_header = Struct("header",
-    Timestamp32("date_created"),
-    Timestamp32("date_modified"),
-    SIZE=120
-    )
-
 array_counts = Struct("array_counts",
     UInt32("depth_count", VISIBLE=False),
     UInt32("color_count", VISIBLE=False),
@@ -191,10 +185,12 @@ fonts = Array("fonts",
     GUI_NAME="Fonts"
     )
 
-style_version = Struct("style_version",
+version_info = Struct("version_info",
     UEnum32("id", ('Styl', 'lytS'), VISIBLE=False, DEFAULT='lytS'),
     UInt32("version", DEFAULT=2, VISIBLE=False),
-    SIZE=8
+    Timestamp32("date_created"),
+    Timestamp32("date_modified"),
+    SIZE=16
     )
 
 appearance = Container("appearance",
@@ -208,14 +204,13 @@ appearance = Container("appearance",
     )
 
 style_def = TagDef("binilla_style",
-    style_version,
-    style_header,
+    version_info,
     array_counts,
     appearance,
     ENDIAN='<', ext=".sty",
     )
 
-style_version_def = TagDef(style_version)
+style_version_def = TagDef(version_info)
 
 
 def get():

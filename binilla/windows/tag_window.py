@@ -98,9 +98,6 @@ class TagWindow(tk.Toplevel, BinillaWidget):
     # whether the user declined to resize the edit history
     resize_declined = False
 
-    # The config flags governing the way the window works
-    flags = None
-
     # Whether or not the Tag this window is editing was created
     # from scratch, i.e. it isn't actually being read from anything.
     is_new_tag = False
@@ -137,9 +134,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             max_undos = 100
 
         try:
-            config_data = self.app_root.config_file.data
-            self.flags = config_data.header.tag_window_flags
-            use_def_dims = self.flags.use_default_window_dimensions
+            use_def_dims = self.general_flags.use_default_window_dimensions
         except AttributeError:
             use_def_dims = False
 
@@ -212,6 +207,21 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             self.resize_window(width, height)
             self.apply_style()
 
+    # The config flags governing the way the window works
+    @property
+    def appearance_flags(self):
+        try:
+            return self.app_root.config_file.data.general.tag_window_flags
+        except Exception:
+            return None
+
+    @property
+    def file_handling_flags(self):
+        try:
+            return self.app_root.config_file.data.general.handler_flags
+        except Exception:
+            return None
+
     @property
     def needs_flushing(self):
         return getattr(self.field_widget, "needs_flushing", False)
@@ -229,76 +239,67 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         return getattr(self.field_widget, "edited", False)
 
     @property
+    def max_undos(self):
+        try:
+            return bool(self.app_root.config_file.data.general.max_undos)
+        except Exception:
+            return 0
+
+    @property
     def enforce_max(self):
         try:
-            return bool(self.app_root.config_file.data.\
-                        header.tag_window_flags.enforce_max)
+            return bool(self.appearance_flags.enforce_max)
         except Exception:
             return True
 
     @property
     def enforce_min(self):
         try:
-            return bool(self.app_root.config_file.data.\
-                        header.tag_window_flags.enforce_min)
+            return bool(self.appearance_flags.enforce_min)
         except Exception:
             return True
 
     @property
     def use_gui_names(self):
         try:
-            return bool(self.app_root.config_file.data.\
-                        header.tag_window_flags.use_gui_names)
+            return bool(self.appearance_flags.use_gui_names)
         except Exception:
             return True
 
     @property
     def all_visible(self):
         try:
-            return bool(self.app_root.config_file.data.\
-                        header.tag_window_flags.show_invisible)
+            return bool(self.appearance_flags.show_invisible)
         except Exception:
             return False
 
     @property
     def all_editable(self):
         try:
-            return bool(self.app_root.config_file.data.\
-                        header.tag_window_flags.edit_uneditable)
+            return bool(self.appearance_flags.edit_uneditable)
         except Exception:
             return False
 
     @property
     def all_bools_visible(self):
         try:
-            return bool(self.app_root.config_file.data.\
-                        header.tag_window_flags.show_all_bools)
+            return bool(self.appearance_flags.show_all_bools)
         except Exception:
             return False
 
     @property
     def show_comments(self):
         try:
-            return bool(self.app_root.config_file.data.\
-                        header.tag_window_flags.show_comments)
+            return bool(self.appearance_flags.show_comments)
         except Exception:
             return False
 
     @property
     def show_sidetips(self):
         try:
-            return bool(self.app_root.config_file.data.\
-                        header.tag_window_flags.show_sidetips)
+            return bool(self.appearance_flags.show_sidetips)
         except Exception:
             return False
-
-    @property
-    def max_undos(self):
-        try:
-            return bool(self.app_root.config_file.data.header.max_undos)
-        except Exception:
-            pass
-        return 0
 
     @property
     def max_height(self):
@@ -329,13 +330,13 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             new_window_width  = rf_w + self.root_vsb.winfo_reqwidth()  + 2
             new_window_height = rf_h + self.root_hsb.winfo_reqheight() + 2
 
-            if self.flags is not None:
-                cap_size = self.flags.cap_window_size
-                dont_shrink_width  = self.flags.dont_shrink_width
-                dont_shrink_height = self.flags.dont_shrink_height
-                if not self.flags.auto_resize_width:
+            if self.appearance_flags is not None:
+                cap_size = self.appearance_flags.cap_window_size
+                dont_shrink_width  = self.appearance_flags.dont_shrink_width
+                dont_shrink_height = self.appearance_flags.dont_shrink_height
+                if not self.appearance_flags.auto_resize_width:
                     new_window_width = None
-                if not self.flags.auto_resize_height:
+                if not self.appearance_flags.auto_resize_height:
                     new_window_height = None
             else:
                 cap_size = dont_shrink_width = dont_shrink_height = True
@@ -529,10 +530,9 @@ class TagWindow(tk.Toplevel, BinillaWidget):
                 self.field_widget.flush()
 
             if hasattr(self.app_root, 'config_file'):
-                handler_flags = self.app_root.config_file.data.header.handler_flags
-                kwargs.setdefault('temp', handler_flags.write_as_temp)
-                kwargs.setdefault('backup', handler_flags.backup_tags)
-                kwargs.setdefault('int_test', handler_flags.integrity_test)
+                kwargs.setdefault('temp', self.file_handling_flags.write_as_temp)
+                kwargs.setdefault('backup', self.file_handling_flags.backup_tags)
+                kwargs.setdefault('int_test', self.file_handling_flags.integrity_test)
 
             self.field_widget.set_disabled(True)
             save_thread = Thread(target=self.tag.serialize, kwargs=kwargs,

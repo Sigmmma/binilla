@@ -319,7 +319,7 @@ class Binilla(tk.Tk, BinillaWidget):
         #self.main_menu.add_command(label="Help")
         self.main_menu.add_command(label="About", command=self.show_about_window)
         try:
-            self.debug_mode = bool(self.config_file.data.header.flags.debug_mode)
+            self.debug_mode = bool(self.config_file.data.general.flags.debug_mode)
         except Exception:
             self.debug_mode = True
 
@@ -376,7 +376,7 @@ class Binilla(tk.Tk, BinillaWidget):
         # make the io redirector and redirect sys.stdout to it
         self.orig_stdout = sys.stdout
 
-        flags = self.config_file.data.header.flags
+        flags = self.config_file.data.general.flags
         if flags.log_output:
             curr_dir = self.curr_dir
             if not curr_dir.endswith(s_c.PATHDIV):
@@ -396,7 +396,7 @@ class Binilla(tk.Tk, BinillaWidget):
         self.make_io_text()
         self.apply_style()
         try:
-            if self.config_file.data.header.flags.load_last_workspace:
+            if self.config_file.data.general.flags.load_last_workspace:
                 self.load_last_workspace()
         except Exception:
             pass
@@ -489,7 +489,7 @@ class Binilla(tk.Tk, BinillaWidget):
         self.io_frame.pack(fill=tk.BOTH, expand=True)
 
         try:
-            flags = self.config_file.data.header.flags
+            flags = self.config_file.data.general.flags
             edit_log, disable = flags.log_output, flags.disable_io_redirect
         except Exception:
             edit_log, disable = True, False
@@ -796,19 +796,19 @@ class Binilla(tk.Tk, BinillaWidget):
 
     def apply_config(self, e=None):
         config_data = self.config_file.data
-        header = config_data.header
+        general = config_data.general
         app_window = config_data.app_window
 
         open_tags = config_data.open_tags
         recent_tags = config_data.recent_tags
         dir_paths = config_data.directory_paths
 
-        self.sync_window_movement = header.flags.sync_window_movement
-        self.debug = self.handler.debug = header.flags.debug_mode
+        self.sync_window_movement = general.flags.sync_window_movement
+        self.debug = self.handler.debug = general.flags.debug_mode
 
         if self._initialized:
             self.bind_hotkeys()
-            sys.stdout = (self.orig_stdout if header.flags.disable_io_redirect
+            sys.stdout = (self.orig_stdout if general.flags.disable_io_redirect
                           else self.terminal_out)
         else:
             # only load the recent tagpaths when loading binilla
@@ -832,7 +832,7 @@ class Binilla(tk.Tk, BinillaWidget):
             print(format_exc())
 
         for s in ('recent_tag_max', 'max_undos'):
-            try: setattr(self, s, header[s])
+            try: setattr(self, s, general[s])
             except IndexError: pass
 
         for s in ('last_load_dir', 'last_defs_dir', 'last_imp_dir',
@@ -852,7 +852,7 @@ class Binilla(tk.Tk, BinillaWidget):
         self.log_filename = os.path.basename(dir_paths.debug_log_path.path)
 
         try:
-            self.debug_mode = bool(header.flags.debug_mode)
+            self.debug_mode = bool(general.flags.debug_mode)
         except Exception:
             self.debug_mode = True
 
@@ -928,8 +928,6 @@ class Binilla(tk.Tk, BinillaWidget):
         assert hasattr(style_file, 'data')
 
         style_data = style_file.data
-
-        header = style_data.header
 
         w_and_h = style_data.appearance.widths_and_heights
         padding = style_data.appearance.padding
@@ -1057,7 +1055,7 @@ class Binilla(tk.Tk, BinillaWidget):
         style_file.serialize(temp=0, backup=0, calc_pointers=0)
 
     def toggle_sync(self):
-        self.config_file.data.header.flags.sync_window_movement = (
+        self.config_file.data.general.flags.sync_window_movement = (
             self.sync_window_movement) = not self.sync_window_movement
 
     def get_tag(self, filepath, def_id=None):
@@ -1113,7 +1111,7 @@ class Binilla(tk.Tk, BinillaWidget):
 
         windows = []
         handler = self.handler
-        handler_flags = self.config_file.data.header.handler_flags
+        handler_flags = self.config_file.data.general.handler_flags
         tags_dir = os.path.join(handler.tagsdir, "")
 
         for path in filepaths:
@@ -1269,15 +1267,15 @@ class Binilla(tk.Tk, BinillaWidget):
                 return
             try:
                 show = set()
-                header = self.config_file.data.header
-                precision = header.print_precision
-                indent = header.print_indent
+                general = self.config_file.data.general
+                precision = general.print_precision
+                indent = general.print_indent
 
-                for name in header.block_print.NAME_MAP:
-                    if header.block_print.get(name):
+                for name in general.block_print.NAME_MAP:
+                    if general.block_print.get(name):
                         show.add(name.split('show_')[-1])
 
-                if not header.flags.log_tag_print:
+                if not general.flags.log_tag_print:
                     self.terminal_out.edit_log = False
             except Exception:
                 show = s_c.MOST_SHOW
@@ -1293,7 +1291,7 @@ class Binilla(tk.Tk, BinillaWidget):
                     print(' '*(len(line)-len(line.lstrip(' ')))+s_c.UNPRINTABLE)
                 self.io_text.update()
 
-            try: self.terminal_out.edit_log = bool(header.flags.log_output)
+            try: self.terminal_out.edit_log = bool(general.flags.log_output)
             except Exception: pass
         except Exception:
             print(format_exc())
@@ -1613,17 +1611,18 @@ class Binilla(tk.Tk, BinillaWidget):
     def update_config(self, config_file=None):
         if config_file is None:
             config_file = self.config_file
-        config_data = config_file.data
-        config_data.config_version.version = self.config_version
 
-        header = config_data.header
+        config_data = config_file.data
+        config_data.version_info.version = self.config_version
+
+        general = config_data.general
 
         open_tags = config_data.open_tags
         recent_tags = config_data.recent_tags
         dir_paths = config_data.directory_paths
         app_window = config_data.app_window
 
-        header.flags.sync_window_movement = self.sync_window_movement
+        general.flags.sync_window_movement = self.sync_window_movement
 
         del recent_tags[:]
 
@@ -1657,7 +1656,7 @@ class Binilla(tk.Tk, BinillaWidget):
             recent_tags[-1].path = path
 
         for s in ('recent_tag_max', 'max_undos'):
-            try: header[s] = getattr(self, s)
+            try: general[s] = getattr(self, s)
             except IndexError: pass
 
         for s in ('last_load_dir', 'last_defs_dir', 'last_imp_dir',
@@ -1672,17 +1671,13 @@ class Binilla(tk.Tk, BinillaWidget):
 
     def update_style(self, style_file):
         style_data = style_file.data
-        config_data = self.config_file.data
-
-        header = style_data.header
+        style_data.version_info.parse(attr_index='date_modified')
 
         w_and_h = style_data.appearance.widths_and_heights
         padding = style_data.appearance.padding
         depths = style_data.appearance.depths
         colors = style_data.appearance.colors
         fonts = style_data.appearance.fonts
-
-        header.parse(attr_index='date_modified')
 
         try:
             w_and_h.title_width = BinillaWidget.title_width

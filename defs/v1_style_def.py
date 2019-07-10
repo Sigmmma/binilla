@@ -12,7 +12,7 @@ __all__ = (
     )
 
 
-v1_style_version = Struct("style_version",
+v1_version_info = Struct("version_info",
     UInt32("id", DEFAULT='lytS'),
     UInt32("version"),
     Timestamp32("date_created"),
@@ -62,7 +62,7 @@ v1_colors = Array("colors",
     )
 
 v1_style_def = TagDef("v1_binilla_style",
-    v1_style_version,
+    v1_version_info,
     v1_style_header,
     v1_array_counts,
     v1_widths_and_heights,

@@ -3,9 +3,8 @@ import tkinter.font
 
 from supyr_struct.defs.tag_def import TagDef
 from supyr_struct.field_types import *
-from binilla.defs.style_def import appearance, v1_widths_and_heights,\
-     widths_and_heights, padding, depths, v1_colors, colors, fonts, theme_name
-from binilla.widgets.field_widgets.color_picker_frame import ColorPickerFrame
+from binilla.defs.style_def import appearance, widths_and_heights, padding,\
+     depths, colors, fonts, theme_name
 from binilla.widgets.field_widgets.array_frame import DynamicArrayFrame
 from binilla.constants import GUI_NAME, NAME, TOOLTIP, VALUE, NODE_PRINT_INDENT
 from binilla.editor_constants import widget_depth_names, color_names,\
@@ -299,84 +298,88 @@ filepath = Container("filepath",
     StrUtf8("path", SIZE=".path_len")
     )
 
+general_flags = Bool32("flags",
+    {NAME: "sync_window_movement", TOOLTIP: flag_tooltips[0]},
+    {NAME: "load_last_workspace", TOOLTIP: flag_tooltips[1]},
+    {NAME: "log_output",    TOOLTIP: flag_tooltips[2]},
+    {NAME: "log_tag_print", TOOLTIP: flag_tooltips[3]},
+    {NAME: "debug_mode",    TOOLTIP: flag_tooltips[4]},
+    {NAME: "disable_io_redirect", TOOLTIP: flag_tooltips[5]},
+       
+    DEFAULT=sum([1<<i for i in (0, 2, 3)]),
+    GUI_NAME="general flags"
+    )
+
+handler_flags = Bool32("handler_flags",
+    {NAME: "backup_tags",   TOOLTIP: handler_flag_tooltips[0]},
+    {NAME: "write_as_temp", TOOLTIP: handler_flag_tooltips[1]},
+    {NAME: "allow_corrupt", TOOLTIP: handler_flag_tooltips[2]},
+    {NAME: "integrity_test", TOOLTIP: handler_flag_tooltips[3]},
+    DEFAULT=sum([1<<i for i in (0, 3)]),
+    GUI_NAME="file handling flags"
+    )
+
+tag_window_flags = Bool32("tag_window_flags",
+    {NAME: "edit_uneditable", TOOLTIP: tag_window_flag_tooltips[0]},
+    {NAME: "show_invisible",  TOOLTIP: tag_window_flag_tooltips[1]},
+    #"row_row_fight_powuh",
+    {NAME: "enforce_max", TOOLTIP: tag_window_flag_tooltips[2]},
+    {NAME: "enforce_min", TOOLTIP: tag_window_flag_tooltips[3]},
+    {NAME: "use_unit_scales", TOOLTIP: tag_window_flag_tooltips[4]},
+    {NAME: "use_gui_names", TOOLTIP: tag_window_flag_tooltips[5]},
+
+    {NAME: "blocks_start_hidden", TOOLTIP: tag_window_flag_tooltips[6]},
+    {NAME: "show_comments", TOOLTIP: tag_window_flag_tooltips[7]},
+    {NAME: "show_tooltips", TOOLTIP: tag_window_flag_tooltips[8]},
+    {NAME: "show_sidetips", TOOLTIP: tag_window_flag_tooltips[9]},
+
+    {NAME: "cap_window_size", TOOLTIP: tag_window_flag_tooltips[10]},
+    {NAME: "dont_shrink_width", TOOLTIP: tag_window_flag_tooltips[11]},
+    {NAME: "dont_shrink_height", TOOLTIP: tag_window_flag_tooltips[12]},
+    {NAME: "use_default_window_dimensions", TOOLTIP: tag_window_flag_tooltips[13]},
+    {NAME: "scroll_unselected_widgets", TOOLTIP: tag_window_flag_tooltips[14]},
+    {NAME: "auto_resize_width", TOOLTIP: tag_window_flag_tooltips[15]},
+    {NAME: "auto_resize_height", TOOLTIP: tag_window_flag_tooltips[16]},
+    {NAME: "empty_blocks_start_hidden", TOOLTIP: tag_window_flag_tooltips[17]},
+    {NAME: "evaluate_entry_fields", TOOLTIP: tag_window_flag_tooltips[18]},
+
+    {NAME: "show_all_bools", TOOLTIP: tag_window_flag_tooltips[-1],
+     VALUE: (1 << 31)},
+    DEFAULT=sum([1<<i for i in (2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15)])
+    )
+
+block_print_flags = Bool32("block_print",
+    "show_index",
+    "show_name",
+    "show_value",
+    "show_type",
+    "show_size",
+    "show_offset",
+    "show_parent_id",
+    "show_node_id",
+    "show_node_cls",
+    "show_endian",
+    "show_flags",
+    "show_trueonly",
+    "show_steptrees",
+    "show_filepath",
+    "show_unique",
+    "show_binsize",
+    "show_ramsize",
+
+
+    ("show_all", 1<<31),
+    DEFAULT=sum([1<<i for i in (
+        0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 15, 16)]),
+    GUI_NAME="tag printout flags",
+    TOOLTIP="Flags governing what is shown when a tag is printed."
+    )
+
 config_header = Struct("header",
-    Bool32("flags",
-        {NAME: "sync_window_movement", TOOLTIP: flag_tooltips[0]},
-        {NAME: "load_last_workspace", TOOLTIP: flag_tooltips[1]},
-        {NAME: "log_output",    TOOLTIP: flag_tooltips[2]},
-        {NAME: "log_tag_print", TOOLTIP: flag_tooltips[3]},
-        {NAME: "debug_mode",    TOOLTIP: flag_tooltips[4]},
-        {NAME: "disable_io_redirect", TOOLTIP: flag_tooltips[5]},
-           
-        DEFAULT=sum([1<<i for i in (0, 2, 3)]),
-        GUI_NAME="general flags"
-        ),
-
-    Bool32("handler_flags",
-        {NAME: "backup_tags",   TOOLTIP: handler_flag_tooltips[0]},
-        {NAME: "write_as_temp", TOOLTIP: handler_flag_tooltips[1]},
-        {NAME: "allow_corrupt", TOOLTIP: handler_flag_tooltips[2]},
-        {NAME: "integrity_test", TOOLTIP: handler_flag_tooltips[3]},
-        DEFAULT=sum([1<<i for i in (0, 3)]),
-        GUI_NAME="file handling flags"
-        ),
-
-    Bool32("tag_window_flags",
-        {NAME: "edit_uneditable", TOOLTIP: tag_window_flag_tooltips[0]},
-        {NAME: "show_invisible",  TOOLTIP: tag_window_flag_tooltips[1]},
-        #"row_row_fight_powuh",
-        {NAME: "enforce_max", TOOLTIP: tag_window_flag_tooltips[2]},
-        {NAME: "enforce_min", TOOLTIP: tag_window_flag_tooltips[3]},
-        {NAME: "use_unit_scales", TOOLTIP: tag_window_flag_tooltips[4]},
-        {NAME: "use_gui_names", TOOLTIP: tag_window_flag_tooltips[5]},
-
-        {NAME: "blocks_start_hidden", TOOLTIP: tag_window_flag_tooltips[6]},
-        {NAME: "show_comments", TOOLTIP: tag_window_flag_tooltips[7]},
-        {NAME: "show_tooltips", TOOLTIP: tag_window_flag_tooltips[8]},
-        {NAME: "show_sidetips", TOOLTIP: tag_window_flag_tooltips[9]},
-
-        {NAME: "cap_window_size", TOOLTIP: tag_window_flag_tooltips[10]},
-        {NAME: "dont_shrink_width", TOOLTIP: tag_window_flag_tooltips[11]},
-        {NAME: "dont_shrink_height", TOOLTIP: tag_window_flag_tooltips[12]},
-        {NAME: "use_default_window_dimensions", TOOLTIP: tag_window_flag_tooltips[13]},
-        {NAME: "scroll_unselected_widgets", TOOLTIP: tag_window_flag_tooltips[14]},
-        {NAME: "auto_resize_width", TOOLTIP: tag_window_flag_tooltips[15]},
-        {NAME: "auto_resize_height", TOOLTIP: tag_window_flag_tooltips[16]},
-        {NAME: "empty_blocks_start_hidden", TOOLTIP: tag_window_flag_tooltips[17]},
-        {NAME: "evaluate_entry_fields", TOOLTIP: tag_window_flag_tooltips[18]},
-
-        {NAME: "show_all_bools", TOOLTIP: tag_window_flag_tooltips[-1],
-         VALUE: (1 << 31)},
-        DEFAULT=sum([1<<i for i in (2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15)])
-        ),
-
-    Bool32("block_print",
-        "show_index",
-        "show_name",
-        "show_value",
-        "show_type",
-        "show_size",
-        "show_offset",
-        "show_parent_id",
-        "show_node_id",
-        "show_node_cls",
-        "show_endian",
-        "show_flags",
-        "show_trueonly",
-        "show_steptrees",
-        "show_filepath",
-        "show_unique",
-        "show_binsize",
-        "show_ramsize",
-
-
-        ("show_all", 1<<31),
-        DEFAULT=sum([1<<i for i in (
-            0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 15, 16)]),
-        GUI_NAME="tag printout flags",
-        TOOLTIP="Flags governing what is shown when a tag is printed."
-        ),
-
+    general_flags,
+    handler_flags,
+    tag_window_flags,
+    block_print_flags,
     Timestamp32("date_created", EDITABLE=False),
     Timestamp32("date_modified", EDITABLE=False),
 
@@ -499,31 +502,6 @@ config_def = TagDef("binilla_config",
     )
 
 config_version_def = TagDef(config_version)
-
-# OLD STRUCT VERSIONS
-v1_config_version = Struct("config_version",
-    UEnum32("id", ('Bnla', 'alnB'), DEFAULT='alnB'),
-    UInt32("version", DEFAULT=1),
-    SIZE=8
-    )
-
-v1_config_def = TagDef("v1_binilla_config",
-    v1_config_version,
-    config_header,
-    array_counts,
-    app_window,
-    v1_widths_and_heights,
-    padding,
-    depths,
-    open_tags,
-    recent_tags,
-    directory_paths,
-    v1_colors,
-    hotkeys,
-    tag_window_hotkeys,
-    ENDIAN='<', ext=".cfg",
-    )
-
 
 def get():
     return config_def

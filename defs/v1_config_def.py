@@ -1,15 +1,53 @@
 from supyr_struct.defs.tag_def import TagDef
 from supyr_struct.field_types import *
 
+from binilla.constants import NAME, VALUE
 from binilla.defs.v1_style_def import v1_widths_and_heights, v1_colors
 from binilla.defs.config_def import open_tags, recent_tags, directory_paths,\
-     padding, depths, hotkeys, tag_window_hotkeys,\
-     handler_flags, tag_window_flags, block_print_flags, general_flags
+     padding, depths, hotkeys, tag_window_hotkeys, block_print_flags
 
 __all__ = (
     "get", "v1_config_def",
     )
 
+v1_general_flags = Bool32("flags",
+    "sync_window_movement",
+    "load_last_workspace",
+    "log_output",
+    "log_tag_print",
+    "debug_mode",
+    "disable_io_redirect",
+    )
+
+v1_handler_flags = Bool32("handler_flags",
+    "backup_tags",
+    "write_as_temp",
+    "allow_corrupt",
+    "integrity_test",
+    )
+
+v1_tag_window_flags = Bool32("tag_window_flags",
+    "edit_uneditable",
+    "show_invisible",
+    "enforce_max",
+    "enforce_min",
+    "use_unit_scales",
+    "use_gui_names",
+    "blocks_start_hidden",
+    "show_comments",
+    "show_tooltips",
+    "show_sidetips",
+    "cap_window_size",
+    "dont_shrink_width",
+    "dont_shrink_height",
+    "use_default_window_dimensions",
+    "scroll_unselected_widgets",
+    "auto_resize_width",
+    "auto_resize_height",
+    "empty_blocks_start_hidden",
+    "evaluate_entry_fields",
+    {NAME: "show_all_bools", VALUE: (1 << 31)},
+    )
 
 v1_version_info = Struct("version_info",
     UEnum32("id", ('Bnla', 'alnB'), DEFAULT='alnB'),
@@ -18,9 +56,9 @@ v1_version_info = Struct("version_info",
     )
 
 v1_general = Struct("general",
-    general_flags,
-    handler_flags,
-    tag_window_flags,
+    v1_general_flags,
+    v1_handler_flags,
+    v1_tag_window_flags,
     block_print_flags,
     Timestamp32("date_created"),
     Timestamp32("date_modified"),

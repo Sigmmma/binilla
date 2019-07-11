@@ -20,19 +20,10 @@ v1_version_info = Struct("version_info",
     SIZE=16
     )
 
-v1_style_header = Struct("header",
-    SIZE=112
-    )
-
 v1_array_counts = Struct("array_counts",
-    UInt32("open_tag_count"),
-    UInt32("recent_tag_count"),
-    UInt32("directory_path_count"),
+    Pad(12),
     UInt32("depth_count"),
     UInt32("color_count"),
-    UInt32("hotkey_count"),
-    UInt32("tag_window_hotkey_count"),
-    UInt32("font_count"),
     SIZE=128
     )
 
@@ -63,7 +54,7 @@ v1_colors = Array("colors",
 
 v1_style_def = TagDef("v1_binilla_style",
     v1_version_info,
-    v1_style_header,
+    Pad(112),
     v1_array_counts,
     v1_widths_and_heights,
     padding,

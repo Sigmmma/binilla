@@ -17,27 +17,27 @@ def upgrade_v1_to_v2(old_style, new_style):
 
     new_version_info.date_created = date_created
 
-    new_appearance = new_style.data.appearance
+    appearance = new_style.data.appearance
     try:
-        new_appearance.theme_name.set_to("_alt")
+        appearance.theme_name.set_to("_alt")
     except Exception:
-        new_appearance.theme_name.set_to("_default")
+        appearance.theme_name.data = "default"
 
-    new_appearance.widths_and_heights.parse(initdata=old_style.data.widths_and_heights)
+    appearance.widths_and_heights.parse(initdata=old_style.data.widths_and_heights)
     bool_frame_min = old_style.data.widths_and_heights.bool_frame_min
     bool_frame_max = old_style.data.widths_and_heights.bool_frame_max
-    new_appearance.widths_and_heights.bool_frame_width[:] = (
+    appearance.widths_and_heights.bool_frame_width[:] = (
         bool_frame_min.width, bool_frame_max.width)
-    new_appearance.widths_and_heights.bool_frame_height[:] = (
+    appearance.widths_and_heights.bool_frame_height[:] = (
         bool_frame_min.height, bool_frame_max.height)
 
-    new_appearance.padding.parse(initdata=old_style.data.padding)
-    new_appearance.depths.parse(initdata=old_style.data.depths)
-    del new_appearance.colors[:]
-    new_appearance.colors.extend(len(new_appearance.colors.NAME_MAP))
+    appearance.padding.parse(initdata=old_style.data.padding)
+    appearance.depths.parse(initdata=old_style.data.depths)
+    del appearance.colors[:]
+    appearance.colors.extend(len(appearance.colors.NAME_MAP))
 
-    for name in new_appearance.colors.NAME_MAP:
-        new_color = new_appearance.colors[name]
+    for name in appearance.colors.NAME_MAP:
+        new_color = appearance.colors[name]
         binilla_color = getattr(binilla_widget.BinillaWidget, name + '_color', None)
 
         try:
@@ -49,6 +49,6 @@ def upgrade_v1_to_v2(old_style, new_style):
                 new_color[1] = int(binilla_color[2:4], 16)
                 new_color[2] = int(binilla_color[4:6], 16)
 
-    new_appearance.colors.button_border_light[:] = new_appearance.colors.button
-    new_appearance.colors.button_border_dark[:] = new_appearance.colors.button
+    appearance.colors.button_border_light[:] = appearance.colors.button
+    appearance.colors.button_border_dark[:]  = appearance.colors.button
     return new_style

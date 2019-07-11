@@ -3,8 +3,9 @@ import tkinter.font
 
 from supyr_struct.defs.tag_def import TagDef
 from supyr_struct.field_types import *
+
+from binilla.defs import style_tooltips as ttip
 from binilla.widgets.field_widgets.color_picker_frame import ColorPickerFrame
-from binilla.constants import GUI_NAME, NAME, TOOLTIP, VALUE, NODE_PRINT_INDENT
 from binilla.editor_constants import widget_depth_names, color_names, font_names
 
 
@@ -23,40 +24,6 @@ except Exception:
     print("Cannot import list of font families or theme names. Create Tkinter "
           "interpreter instance before attempting to import config.")
 
-
-pad_str = "Padding applied to the %s of widgets oriented %sally"
-
-widget_tooltips = (
-    "Number of characters wide the title of each vertically oriented field is.",
-    ("Default number of characters wide an enumerator widget will be when\n" +
-     "not being used to represent an enumerator(such as in an array or union)"),
-    "Default number of characters wide an enumerator widget will be.",
-    "Minimum number of characters wide an entry field must be.",
-
-    "Width of multi-line text boxes",
-    "Height of multi-line text boxes",
-
-    "Minimum number of pixels wide a boolean frame must be.",
-    "Minimum number of pixels tall a boolean frame must be.",
-    "Maximum number of pixels wide a boolean frame can be.",
-    "Maximum number of pixels tall a boolean frame can be.",
-
-    "Default number of characters wide an integer entry field will be.",
-    "Default number of characters wide a float entry field will be.",
-    "Default number of characters wide a string entry field will be.",
-
-    "Maximum number of characters wide an integer entry field can be.",
-    "Maximum number of characters wide a float entry field can be.",
-    "Maximum number of characters wide a string entry field can be.",
-
-    ("Maximum number of characters wide an enumerator widget can be.\n" +
-     "(This is regardless of what the enumerator widget is being used for)"),
-    ("Maximum number of characters tall an enumerator widget can be.\n" +
-     "(This is regardless of what the enumerator widget is being used for)"),
-    )
-
-depth_tooltip = "\
-Number of pixels to surround the widget with to give an appearance of depth."
 
 color = QStruct("color",
     UInt8('r'), UInt8('g'), UInt8('b'),
@@ -88,51 +55,51 @@ theme_name = StrUtf8Enum("theme_name",
     )
 
 array_counts = Struct("array_counts",
-    UInt32("depth_count", VISIBLE=False),
-    UInt32("color_count", VISIBLE=False),
-    UInt32("font_count", VISIBLE=False),
-    SIZE=128, VISIBLE=False,
-    COMMENT="You really shouldnt be messing with these."
+    UInt32("depth_count", VISIBLE=False, EDITABLE=False),
+    UInt32("color_count", VISIBLE=False, EDITABLE=False),
+    UInt32("font_count", VISIBLE=False, EDITABLE=False),
+    SIZE=128, VISIBLE=False, EDITABLE=False,
+    COMMENT="Messing with these can damage your style file."
     )
 
 widths_and_heights = Struct("widths_and_heights",
-    UInt16("title_width", TOOLTIP=widget_tooltips[0]),
-    UInt16("scroll_menu_width", TOOLTIP=widget_tooltips[1]),
-    UInt16("enum_menu_width", TOOLTIP=widget_tooltips[2]),
-    UInt16("min_entry_width", TOOLTIP=widget_tooltips[3]),
+    UInt16("title_width", TOOLTIP=ttip.title_width),
+    UInt16("scroll_menu_width", TOOLTIP=ttip.scroll_menu_width),
+    UInt16("enum_menu_width", TOOLTIP=ttip.enum_menu_width),
+    UInt16("min_entry_width", TOOLTIP=ttip.min_entry_width),
 
     Struct("textbox",
-        UInt16("max_width", TOOLTIP=widget_tooltips[4]),
-        UInt16("max_height", TOOLTIP=widget_tooltips[5]),
+        UInt16("max_width",  TOOLTIP=ttip.textbox_max_width),
+        UInt16("max_height", TOOLTIP=ttip.textbox_max_height),
         ORIENT="h"
         ),
     Struct("scroll_menu",
-        UInt16("max_width", TOOLTIP=widget_tooltips[16]),
-        UInt16("max_height", TOOLTIP=widget_tooltips[17]),
+        UInt16("max_width",  TOOLTIP=ttip.scroll_menu_max_width),
+        UInt16("max_height", TOOLTIP=ttip.scroll_menu_max_height),
         ORIENT="h"
         ),
 
     Struct("bool_frame_width",
-        UInt16("min", TOOLTIP=widget_tooltips[6]),
-        UInt16("max", TOOLTIP=widget_tooltips[8]),
+        UInt16("min", TOOLTIP=ttip.bool_frame_min_width),
+        UInt16("max", TOOLTIP=ttip.bool_frame_max_width),
         ORIENT="h"
         ),
     Struct("bool_frame_height",
-        UInt16("min", TOOLTIP=widget_tooltips[7]),
-        UInt16("max", TOOLTIP=widget_tooltips[9]),
+        UInt16("min", TOOLTIP=ttip.bool_frame_min_height),
+        UInt16("max", TOOLTIP=ttip.bool_frame_max_height),
         ORIENT="h"
         ),
 
     Struct("default_entry_widths",
-        UInt16("integer", TOOLTIP=widget_tooltips[10]),
-        UInt16("float", TOOLTIP=widget_tooltips[11]),
-        UInt16("string", TOOLTIP=widget_tooltips[12]),
+        UInt16("integer", TOOLTIP=ttip.default_integer_entry_width),
+        UInt16("float",   TOOLTIP=ttip.default_float_entry_width),
+        UInt16("string",  TOOLTIP=ttip.default_string_entry_width),
         ORIENT="h"
         ),
     Struct("max_entry_widths",
-        UInt16("integer", TOOLTIP=widget_tooltips[13]),
-        UInt16("float", TOOLTIP=widget_tooltips[14]),
-        UInt16("string", TOOLTIP=widget_tooltips[15]),
+        UInt16("integer", TOOLTIP=ttip.max_integer_entry_width),
+        UInt16("float",   TOOLTIP=ttip.max_float_entry_width),
+        UInt16("string",  TOOLTIP=ttip.max_string_entry_width),
         ORIENT="h"
         ),
 
@@ -141,30 +108,30 @@ widths_and_heights = Struct("widths_and_heights",
 
 padding = Struct("padding",
     QStruct("vertical_padx",
-        UInt16("l", TOOLTIP=pad_str % ('left', 'vertic')),
-        UInt16("r", TOOLTIP=pad_str % ('right', 'vertic')),
-        ORIENT='h', TOOLTIP=pad_str % ('left/right', 'vertic')
+        UInt16("l", TOOLTIP=ttip.vertical_padx_l),
+        UInt16("r", TOOLTIP=ttip.vertical_padx_r),
+        ORIENT='h', TOOLTIP=ttip.vertical_padx
         ),
     QStruct("vertical_pady",
-        UInt16("t", TOOLTIP=pad_str % ('top', 'vertic')),
-        UInt16("b", TOOLTIP=pad_str % ('bottom', 'vertic')),
-        ORIENT='h', TOOLTIP=pad_str % ('top/bottom', 'vertic')
+        UInt16("t", TOOLTIP=ttip.vertical_pady_l),
+        UInt16("b", TOOLTIP=ttip.vertical_pady_r),
+        ORIENT='h', TOOLTIP=ttip.vertical_pady
         ),
     QStruct("horizontal_padx",
-        UInt16("l", TOOLTIP=pad_str % ('left', 'horizont')),
-        UInt16("r", TOOLTIP=pad_str % ('right', 'horizont')),
-        ORIENT='h', TOOLTIP=pad_str % ('left/right', 'horizont')
+        UInt16("l", TOOLTIP=ttip.horizontal_padx_l),
+        UInt16("r", TOOLTIP=ttip.horizontal_padx_r),
+        ORIENT='h', TOOLTIP=ttip.horizontal_padx
         ),
     QStruct("horizontal_pady",
-        UInt16("t", TOOLTIP=pad_str % ('top', 'horizont')),
-        UInt16("b", TOOLTIP=pad_str % ('bottom', 'horizont')),
-        ORIENT='h', TOOLTIP=pad_str % ('top/bottom', 'horizont')
+        UInt16("t", TOOLTIP=ttip.horizontal_pady_l),
+        UInt16("b", TOOLTIP=ttip.horizontal_pady_r),
+        ORIENT='h', TOOLTIP=ttip.horizontal_pady
         ),
     GUI_NAME='Padding', SIZE=64
     )
 
 depths = Array("depths",
-    SUB_STRUCT=UInt16("depth", TOOLTIP=depth_tooltip),
+    SUB_STRUCT=UInt16("depth", TOOLTIP=ttip.widget_depth),
     SIZE="array_counts.depth_count",
     MAX=len(widget_depth_names), MIN=len(widget_depth_names),
     NAME_MAP=widget_depth_names,

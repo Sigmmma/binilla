@@ -4,7 +4,8 @@ from supyr_struct.field_types import *
 from binilla.constants import NAME, VALUE
 from binilla.defs.v1_style_def import v1_widths_and_heights, v1_colors
 from binilla.defs.config_def import open_tags, recent_tags, directory_paths,\
-     padding, depths, hotkeys, tag_window_hotkeys, block_print_flags
+     padding, depths, hotkeys, tag_window_hotkeys, block_print_flags,\
+     file_handling_flags
 
 __all__ = (
     "get", "v1_config_def",
@@ -17,13 +18,6 @@ v1_general_flags = Bool32("flags",
     "log_tag_print",
     "debug_mode",
     "disable_io_redirect",
-    )
-
-v1_handler_flags = Bool32("handler_flags",
-    "backup_tags",
-    "write_as_temp",
-    "allow_corrupt",
-    "integrity_test",
     )
 
 v1_tag_window_flags = Bool32("tag_window_flags",
@@ -40,8 +34,8 @@ v1_tag_window_flags = Bool32("tag_window_flags",
     "cap_window_size",
     "dont_shrink_width",
     "dont_shrink_height",
-    "use_default_window_dimensions",
-    "scroll_unselected_widgets",
+    "use_default_dimensions",
+    "scroll_unselected",
     "auto_resize_width",
     "auto_resize_height",
     "empty_blocks_start_hidden",
@@ -57,7 +51,7 @@ v1_version_info = Struct("version_info",
 
 v1_general = Struct("general",
     v1_general_flags,
-    v1_handler_flags,
+    file_handling_flags,
     v1_tag_window_flags,
     block_print_flags,
     Timestamp32("date_created"),
@@ -88,10 +82,10 @@ v1_app_window = Struct("app_window",
     UInt16("window_menu_max_len"),
     QStruct("max_step", UInt8("x"), UInt8("y")),
 
-    UInt16("tag_window_cascade_stride"),
-    QStruct("tag_window_tiling_stride", UInt16("x"), UInt16("y")),
-    QStruct("tag_window_default_dimensions", UInt16("w"), UInt16("h")),
-    QStruct("tag_window_scroll_increment", UInt16("x"), UInt16("y")),
+    UInt16("cascade_stride"),
+    QStruct("tiling_stride", UInt16("x"), UInt16("y")),
+    QStruct("default_dimensions", UInt16("w"), UInt16("h")),
+    QStruct("scroll_increment", UInt16("x"), UInt16("y")),
     SIZE=128,
     )
 

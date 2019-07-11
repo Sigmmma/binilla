@@ -72,6 +72,18 @@ file_handling_flags = Bool32("file_handling_flags",
     DEFAULT=sum([1<<i for i in (0, 3)])
     )
 
+tag_window_flags = Bool32("window_flags",
+    {NAME: "sync_window_movement",   TOOLTIP: ttip.tag_window_sync_window_movement, VISIBLE: False},
+    {NAME: "use_default_dimensions", TOOLTIP: ttip.tag_window_use_default_dimensions},
+    {NAME: "cap_window_size",    TOOLTIP: ttip.tag_window_cap_window_size},
+    {NAME: "dont_shrink_width",  TOOLTIP: ttip.tag_window_dont_shrink_width},
+    {NAME: "dont_shrink_height", TOOLTIP: ttip.tag_window_dont_shrink_height},
+    {NAME: "auto_resize_width",  TOOLTIP: ttip.tag_window_auto_resize_width},
+    {NAME: "auto_resize_height", TOOLTIP: ttip.tag_window_auto_resize_height},
+
+    DEFAULT=sum([1<<i for i in (0, 2, 4, 5)])
+    )
+
 field_widget_flags = Bool32("widget_flags",
     {NAME: "edit_uneditable", TOOLTIP: ttip.field_widget_edit_uneditable},
     {NAME: "show_invisible",  TOOLTIP: ttip.field_widget_show_invisible},
@@ -94,19 +106,7 @@ field_widget_flags = Bool32("widget_flags",
     DEFAULT=sum([1<<i for i in (2, 3, 4, 6, 7, 8, 9, 10)])
     )
 
-tag_window_flags = Bool32("window_flags",
-    {NAME: "sync_window_movement",   TOOLTIP: ttip.tag_window_sync_window_movement, VISIBLE: False},
-    {NAME: "use_default_dimensions", TOOLTIP: ttip.tag_window_use_default_dimensions},
-    {NAME: "cap_window_size",    TOOLTIP: ttip.tag_window_cap_window_size},
-    {NAME: "dont_shrink_width",  TOOLTIP: ttip.tag_window_dont_shrink_width},
-    {NAME: "dont_shrink_height", TOOLTIP: ttip.tag_window_dont_shrink_height},
-    {NAME: "auto_resize_width",  TOOLTIP: ttip.tag_window_auto_resize_width},
-    {NAME: "auto_resize_height", TOOLTIP: ttip.tag_window_auto_resize_height},
-
-    DEFAULT=sum([1<<i for i in (0, 2, 4, 5)])
-    )
-
-block_print_flags = Bool32("block_print",
+block_print_flags = Bool32("block_print_flags",
     "show_index",
     "show_name",
     "show_value",
@@ -175,7 +175,7 @@ tag_windows = Struct("tag_windows",
 
     Pad(32 - 4*3 - 2*1),
 
-    QStruct("default_window_dimensions",
+    QStruct("default_dimensions",
         UInt16("w", DEFAULT=480, TOOLTIP=ttip.tag_window_default_width),
         UInt16("h", DEFAULT=640, TOOLTIP=ttip.tag_window_default_height),
         ORIENT="h"

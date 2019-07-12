@@ -84,7 +84,7 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         #self.arrow_button.grid(row=1, column=1, sticky='news',
         #                       ipadx=0, ipady=0, padx=0, pady=0)
         self.sel_label.pack(side="left", fill="both", expand=True)
-        self.button_frame.pack(side="left", fill="both", expand=True)
+        self.button_frame.pack(side="left", fill="both")
 
         # make the option box to populate
         option_frame_root = self.winfo_toplevel()

@@ -4,6 +4,7 @@ import tkinter.font
 from supyr_struct.defs.tag_def import TagDef
 from supyr_struct.field_types import *
 
+from binilla.constants import NAME, VALUE, GUI_NAME
 from binilla.defs import style_tooltips as ttip
 from binilla.widgets.field_widgets.color_picker_frame import ColorPickerFrame
 from binilla.editor_constants import widget_depth_names, color_names, font_names
@@ -64,9 +65,12 @@ array_counts = Struct("array_counts",
 
 widths_and_heights = Struct("widths_and_heights",
     UInt16("title_width", TOOLTIP=ttip.title_width),
-    UInt16("scroll_menu_width", TOOLTIP=ttip.scroll_menu_width),
-    UInt16("enum_menu_width", TOOLTIP=ttip.enum_menu_width),
-    UInt16("min_entry_width", TOOLTIP=ttip.min_entry_width),
+    UInt16("scroll_menu_width", TOOLTIP=ttip.scroll_menu_width,
+        GUI_NAME="default scroll menu width"),
+    UInt16("enum_menu_width", TOOLTIP=ttip.enum_menu_width,
+        GUI_NAME="default enum menu width"),
+    UInt16("min_entry_width", TOOLTIP=ttip.min_entry_width,
+        GUI_NAME="entry min width"),
 
     Struct("textbox",
         UInt16("max_width",  TOOLTIP=ttip.textbox_max_width),
@@ -167,7 +171,9 @@ appearance = Container("appearance",
     depths,
     colors,
     fonts,
-    GUI_NAME="Appearance"
+    GUI_NAME="Appearance", COMMENT=(
+        "\nThese settings control how everything looks. Colors, fonts, etc."
+        "\nThese settings are what get saved to/loaded from style files.\n")
     )
 
 style_def = TagDef("binilla_style",

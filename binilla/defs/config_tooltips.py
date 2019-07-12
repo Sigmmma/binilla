@@ -16,8 +16,9 @@ main_window_disable_io_redirect = (
 
 # file handling
 file_handling_backup = (
-    "Whether to rename original files with a .backup extension before\n"
-    "the first time you save, so as to keep an original backup.")
+    "Whether to make rolling backups of tags about to be overwritten.\n"
+    "Backed up tags are moved to a '.BACKUP' directory in the same\n"
+    "directory as the tag being overwritten.")
 file_handling_write_as_temp = (
     "Whether to write tags to temp files instead of the original filepath")
 file_handling_allow_corrupt = (
@@ -33,9 +34,9 @@ file_handling_integrity_test = (
 field_widget_edit_uneditable = "Enables editing all fields.\nBE CAREFUL!"
 field_widget_show_invisible = (
     "Shows every field(even internal values like array counts).\nBE CAREFUL!")
-field_widget_show_comments = "Whether to show comments."
-field_widget_show_tooltips = "Whether to show tooltips."
-field_widget_show_sidetips = "Whether to show sidetips."
+field_widget_show_comments = "Whether to show comments. Comments appear above fields"
+field_widget_show_tooltips = "Whether to show tooltips. Fields with tooltips are suffixed with �"
+field_widget_show_sidetips = "Whether to show sidetips. Sidetips appear on the right side of fields."
 field_widget_show_all_bools = (
     "Whether to display a checkbox for each available bit in a boolean, even\n"
     "if that bit doesnt represent anything. Used for debugging and testing.")
@@ -67,40 +68,8 @@ field_widget_evaluate_entry_fields = (
     "simple functions for a number, such as '(log10(50) + 1) / 2'")
 
 
-# tag windows
-tag_window_sync_window_movement = (
-    "Whether to syncronize movement of tag windows with the main window.")
-tag_window_use_default_dimensions = (
-    "Whether to set tag window dimensions to the default ones when opening a tag.")
-tag_window_cap_window_size = (
-    "Whether to cap the size of tag windows when auto-sizing them\n"
-    "so that they dont expand past the edge of the screen.")
-tag_window_dont_shrink_width = (
-    "Disables shrinking a tag windows width when auto-sizing it.")
-tag_window_dont_shrink_height = (
-    "Disables shrinking a tag windows height when auto-sizing it.")
-tag_window_auto_resize_width = (
-    "Whether to resize a tag windows width to fit its contents when something\n"
-    "happens to the contents(mouse scrolling, a widget is changed, etc).")
-tag_window_auto_resize_height = (
-    "Whether to resize a tag windows height to fit its contents when something\n"
-    "happens to the contents(mouse scrolling, a widget is changed, etc).")
-tag_window_max_undos = (
-    "Max number of undo/redo operations per tag window.")
-tag_window_default_width = (
-    "Default width of tag windows if not auto-sizing them.")
-tag_window_default_height = (
-    "Default height of tag windows if not auto-sizing them.")
-tag_window_scroll_increment_x = (
-    "Number of pixels to jump when scrolling horizontally.")
-tag_window_scroll_increment_y = (
-    "Number of pixels to jump when scrolling vertically.")
-
-
 # main window
 app_window_recent_tag_max = "Max number of files in the 'recent' menu."
-app_window_backup_count = (
-    "Max number of backups to make before overwriting the oldest")
 app_window_window_menu_max_len = (
     "Max number of entries to display in the 'windows' menu.\n"
     "After this, a 'window manager' button will be added.")
@@ -118,6 +87,41 @@ app_window_tile_stride_x = (
 app_window_tile_stride_y = (
     "Amount of vertical spacing between 'steps' when tiling tag windows.\n"
     "This is also used when placing new tag windows.")
+
+
+# tag windows
+tag_windows_sync_window_movement = (
+    "Whether to syncronize movement of tag windows with the main window.")
+tag_windows_use_default_dimensions = (
+    "Whether to set tag window dimensions to the default ones when opening a tag.")
+tag_windows_cap_window_size = (
+    "Whether to cap the size of tag windows when auto-sizing them\n"
+    "so that they dont expand past the edge of the screen.")
+tag_windows_dont_shrink_width = (
+    "Disables shrinking a tag windows width when auto-sizing it.")
+tag_windows_dont_shrink_height = (
+    "Disables shrinking a tag windows height when auto-sizing it.")
+tag_windows_auto_resize_width = (
+    "Whether to resize a tag windows width to fit its contents when something\n"
+    "happens to the contents(mouse scrolling, a widget is changed, etc).")
+tag_windows_auto_resize_height = (
+    "Whether to resize a tag windows height to fit its contents when something\n"
+    "happens to the contents(mouse scrolling, a widget is changed, etc).")
+tag_windows_max_undos = (
+    "Max number of undo/redo operations per tag window.")
+tag_windows_backup_count = (
+    "Max number of rolling backups to make before overwriting the oldest.")
+tag_windows_backup_interval = (
+    "The amount of time in seconds that must pass between manual saves\n"
+    "before the rolling backup system will back up a tag being overwritten.")
+tag_windows_default_width = (
+    "Default width of tag windows if not auto-sizing them.")
+tag_windows_default_height = (
+    "Default height of tag windows if not auto-sizing them.")
+tag_windows_scroll_increment_x = (
+    "Number of pixels to jump when scrolling horizontally.")
+tag_windows_scroll_increment_y = (
+    "Number of pixels to jump when scrolling vertically.")
 
 
 # tag printing

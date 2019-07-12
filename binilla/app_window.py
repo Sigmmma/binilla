@@ -319,7 +319,7 @@ class Binilla(tk.Tk, BinillaWidget):
         #self.main_menu.add_command(label="Help")
         self.main_menu.add_command(label="About", command=self.show_about_window)
         try:
-            self.debug_mode = bool(self.config_file.data.general.flags.debug_mode)
+            self.debug_mode = bool(self.config_file.data.app_window.flags.debug_mode)
         except Exception:
             self.debug_mode = True
 
@@ -376,7 +376,7 @@ class Binilla(tk.Tk, BinillaWidget):
         # make the io redirector and redirect sys.stdout to it
         self.orig_stdout = sys.stdout
 
-        flags = self.config_file.data.general.flags
+        flags = self.config_file.data.app_window.flags
         if flags.log_output:
             curr_dir = self.curr_dir
             if not curr_dir.endswith(s_c.PATHDIV):
@@ -395,11 +395,12 @@ class Binilla(tk.Tk, BinillaWidget):
         # make the console output
         self.make_io_text()
         self.apply_style()
-        try:
-            if self.config_file.data.general.flags.load_last_workspace:
+
+        if flags.load_last_workspace:
+            try:
                 self.load_last_workspace()
-        except Exception:
-            pass
+            except Exception:
+                pass
 
         self.sync_offset_x = self.winfo_x()
         self.sync_offset_y = self.winfo_y()
@@ -489,7 +490,7 @@ class Binilla(tk.Tk, BinillaWidget):
         self.io_frame.pack(fill=tk.BOTH, expand=True)
 
         try:
-            flags = self.config_file.data.general.flags
+            flags = self.config_file.data.app_window.flags
             edit_log, disable = flags.log_output, flags.disable_io_redirect
         except Exception:
             edit_log, disable = True, False
@@ -796,19 +797,20 @@ class Binilla(tk.Tk, BinillaWidget):
 
     def apply_config(self, e=None):
         config_data = self.config_file.data
-        general = config_data.general
         app_window = config_data.app_window
+        tag_windows = config_data.tag_windows
 
         open_tags = config_data.open_tags
         recent_tags = config_data.recent_tags
         dir_paths = config_data.directory_paths
 
-        self.sync_window_movement = general.flags.sync_window_movement
-        self.debug = self.handler.debug = general.flags.debug_mode
+        self.debug = self.handler.debug = app_window.flags.debug_mode
+        self.sync_window_movement = tag_windows.window_flags.sync_window_movement
 
         if self._initialized:
             self.bind_hotkeys()
-            sys.stdout = (self.orig_stdout if general.flags.disable_io_redirect
+            sys.stdout = (self.orig_stdout
+                          if app_window.flags.disable_io_redirect
                           else self.terminal_out)
         else:
             # only load the recent tagpaths when loading binilla
@@ -824,16 +826,16 @@ class Binilla(tk.Tk, BinillaWidget):
 
             self.max_step_x, self.max_step_y = app_window.max_step
             self.tile_stride_x, self.tile_stride_y = app_window.tile_stride
+
             self.default_tag_window_width, self.default_tag_window_height = \
-                                           app_window.default_tag_window_dimensions
+                                           tag_windows.default_dimensions
             self.scroll_increment_x, self.scroll_increment_y = \
-                                     app_window.scroll_increment
+                                     tag_windows.scroll_increment
         except Exception:
             print(format_exc())
 
-        for s in ('recent_tag_max', 'max_undos'):
-            try: setattr(self, s, general[s])
-            except IndexError: pass
+        self.recent_tag_max = app_window.recent_tag_max
+        self.max_undos = tag_windows.max_undos
 
         for s in ('last_load_dir', 'last_defs_dir', 'last_imp_dir',
                   'curr_dir', 'styles_dir')[:len(dir_paths)]:
@@ -852,7 +854,7 @@ class Binilla(tk.Tk, BinillaWidget):
         self.log_filename = os.path.basename(dir_paths.debug_log_path.path)
 
         try:
-            self.debug_mode = bool(general.flags.debug_mode)
+            self.debug_mode = bool(app_window.flags.debug_mode)
         except Exception:
             self.debug_mode = True
 
@@ -1055,7 +1057,7 @@ class Binilla(tk.Tk, BinillaWidget):
         style_file.serialize(temp=0, backup=0, calc_pointers=0)
 
     def toggle_sync(self):
-        self.config_file.data.general.flags.sync_window_movement = (
+        self.config_file.data.tag_windows.window_flags.sync_window_movement = (
             self.sync_window_movement) = not self.sync_window_movement
 
     def get_tag(self, filepath, def_id=None):
@@ -1111,7 +1113,7 @@ class Binilla(tk.Tk, BinillaWidget):
 
         windows = []
         handler = self.handler
-        handler_flags = self.config_file.data.general.handler_flags
+        handler_flags = self.config_file.data.tag_windows.file_handling_flags
         tags_dir = os.path.join(handler.tagsdir, "")
 
         for path in filepaths:
@@ -1265,23 +1267,31 @@ class Binilla(tk.Tk, BinillaWidget):
         try:
             if self.selected_tag is None:
                 return
+
+            precision = indent = None
             try:
                 show = set()
-                general = self.config_file.data.general
-                precision = general.print_precision
-                indent = general.print_indent
+                app_window = self.config_file.data.app_window
+                tag_printing = self.config_file.data.tag_printing
+                precision = tag_printing.print_precision
+                indent = tag_printing.print_indent
 
-                for name in general.block_print.NAME_MAP:
-                    if general.block_print.get(name):
+                for name in tag_printing.block_print.NAME_MAP:
+                    if tag_printing.block_print.get(name):
                         show.add(name.split('show_')[-1])
 
-                if not general.flags.log_tag_print:
+                if not app_window.flags.log_tag_print:
                     self.terminal_out.edit_log = False
             except Exception:
                 show = s_c.MOST_SHOW
 
             tag_str = self.selected_tag.pprint(
                 show=show, precision=precision, indent=indent)
+
+            try:
+                self.terminal_out.edit_log = bool(app_window.flags.log_output)
+            except Exception:
+                pass
 
             # print the string line by line
             for line in tag_str.split('\n'):
@@ -1290,9 +1300,6 @@ class Binilla(tk.Tk, BinillaWidget):
                 except:
                     print(' '*(len(line)-len(line.lstrip(' ')))+s_c.UNPRINTABLE)
                 self.io_text.update()
-
-            try: self.terminal_out.edit_log = bool(general.flags.log_output)
-            except Exception: pass
         except Exception:
             print(format_exc())
 
@@ -1615,14 +1622,13 @@ class Binilla(tk.Tk, BinillaWidget):
         config_data = config_file.data
         config_data.version_info.version = self.config_version
 
-        general = config_data.general
-
         open_tags = config_data.open_tags
         recent_tags = config_data.recent_tags
         dir_paths = config_data.directory_paths
         app_window = config_data.app_window
+        tag_windows = config_data.tag_windows
 
-        general.flags.sync_window_movement = self.sync_window_movement
+        tag_windows.window_flags.sync_window_movement = self.sync_window_movement
 
         del recent_tags[:]
 
@@ -1640,10 +1646,11 @@ class Binilla(tk.Tk, BinillaWidget):
 
                 app_window.max_step[:] = (self.max_step_x, self.max_step_y)
                 app_window.tile_stride[:] = (self.tile_stride_x, self.tile_stride_y)
-                app_window.default_tag_window_dimensions[:] = (self.default_tag_window_width,
-                                                               self.default_tag_window_height)
-                app_window.scroll_increment[:] = (self.scroll_increment_x,
-                                                  self.scroll_increment_y)
+
+                tag_windows.default_dimensions[:] = (self.default_tag_window_width,
+                                                     self.default_tag_window_height)
+                tag_windows.scroll_increment[:] = (self.scroll_increment_x,
+                                                   self.scroll_increment_y)
             except Exception:
                 print(format_exc())
 
@@ -1654,10 +1661,9 @@ class Binilla(tk.Tk, BinillaWidget):
         for path in self.recent_tagpaths:
             recent_tags.append()
             recent_tags[-1].path = path
-
-        for s in ('recent_tag_max', 'max_undos'):
-            try: general[s] = getattr(self, s)
-            except IndexError: pass
+    
+        app_window.recent_tag_max = self.recent_tag_max
+        tag_windows.max_undos = self.max_undos
 
         for s in ('last_load_dir', 'last_defs_dir', 'last_imp_dir',
                   'curr_dir', 'styles_dir', ):

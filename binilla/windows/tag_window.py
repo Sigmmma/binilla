@@ -134,7 +134,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             max_undos = 100
 
         try:
-            use_def_dims = self.general_flags.use_default_window_dimensions
+            use_def_dims = self.window_flags.use_default_window_dimensions
         except AttributeError:
             use_def_dims = False
 
@@ -198,8 +198,8 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         with self.style_change_lock:
             self.update()
             if use_def_dims:
-                width  = config_data.app_window.default_tag_window_width
-                height = config_data.app_window.default_tag_window_height
+                width  = config_data.tag_windows.default_tag_window_width
+                height = config_data.tag_windows.default_tag_window_height
             else:
                 width  = rf.winfo_reqwidth()  + self.root_vsb.winfo_reqwidth()  + 2
                 height = rf.winfo_reqheight() + self.root_hsb.winfo_reqheight() + 2
@@ -209,16 +209,23 @@ class TagWindow(tk.Toplevel, BinillaWidget):
 
     # The config flags governing the way the window works
     @property
-    def appearance_flags(self):
+    def window_flags(self):
         try:
-            return self.app_root.config_file.data.general.tag_window_flags
+            return self.app_root.config_file.data.tag_windows.window_flags
+        except Exception:
+            return None
+
+    @property
+    def widget_flags(self):
+        try:
+            return self.app_root.config_file.data.tag_windows.widget_flags
         except Exception:
             return None
 
     @property
     def file_handling_flags(self):
         try:
-            return self.app_root.config_file.data.general.handler_flags
+            return self.app_root.config_file.data.tag_windows.file_handling_flags
         except Exception:
             return None
 
@@ -241,63 +248,78 @@ class TagWindow(tk.Toplevel, BinillaWidget):
     @property
     def max_undos(self):
         try:
-            return bool(self.app_root.config_file.data.general.max_undos)
+            return bool(self.app_root.config_file.data.tag_windows.max_undos)
         except Exception:
             return 0
 
     @property
     def enforce_max(self):
         try:
-            return bool(self.appearance_flags.enforce_max)
+            return bool(self.widget_flags.enforce_max)
         except Exception:
             return True
 
     @property
     def enforce_min(self):
         try:
-            return bool(self.appearance_flags.enforce_min)
+            return bool(self.widget_flags.enforce_min)
         except Exception:
             return True
 
     @property
     def use_gui_names(self):
         try:
-            return bool(self.appearance_flags.use_gui_names)
+            return bool(self.widget_flags.use_gui_names)
         except Exception:
             return True
 
     @property
+    def is_config(self):
+        try:
+            return self.tag is self.app_root.config_file
+        except Exception:
+            return False
+
+    @property
     def all_visible(self):
         try:
-            return bool(self.appearance_flags.show_invisible)
+            if self.is_config and not (self.app_root.config_file.data.\
+                                       app_window.flags.debug_mode):
+                # No one should be fucking with the configs hidden values
+                return False
+        except Exception:
+            pass
+
+        try:
+            return bool(self.widget_flags.show_invisible)
         except Exception:
             return False
 
     @property
     def all_editable(self):
         try:
-            return bool(self.appearance_flags.edit_uneditable)
+            return bool(self.widget_flags.edit_uneditable)
         except Exception:
             return False
 
     @property
     def all_bools_visible(self):
         try:
-            return bool(self.appearance_flags.show_all_bools)
+            return bool(self.widget_flags.show_all_bools)
         except Exception:
             return False
 
     @property
     def show_comments(self):
         try:
-            return bool(self.appearance_flags.show_comments)
+            return bool(self.widget_flags.show_comments)
         except Exception:
             return False
 
     @property
     def show_sidetips(self):
         try:
-            return bool(self.appearance_flags.show_sidetips)
+            return bool(self.widget_flags.show_sidetips)
         except Exception:
             return False
 
@@ -330,13 +352,13 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             new_window_width  = rf_w + self.root_vsb.winfo_reqwidth()  + 2
             new_window_height = rf_h + self.root_hsb.winfo_reqheight() + 2
 
-            if self.appearance_flags is not None:
-                cap_size = self.appearance_flags.cap_window_size
-                dont_shrink_width  = self.appearance_flags.dont_shrink_width
-                dont_shrink_height = self.appearance_flags.dont_shrink_height
-                if not self.appearance_flags.auto_resize_width:
+            if self.window_flags is not None:
+                cap_size = self.window_flags.cap_window_size
+                dont_shrink_width  = self.window_flags.dont_shrink_width
+                dont_shrink_height = self.window_flags.dont_shrink_height
+                if not self.window_flags.auto_resize_width:
                     new_window_width = None
-                if not self.appearance_flags.auto_resize_height:
+                if not self.window_flags.auto_resize_height:
                     new_window_height = None
             else:
                 cap_size = dont_shrink_width = dont_shrink_height = True

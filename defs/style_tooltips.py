@@ -2,10 +2,11 @@
 title_width = (
     "Number of characters wide the title of each vertically oriented field is.")
 scroll_menu_width = (
-    "Default number of characters wide an enumerator widget will be when\n" +
+    "Default number of characters wide the drop-down menu will be when\n" +
     "not being used to represent an enumerator(such as in an array or union)")
 enum_menu_width = (
-    "Default number of characters wide an enumerator widget will be.")
+    "Default number of characters wide the drop-down menu will be when\n"
+    "used to represent an enumerator.")
 min_entry_width = (
     "Minimum number of characters wide an entry field must be.")
 

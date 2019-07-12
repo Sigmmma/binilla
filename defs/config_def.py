@@ -59,27 +59,29 @@ main_window_flags = Bool32("flags",
     {NAME: "log_output",    TOOLTIP: ttip.main_window_log_output},
     {NAME: "log_tag_print", TOOLTIP: ttip.main_window_log_tag_print},
     {NAME: "debug_mode",    TOOLTIP: ttip.main_window_debug_mode},
-    {NAME: "disable_io_redirect", TOOLTIP: ttip.main_window_disable_io_redirect},
-       
+    {NAME: "disable_io_redirect", TOOLTIP: ttip.main_window_disable_io_redirect,
+     VISIBLE: False},
+
     DEFAULT=sum([1<<i for i in (1, 2)])
     )
 
 file_handling_flags = Bool32("file_handling_flags",
     {NAME: "backup_tags",   TOOLTIP: ttip.file_handling_backup},
-    {NAME: "write_as_temp", TOOLTIP: ttip.file_handling_write_as_temp},
+    {NAME: "write_as_temp", TOOLTIP: ttip.file_handling_write_as_temp,
+     VISIBLE: False},
     {NAME: "allow_corrupt", TOOLTIP: ttip.file_handling_allow_corrupt},
     {NAME: "integrity_test", TOOLTIP: ttip.file_handling_integrity_test},
     DEFAULT=sum([1<<i for i in (0, 3)])
     )
 
-tag_window_flags = Bool32("window_flags",
-    {NAME: "sync_window_movement",   TOOLTIP: ttip.tag_window_sync_window_movement, VISIBLE: False},
-    {NAME: "use_default_dimensions", TOOLTIP: ttip.tag_window_use_default_dimensions},
-    {NAME: "cap_window_size",    TOOLTIP: ttip.tag_window_cap_window_size},
-    {NAME: "dont_shrink_width",  TOOLTIP: ttip.tag_window_dont_shrink_width},
-    {NAME: "dont_shrink_height", TOOLTIP: ttip.tag_window_dont_shrink_height},
-    {NAME: "auto_resize_width",  TOOLTIP: ttip.tag_window_auto_resize_width},
-    {NAME: "auto_resize_height", TOOLTIP: ttip.tag_window_auto_resize_height},
+tag_windows_flags = Bool32("window_flags",
+    {NAME: "sync_window_movement",   TOOLTIP: ttip.tag_windows_sync_window_movement, VISIBLE: False},
+    {NAME: "use_default_dimensions", TOOLTIP: ttip.tag_windows_use_default_dimensions},
+    {NAME: "cap_window_size",    TOOLTIP: ttip.tag_windows_cap_window_size},
+    {NAME: "dont_shrink_width",  TOOLTIP: ttip.tag_windows_dont_shrink_width},
+    {NAME: "dont_shrink_height", TOOLTIP: ttip.tag_windows_dont_shrink_height},
+    {NAME: "auto_resize_width",  TOOLTIP: ttip.tag_windows_auto_resize_width},
+    {NAME: "auto_resize_height", TOOLTIP: ttip.tag_windows_auto_resize_height},
 
     DEFAULT=sum([1<<i for i in (0, 2, 4, 5)])
     )
@@ -136,10 +138,8 @@ app_window = Struct("app_window",
     main_window_flags,
     UInt16("recent_tag_max", DEFAULT=20,
         TOOLTIP=ttip.app_window_recent_tag_max),
-    UInt16("backup_count", DEFAULT=1, MIN=1, MAX=1, VISIBLE=False,
-        TOOLTIP=ttip.app_window_backup_count),
 
-    Pad(32 - 4*1 - 2*2),
+    Pad(32 - 4*1 - 2*1),
 
     UInt16("app_width", DEFAULT=640, VISIBLE=False),
     UInt16("app_height", DEFAULT=480, VISIBLE=False),
@@ -162,33 +162,37 @@ app_window = Struct("app_window",
         UInt16("y", DEFAULT=30, TOOLTIP=ttip.app_window_tile_stride_y),
         ORIENT="h"
         ),
-    SIZE=64,
-    GUI_NAME='Main window settings'
+    SIZE=64, GUI_NAME='Main window settings', COMMENT=(
+        "\nThese settings control everything related to how the main window behaves.")
     )
 
 tag_windows = Struct("tag_windows",
     file_handling_flags,
-    tag_window_flags,
+    tag_windows_flags,
     field_widget_flags,
 
-    UInt16("max_undos", DEFAULT=1000, TOOLTIP=ttip.tag_window_max_undos),
+    UInt16("max_undos", DEFAULT=1000, TOOLTIP=ttip.tag_windows_max_undos),
+    UInt16("backup_count", DEFAULT=1,
+        TOOLTIP=ttip.tag_windows_backup_count),
+    Float("backup_interval", DEFAULT=0.0, MIN=0.0,
+        TOOLTIP=ttip.tag_windows_backup_interval),
 
-    Pad(32 - 4*3 - 2*1),
+    Pad(32 - 4*4 - 2*2),
 
     QStruct("default_dimensions",
-        UInt16("w", DEFAULT=480, TOOLTIP=ttip.tag_window_default_width),
-        UInt16("h", DEFAULT=640, TOOLTIP=ttip.tag_window_default_height),
+        UInt16("w", DEFAULT=480, TOOLTIP=ttip.tag_windows_default_width),
+        UInt16("h", DEFAULT=640, TOOLTIP=ttip.tag_windows_default_height),
         ORIENT="h"
         ),
 
     QStruct("scroll_increment",
-        UInt16("x", DEFAULT=50, TOOLTIP=ttip.tag_window_scroll_increment_x),
-        UInt16("y", DEFAULT=50, TOOLTIP=ttip.tag_window_scroll_increment_y),
+        UInt16("x", DEFAULT=50, TOOLTIP=ttip.tag_windows_scroll_increment_x),
+        UInt16("y", DEFAULT=50, TOOLTIP=ttip.tag_windows_scroll_increment_y),
         ORIENT="h"
         ),
 
-    SIZE=64,
-    GUI_NAME='Tag window settings'
+    SIZE=64, GUI_NAME='Tag window settings', COMMENT=(
+        "\nThese settings control everything related to how open tag windows behave.")
     )
 
 tag_printing = Struct("tag_printing",
@@ -198,8 +202,7 @@ tag_printing = Struct("tag_printing",
     UInt16("print_indent", DEFAULT=NODE_PRINT_INDENT, VISIBLE=False,
         TOOLTIP=ttip.tag_printint_print_indent),
 
-    SIZE=16, VISIBLE=False,
-    GUI_NAME='Tag printing settings'
+    SIZE=16, VISIBLE=False, GUI_NAME='Tag printing settings'
     )
 
 array_counts = Struct("array_counts",
@@ -212,7 +215,7 @@ array_counts = Struct("array_counts",
     UInt32("tag_window_hotkey_count", VISIBLE=False, EDITABLE=False),
     UInt32("font_count", VISIBLE=False, EDITABLE=False),
     SIZE=128, VISIBLE=False, EDITABLE=False,
-    COMMENT="Messing with these can damage your config file."
+    COMMENT="\n\n\n\nDONT TOUCH THIS SHIT. Messing with these can damage your config file.\n\n\n\n"
     )
 
 open_tags = Array("open_tags",
@@ -253,7 +256,9 @@ version_info = Struct("version_info",
 all_hotkeys = Container("all_hotkeys",
     hotkeys,
     tag_window_hotkeys,
-    GUI_NAME="Hotkeys"
+    GUI_NAME="Hotkeys", COMMENT=(
+        "\nThese hotkeys control what operations to bind to keystroke"
+        "\ncombinations for the main window and the tag windows.")
     )
 
 config_def = TagDef("binilla_config",
@@ -262,7 +267,7 @@ config_def = TagDef("binilla_config",
     app_window,
     tag_windows,
     tag_printing,
-    open_tags, # not visible
+    open_tags,  # not visible
     recent_tags,  # not visible
     directory_paths,  # not visible
     appearance,

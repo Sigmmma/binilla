@@ -16,7 +16,6 @@ def upgrade_v1_to_v2(old_config, new_config):
         new_app_window.flags[name] = old_data.general.flags[name]
 
     new_app_window.recent_tag_max = old_data.general.recent_tag_max
-    new_app_window.backup_count = old_data.general.backup_count
 
     tag_windows = new_data.tag_windows
     tag_windows.max_undos = old_data.general.max_undos

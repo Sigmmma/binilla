@@ -274,7 +274,7 @@ class BinillaWidget():
             widget = self
             try:
                 scroll_unselect = self.f_widget_parent.tag_window.\
-                                  appearance_flags.scroll_unselected_widgets
+                                  widget_flags.scroll_unselected
             except AttributeError:
                 scroll_unselect = True
 

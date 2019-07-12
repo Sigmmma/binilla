@@ -95,16 +95,16 @@ class ToolTipHandler(BinillaWidget):
         self.app_root.after(self.schedule_rate, self.check_loop)
 
     @property
-    def appearance_flags(self):
+    def widget_flags(self):
         try:
-            return self.app_root.config_file.data.general.tag_window_flags
+            return self.app_root.config_file.data.tag_windows.widget_flags
         except Exception:
             return None
 
     @property
     def show_tooltips(self):
         try:
-            return bool(self.appearance_flags.show_tooltips)
+            return bool(self.widget_flags.show_tooltips)
         except Exception:
             return False
 

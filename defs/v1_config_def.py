@@ -20,6 +20,13 @@ v1_general_flags = Bool32("flags",
     "disable_io_redirect",
     )
 
+v1_file_handling_flags = Bool32("file_handling_flags",
+    "backup_tags",
+    "write_as_temp",
+    "allow_corrupt",
+    "integrity_test",
+    )
+
 v1_tag_window_flags = Bool32("tag_window_flags",
     "edit_uneditable",
     "show_invisible",
@@ -51,7 +58,7 @@ v1_version_info = Struct("version_info",
 
 v1_general = Struct("general",
     v1_general_flags,
-    file_handling_flags,
+    v1_file_handling_flags,
     v1_tag_window_flags,
     block_print_flags,
     Timestamp32("date_created"),

@@ -1,50 +1,62 @@
+appearance_theme = (
+    "Applies a tkinter theme to specific types of widgets.")
+
 # widths and heights
 title_width = (
     "Number of characters wide the title of each vertically oriented field is.")
 scroll_menu_width = (
     "Default number of characters wide the drop-down menu will be when\n" +
-    "not being used to represent an enumerator(such as in an array or union)")
+    "not being used to represent an enumerator(such as in an array or union).")
 enum_menu_width = (
     "Default number of characters wide the drop-down menu will be when\n"
     "used to represent an enumerator.")
 min_entry_width = (
     "Minimum number of characters wide an entry field must be.")
 
-textbox_max_width = "Width of multi-line text boxes"
-textbox_max_height = "Height of multi-line text boxes"
+textbox_max_width_height = "Width/height of multi-line text boxes."
+textbox_max_width = "Width of multi-line text boxes."
+textbox_max_height = "Height of multi-line text boxes."
 
+scroll_menu_width_height = (
+    "Maximum number of characters wide/tall an enumerator widget can be.")
 scroll_menu_max_width = (
-    "Maximum number of characters wide an enumerator widget can be.\n" +
-    "(This is regardless of what the enumerator widget is being used for)")
+    "Maximum number of characters wide an enumerator widget can be.")
 scroll_menu_max_height = (
-    "Maximum number of characters tall an enumerator widget can be.\n" +
-    "(This is regardless of what the enumerator widget is being used for)")
+    "Maximum number of characters tall an enumerator widget can be.")
 
-bool_frame_min_width  = "Minimum number of pixels wide a boolean frame must be."
+bool_frame_width  = "Minimum/maximum number of pixels wide a boolean frame can be."
+bool_frame_min_width  = "Minimum number of pixels wide a boolean frame can be."
 bool_frame_max_width  = "Maximum number of pixels wide a boolean frame can be."
-bool_frame_min_height = "Minimum number of pixels tall a boolean frame must be."
+bool_frame_height = "Minimum/maximum number of pixels tall a boolean frame can be."
+bool_frame_min_height = "Minimum number of pixels tall a boolean frame can be."
 bool_frame_max_height = "Maximum number of pixels tall a boolean frame can be."
 
-default_integer_entry_width  = (
+default_entry_widths = (
+    "Default number of characters wide certain fields will be.")
+default_integer_entry_width = (
     "Default number of characters wide an integer entry field will be.")
-default_float_entry_width  = (
+default_float_entry_width = (
     "Default number of characters wide an float entry field will be.")
-default_string_entry_width  = (
+default_string_entry_width = (
     "Default number of characters wide an string entry field will be.")
 
-max_integer_entry_width  = (
+max_entry_widths = (
+    "Maximum number of characters wide certain fields can be.")
+max_integer_entry_width = (
     "Maximum number of characters wide an integer entry field can be.")
-max_float_entry_width  = (
+max_float_entry_width = (
     "Maximum number of characters wide an float entry field can be.")
-max_string_entry_width  = (
+max_string_entry_width = (
     "Maximum number of characters wide an string entry field can be.")
 
 # depth
 widget_depth = (
-    "Number of pixels to surround the widget with to give an appearance of depth.")
+    "Number of pixels to surround this type of widget with to give an appearance of depth.")
+
+color = "The color to use for this part of this type of widget"
 
 # padding
-pad_str = "Padding applied to the %s of widgets oriented %sally"
+pad_str = "Padding applied to the %s of widgets oriented %sally."
 vertical_padx = pad_str % ('left/right', 'vertic')
 vertical_pady = pad_str % ('top/bottom', 'vertic')
 horizontal_padx = pad_str % ('left/right', 'horizont')
@@ -59,3 +71,8 @@ horizontal_padx_l = pad_str % ('left', 'horizont')
 horizontal_padx_r = pad_str % ('right', 'horizont')
 horizontal_pady_l = pad_str % ('top', 'horizont')
 horizontal_pady_r = pad_str % ('bottom', 'horizont')
+
+# fonts
+font_size = "Size to render the font at."
+font_flags = "Flags controlling how the font renders."
+font_family = "The type of font to render."

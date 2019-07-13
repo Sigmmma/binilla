@@ -434,28 +434,36 @@ class BinillaWidget():
             lightcolor=self.button_border_light_color,
             darkcolor=self.button_border_dark_color,
             default=self.button_border_dark_color,
-            troughcolor=self.button_color
+            troughcolor=self.button_color,
             )
         self.map_ttk_style(
             ("TButton", ),
             background=[("active", self.button_color),
                         ("pressed", self.button_color),
-                        ("focus", self.button_color)],
+                        ("focus", self.button_color),
+                        ("selected", self.button_color),
+                        ("alternate", self.button_color),  # used for alt style
+                        ],
             foreground=[("active", self.text_normal_color),
                         ("pressed", self.text_normal_color),
+                        ("focus", self.text_normal_color),  # alt theme uses this
+                        #                                     as a border outline
                         ("selected", self.text_disabled_color),
-                        ("focus", self.text_normal_color),# alt theme uses this
-                        #                                   as a border outline
+                        ("disabled", self.text_disabled_color),
                         ],
             bordercolor=[("active", self.button_color),
                          ("pressed", self.button_color),
-                         ("focus", self.button_color)],
+                         ("focus", self.button_color)
+                         ],
             lightcolor=[("active", self.button_border_light_color),
-                        ("pressed", self.button_border_light_color)],
+                        ("pressed", self.button_border_light_color)
+                        ],
             darkcolor=[("active", self.button_border_dark_color),
-                       ("pressed", self.button_border_dark_color)],
+                       ("pressed", self.button_border_dark_color)
+                       ],
             default=[("active", self.button_border_dark_color),
-                     ("pressed", self.button_border_dark_color)]
+                     ("pressed", self.button_border_dark_color)
+                     ]
             )
 
         # Treeview

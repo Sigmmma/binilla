@@ -207,25 +207,39 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             self.resize_window(width, height)
             self.apply_style()
 
-    # The config flags governing the way the window works
+    # The config settings governing the way the window works
+    @property
+    def settings(self):
+        try:
+            return self.app_root.config_file.data.tag_windows
+        except Exception:
+            return None
+
+    @property
+    def backup_settings(self):
+        try:
+            return self.app_root.config_file.data.tag_backup
+        except Exception:
+            return None
+
     @property
     def window_flags(self):
         try:
-            return self.app_root.config_file.data.tag_windows.window_flags
+            return self.settings.window_flags
         except Exception:
             return None
 
     @property
     def widget_flags(self):
         try:
-            return self.app_root.config_file.data.tag_windows.widget_flags
+            return self.settings.widget_flags
         except Exception:
             return None
 
     @property
     def file_handling_flags(self):
         try:
-            return self.app_root.config_file.data.tag_windows.file_handling_flags
+            return self.settings.file_handling_flags
         except Exception:
             return None
 
@@ -553,8 +567,26 @@ class TagWindow(tk.Toplevel, BinillaWidget):
 
             if hasattr(self.app_root, 'config_file'):
                 kwargs.setdefault('temp', self.file_handling_flags.write_as_temp)
-                kwargs.setdefault('backup', self.file_handling_flags.backup_tags)
                 kwargs.setdefault('int_test', self.file_handling_flags.integrity_test)
+                kwargs.setdefault("replace_backup", True)
+
+                do_backup = self.backup_settings.max_count > 0
+                last_backup_path = -1
+                if do_backup:
+                    last_backup_path = self.tag.handler.get_most_recent_backup_path
+                    curr_timestamp = time.time()
+                    # FINISH THIS
+
+                if time_since_backup < max(0.0, self.backup_settings.interval):
+                    # not enough time has passed to backup
+                    do_backup = False
+
+                if kwargs.setdefault('backup', do_backup):
+                    if not kwargs.get("backuppath"):
+                        kwargs["backuppath"] = self.tag.handler.get_backup_path(
+                            self.tag.filepath, self.backup_settings.max_count)
+
+                    print("Backing up to: '%s'" % kwargs["backuppath"])
 
             self.field_widget.set_disabled(True)
             save_thread = Thread(target=self.tag.serialize, kwargs=kwargs,

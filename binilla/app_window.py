@@ -850,6 +850,7 @@ class Binilla(tk.Tk, BinillaWidget):
                 print(format_exc())
 
         self.handler.tagsdir = dir_paths.tags_dir.path
+        self.handler.backup_dir_basename = config_data.tag_backup.folder_basename
 
         self.log_filename = os.path.basename(dir_paths.debug_log_path.path)
 

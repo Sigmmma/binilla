@@ -15,10 +15,6 @@ main_window_disable_io_redirect = (
 
 
 # file handling
-file_handling_backup = (
-    "Whether to make rolling backups of tags about to be overwritten.\n"
-    "Backed up tags are moved to a '.BACKUP' directory in the same\n"
-    "directory as the tag being overwritten.")
 file_handling_write_as_temp = (
     "Whether to write tags to temp files instead of the original filepath")
 file_handling_allow_corrupt = (
@@ -73,6 +69,9 @@ app_window_recent_tag_max = "Max number of files in the 'recent' menu."
 app_window_window_menu_max_len = (
     "Max number of entries to display in the 'windows' menu.\n"
     "After this, a 'window manager' button will be added.")
+app_window_max_step = (
+    "Number of locations a tag window can be placed\n"
+    "before moving down one step.")
 app_window_max_step_x = (
     "Number of locations a tag window can be placed\n"
     "horizontally before moving down one step.")
@@ -81,6 +80,9 @@ app_window_max_step_y = (
     "vertically before resetting to placing at the top left.")
 app_window_cascade_stride = (
     "Amount of horizontal spacing between 'steps' when cascading tag windows.")
+app_window_tile_stride = (
+    "Amount of spacing between 'steps' when tiling tag windows.\n"
+    "This is also used when placing new tag windows.")
 app_window_tile_stride_x = (
     "Amount of horizontal spacing between 'steps' when tiling tag windows.\n"
     "This is also used when placing new tag windows.")
@@ -109,15 +111,14 @@ tag_windows_auto_resize_height = (
     "happens to the contents(mouse scrolling, a widget is changed, etc).")
 tag_windows_max_undos = (
     "Max number of undo/redo operations per tag window.")
-tag_windows_backup_count = (
-    "Max number of rolling backups to make before overwriting the oldest.")
-tag_windows_backup_interval = (
-    "The amount of time in seconds that must pass between manual saves\n"
-    "before the rolling backup system will back up a tag being overwritten.")
+tag_windows_default_dimensions = (
+    "Default width/height of tag windows if not auto-sizing them.")
 tag_windows_default_width = (
     "Default width of tag windows if not auto-sizing them.")
 tag_windows_default_height = (
     "Default height of tag windows if not auto-sizing them.")
+tag_windows_scroll_increment = (
+    "Number of pixels to jump when scrolling horizontally/vertically.")
 tag_windows_scroll_increment_x = (
     "Number of pixels to jump when scrolling horizontally.")
 tag_windows_scroll_increment_y = (
@@ -128,3 +129,14 @@ tag_windows_scroll_increment_y = (
 tag_printing_flags = "Flags governing what is shown when a tag is printed."
 tag_printint_print_indent = (
     "Number of spaces to indent each print level.")
+
+# tag backup
+tag_backup_max_count = (
+    "Max number of rolling backups to make before overwriting the oldest.")
+tag_backup_interval = (
+    "The amount of time in seconds that must pass between saves before\n"
+    "the rolling backup system will backup a tag being overwritten.")
+tag_backup_folder_basename = (
+    "The name of the folder to backup to. For files that are relative to a tags\n"
+    "directory, this backup folder will be created in the root of the tags\n"
+    "directory. Otherwise it will be created in the same folder as the file.")

@@ -28,23 +28,24 @@ except Exception:
 
 color = QStruct("color",
     UInt8('r'), UInt8('g'), UInt8('b'),
-    ORIENT='h', WIDGET=ColorPickerFrame
+    ORIENT='h', WIDGET=ColorPickerFrame, TOOLTIP=ttip.color
     )
 
 font = Struct("font",
-    UInt16("size"),
+    UInt16("size", TOOLTIP=ttip.font_size),
     Bool16("flags",
         "bold",
         "italic",
         "underline",
         "overstrike",
+        TOOLTIP=ttip.font_flags
         ),
-    Pad(12),
+    Pad(4),
     StrUtf8Enum("family",
         *({NAME:"_%s_%s" % (i, font_families[i]),
            GUI_NAME: font_families[i], VALUE: font_families[i]}
           for i in range(len(font_families))),
-        SIZE=240
+        SIZE=120, TOOLTIP=ttip.font_family
         ),
     )
 
@@ -52,7 +53,7 @@ theme_name = StrUtf8Enum("theme_name",
     *({NAME:"_%s" % theme_names[i],
        GUI_NAME: theme_names[i], VALUE: theme_names[i]}
       for i in range(len(theme_names))),
-    SIZE=64
+    SIZE=64, TOOLTIP=ttip.appearance_theme
     )
 
 array_counts = Struct("array_counts",
@@ -75,36 +76,36 @@ widths_and_heights = Struct("widths_and_heights",
     Struct("textbox",
         UInt16("max_width",  TOOLTIP=ttip.textbox_max_width),
         UInt16("max_height", TOOLTIP=ttip.textbox_max_height),
-        ORIENT="h"
+        ORIENT="h", TOOLTIP=ttip.textbox_max_width_height
         ),
     Struct("scroll_menu",
         UInt16("max_width",  TOOLTIP=ttip.scroll_menu_max_width),
         UInt16("max_height", TOOLTIP=ttip.scroll_menu_max_height),
-        ORIENT="h"
+        ORIENT="h", TOOLTIP=ttip.scroll_menu_width_height
         ),
 
     Struct("bool_frame_width",
         UInt16("min", TOOLTIP=ttip.bool_frame_min_width),
         UInt16("max", TOOLTIP=ttip.bool_frame_max_width),
-        ORIENT="h"
+        ORIENT="h", TOOLTIP=ttip.bool_frame_width
         ),
     Struct("bool_frame_height",
         UInt16("min", TOOLTIP=ttip.bool_frame_min_height),
         UInt16("max", TOOLTIP=ttip.bool_frame_max_height),
-        ORIENT="h"
+        ORIENT="h", TOOLTIP=ttip.bool_frame_height
         ),
 
     Struct("default_entry_widths",
         UInt16("integer", TOOLTIP=ttip.default_integer_entry_width),
         UInt16("float",   TOOLTIP=ttip.default_float_entry_width),
         UInt16("string",  TOOLTIP=ttip.default_string_entry_width),
-        ORIENT="h"
+        ORIENT="h", TOOLTIP=ttip.default_entry_widths
         ),
     Struct("max_entry_widths",
         UInt16("integer", TOOLTIP=ttip.max_integer_entry_width),
         UInt16("float",   TOOLTIP=ttip.max_float_entry_width),
         UInt16("string",  TOOLTIP=ttip.max_string_entry_width),
-        ORIENT="h"
+        ORIENT="h", TOOLTIP=ttip.max_entry_widths
         ),
 
     SIZE=64, GUI_NAME="Widths / heights"

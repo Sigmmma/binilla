@@ -22,7 +22,7 @@ hotkey = Struct("hotkey",
         UBitEnum("modifier", *modifier_enums,
             GUI_NAME="", SIZE=4, TOOLTIP=ttip.hotkey_combo),
         UBitEnum("key", GUI_NAME="and", *hotkey_enums, SIZE=28),
-        SIZE=4, ORIENT='h'
+        SIZE=4, ORIENT='h', TOOLTIP=ttip.hotkey_combo
         ),
     UEnum32("method", *method_enums, TOOLTIP=ttip.hotkey_method)
     )
@@ -66,12 +66,11 @@ main_window_flags = Bool32("flags",
     )
 
 file_handling_flags = Bool32("file_handling_flags",
-    {NAME: "backup_tags",   TOOLTIP: ttip.file_handling_backup},
-    {NAME: "write_as_temp", TOOLTIP: ttip.file_handling_write_as_temp,
-     VISIBLE: False},
     {NAME: "allow_corrupt", TOOLTIP: ttip.file_handling_allow_corrupt},
     {NAME: "integrity_test", TOOLTIP: ttip.file_handling_integrity_test},
-    DEFAULT=sum([1<<i for i in (0, 3)])
+    {NAME: "write_as_temp", TOOLTIP: ttip.file_handling_write_as_temp,
+     VISIBLE: False},
+    DEFAULT=sum([1<<i for i in (1, )])
     )
 
 tag_windows_flags = Bool32("window_flags",
@@ -153,14 +152,14 @@ app_window = Struct("app_window",
     QStruct("max_step",
         UInt8("x", DEFAULT=4, TOOLTIP=ttip.app_window_max_step_x),
         UInt8("y", DEFAULT=8, TOOLTIP=ttip.app_window_max_step_y),
-        ORIENT="h"
+        ORIENT="h", TOOLTIP=ttip.app_window_max_step
         ),
 
     UInt16("cascade_stride", DEFAULT=60, TOOLTIP=ttip.app_window_cascade_stride),
     QStruct("tile_stride",
         UInt16("x", DEFAULT=120, TOOLTIP=ttip.app_window_tile_stride_x),
         UInt16("y", DEFAULT=30, TOOLTIP=ttip.app_window_tile_stride_y),
-        ORIENT="h"
+        ORIENT="h", TOOLTIP=ttip.app_window_tile_stride
         ),
     SIZE=64, GUI_NAME='Main window settings', COMMENT=(
         "\nThese settings control everything related to how the main window behaves.")
@@ -172,23 +171,18 @@ tag_windows = Struct("tag_windows",
     field_widget_flags,
 
     UInt16("max_undos", DEFAULT=1000, TOOLTIP=ttip.tag_windows_max_undos),
-    UInt16("backup_count", DEFAULT=1,
-        TOOLTIP=ttip.tag_windows_backup_count),
-    Float("backup_interval", DEFAULT=0.0, MIN=0.0,
-        TOOLTIP=ttip.tag_windows_backup_interval),
-
-    Pad(32 - 4*4 - 2*2),
+    Pad(32 - 4*3 - 2*1),
 
     QStruct("default_dimensions",
         UInt16("w", DEFAULT=480, TOOLTIP=ttip.tag_windows_default_width),
         UInt16("h", DEFAULT=640, TOOLTIP=ttip.tag_windows_default_height),
-        ORIENT="h"
+        ORIENT="h", TOOLTIP=ttip.tag_windows_default_dimensions
         ),
 
     QStruct("scroll_increment",
         UInt16("x", DEFAULT=50, TOOLTIP=ttip.tag_windows_scroll_increment_x),
         UInt16("y", DEFAULT=50, TOOLTIP=ttip.tag_windows_scroll_increment_y),
-        ORIENT="h"
+        ORIENT="h", TOOLTIP=ttip.tag_windows_scroll_increment
         ),
 
     SIZE=64, GUI_NAME='Tag window settings', COMMENT=(
@@ -203,6 +197,19 @@ tag_printing = Struct("tag_printing",
         TOOLTIP=ttip.tag_printint_print_indent),
 
     SIZE=16, VISIBLE=False, GUI_NAME='Tag printing settings'
+    )
+
+tag_backup = Struct("tag_backup",
+    UInt16("max_count", DEFAULT=1,
+        TOOLTIP=ttip.tag_backup_max_count),
+    Pad(2),
+    Float("interval", DEFAULT=0.0, MIN=0.0,
+        TOOLTIP=ttip.tag_backup_interval),
+    Pad(8),
+    StrUtf8("folder_basename", SIZE=48, DEFAULT="backup",
+        TOOLTIP=ttip.tag_backup_folder_basename),
+    SIZE=64, GUI_NAME='Tag backup settings', COMMENT=(
+        "\nThese settings control how tags are backed up when overwriting.")
     )
 
 array_counts = Struct("array_counts",
@@ -267,6 +274,7 @@ config_def = TagDef("binilla_config",
     app_window,
     tag_windows,
     tag_printing,
+    tag_backup,
     open_tags,  # not visible
     recent_tags,  # not visible
     directory_paths,  # not visible

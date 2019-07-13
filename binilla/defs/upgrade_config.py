@@ -21,7 +21,6 @@ def upgrade_v1_to_v2(old_config, new_config):
     tag_windows.max_undos = old_data.general.max_undos
     tag_windows.default_dimensions[:] = old_app_window.default_dimensions
     tag_windows.scroll_increment[:]   = old_app_window.scroll_increment
-    tag_windows.file_handling_flags   = old_data.general.file_handling_flags
 
     # copy and rearrange flags
     new_flags = new_data.tag_windows.window_flags
@@ -35,6 +34,14 @@ def upgrade_v1_to_v2(old_config, new_config):
     for name in new_flags.NAME_MAP:
         if name in old_flags.NAME_MAP:
             new_flags[name] = old_flags[name]
+
+    new_flags = new_data.tag_windows.file_handling_flags
+    old_flags = old_data.general.file_handling_flags
+    for name in new_flags.NAME_MAP:
+        if name in old_flags.NAME_MAP:
+            new_flags[name] = old_flags[name]
+
+    new_data.tag_backup.max_count = int(bool(old_flags.backup_tags))
 
     tag_printing = new_data.tag_printing
     tag_printing.block_print_flags = old_data.general.block_print_flags

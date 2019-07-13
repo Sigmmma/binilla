@@ -75,6 +75,7 @@ class Handler():
             current_tag ----- the filepath of the current tag that this
                               Handler is indexing/loading/writing.
             log_filename
+            backup_dir_basename
             tagsdir
 
     Read this classes __init__.__doc__ for descriptions of these properties.
@@ -93,6 +94,7 @@ class Handler():
     tagsdir_relative = False
 
     log_filename = 'log.log'
+    backup_dir_basename = 'backup'
     default_import_rootpath = "supyr_struct"
     default_defs_path = "supyr_struct.defs"
 
@@ -458,6 +460,16 @@ class Handler():
             i += 1
 
         return newpath + ext
+
+    def get_backup_path(self, filepath, backup_count=0):
+        # self.tagsdir
+        # self.backup_dir_basename
+        pass
+
+    def get_most_recent_backup_path(self, filepath):
+        # self.tagsdir
+        # self.backup_dir_basename
+        pass
 
     def iter_to_collection(self, new_tags, tags=None):
         '''

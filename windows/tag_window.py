@@ -570,23 +570,27 @@ class TagWindow(tk.Toplevel, BinillaWidget):
                 kwargs.setdefault('int_test', self.file_handling_flags.integrity_test)
                 kwargs.setdefault("replace_backup", True)
 
-                do_backup = self.backup_settings.max_count > 0
-                last_backup_path = -1
-                if do_backup:
-                    last_backup_path = self.tag.handler.get_most_recent_backup_path
-                    curr_timestamp = time.time()
-                    # FINISH THIS
+                backup = kwargs.setdefault(
+                    'backup', self.backup_settings.max_count > 0)
+                time_since_backup = float("inf")
+                if backup:
+                    backup_paths = self.tag.handler.\
+                                   get_backup_paths_by_timestamps(
+                                       self.tag.filepath, True)
+                    if backup_paths:
+                        time_since_backup = time.time() - max(backup_paths)
 
                 if time_since_backup < max(0.0, self.backup_settings.interval):
                     # not enough time has passed to backup
-                    do_backup = False
+                    backup = False
 
-                if kwargs.setdefault('backup', do_backup):
+                if backup:
                     if not kwargs.get("backuppath"):
-                        kwargs["backuppath"] = self.tag.handler.get_backup_path(
+                        kwargs["backuppath"] = self.tag.handler.get_next_backup_filepath(
                             self.tag.filepath, self.backup_settings.max_count)
 
-                    print("Backing up to: '%s'" % kwargs["backuppath"])
+                    if self.backup_settings.flags.notify_when_backing_up:
+                        print("Backing up to: '%s'" % kwargs["backuppath"])
 
             self.field_widget.set_disabled(True)
             save_thread = Thread(target=self.tag.serialize, kwargs=kwargs,

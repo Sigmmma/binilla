@@ -7,7 +7,8 @@ from binilla.defs.hotkey_enums import method_enums, modifier_enums, hotkey_enums
 from binilla.defs.style_def import appearance, widths_and_heights, padding,\
      depths, colors, fonts, theme_name
 from binilla.widgets.field_widgets.array_frame import DynamicArrayFrame
-from binilla.constants import GUI_NAME, NAME, TOOLTIP, VALUE, VISIBLE, NODE_PRINT_INDENT
+from binilla.constants import GUI_NAME, NAME, TOOLTIP, VALUE, VISIBLE,\
+     NODE_PRINT_INDENT, DEFAULT
 from binilla.editor_constants import widget_depth_names, color_names,\
      font_names
 from binilla.defs import config_tooltips as ttip
@@ -200,10 +201,13 @@ tag_printing = Struct("tag_printing",
     )
 
 tag_backup = Struct("tag_backup",
+    Bool16("flags",
+        {NAME: "notify_when_backing_up", TOOLTIP: ttip.tag_backup_notify,
+         DEFAULT: True}
+        ),
     UInt16("max_count", DEFAULT=1,
         TOOLTIP=ttip.tag_backup_max_count),
-    Pad(2),
-    Float("interval", DEFAULT=0.0, MIN=0.0,
+    Float("interval", DEFAULT=5.0 * 60.0, MIN=0.0,
         TOOLTIP=ttip.tag_backup_interval),
     Pad(8),
     StrUtf8("folder_basename", SIZE=48, DEFAULT="backup",

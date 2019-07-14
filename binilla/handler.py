@@ -394,18 +394,21 @@ class Handler():
         else:
             raise KeyError("Could not locate the specified tag.")
 
-    def get_unique_filename(self, filepath, dest, src=()):
+    def get_unique_filename(self, filepath, dest, src=(), rename_tries=None):
         '''
         Attempts to rename the string 'filepath' to a name that
         does not already exist in 'dest' or 'src'. This is done by
         incrementing a number on the end of the filepath(if it's a
         valid integer), or appending one if one doesnt already exist.
 
+        Raises RuntimeError if 'rename_tries' is exceeded.
+
         Required arguments:
             filepath(str)
             dest(iterable)
         Optional arguments:
             src(iterable)
+            rename_tries(int)
 
         src and dest are iterables which contain the filepaths to
         check against to see if the generated filename is unique.
@@ -433,7 +436,10 @@ class Handler():
             oldpath = splitpath + '_'
 
         # increase rename_tries by the number we are starting at
-        rename_tries = i + len(src) + len(dest)
+        if rename_tries is None:
+            rename_tries = len(src) + len(dest)
+
+        rename_tries += i
 
         # make sure the name doesnt already
         # exist in both src or dest

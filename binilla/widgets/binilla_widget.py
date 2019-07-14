@@ -355,65 +355,68 @@ class BinillaWidget():
                 font_type = getattr(w, "font_type", self.font_type)
                 font = self.get_font(font_type)
 
-                if isinstance(w, tk.Menu):
-                    w.config(
-                        fg=self.text_normal_color, bg=self.default_bg_color,
-                        font=font)
-                elif isinstance(w, tk.PanedWindow):
-                    w.config(bd=self.frame_depth, bg=self.default_bg_color)
-                elif isinstance(w, tk.Listbox):
-                    w.config(
-                        bg=self.enum_normal_color, fg=self.text_normal_color,
-                        selectbackground=self.enum_highlighted_color,
-                        selectforeground=self.text_highlighted_color, font=font)
-                elif isinstance(w, tk.Text):
-                    w.config(
-                        bd=self.entry_depth, font=font,
-                        bg=self.entry_normal_color, fg=self.text_normal_color,
-                        selectbackground=self.entry_highlighted_color,
-                        selectforeground=self.text_highlighted_color)
-                elif isinstance(w, tk.Spinbox):
-                    w.config(
-                        bd=self.entry_depth, font=font,
-                        bg=self.entry_normal_color, fg=self.text_normal_color,
-                        disabledbackground=self.entry_disabled_color,
-                        disabledforeground=self.text_disabled_color,
-                        selectbackground=self.entry_highlighted_color,
-                        selectforeground=self.text_highlighted_color,
-                        activebackground=self.default_bg_color,
-                        readonlybackground=self.entry_disabled_color,
-                        buttonbackground=self.default_bg_color,)
-                elif isinstance(w, tk.LabelFrame):
-                    w.config(
-                        fg=self.text_normal_color, bg=self.default_bg_color,
-                        font=font)
-                elif isinstance(w, tk.Label):
-                    w.config(
-                        fg=self.text_normal_color, bg=self.default_bg_color,
-                        font=font)
-                elif isinstance(w, (tk.Frame, tk.Canvas, tk.Toplevel)):
-                    w.config(bg=self.default_bg_color)
-                elif isinstance(w, (tk.Radiobutton, tk.Checkbutton)):
-                    w.config(
-                        disabledforeground=self.text_disabled_color,
-                        bg=self.default_bg_color, fg=self.text_normal_color,
-                        activebackground=self.default_bg_color,
-                        activeforeground=self.text_normal_color,
-                        selectcolor=self.entry_normal_color, font=font,)
-                elif isinstance(w, tk.Button):
-                    w.config(
-                        bg=self.button_color, activebackground=self.button_color,
-                        fg=self.text_normal_color, bd=self.button_depth,
-                        disabledforeground=self.text_disabled_color, font=font)
-                elif isinstance(w, tk.Entry):
-                    w.config(
-                        bd=self.entry_depth, font=font,
-                        bg=self.entry_normal_color, fg=self.text_normal_color,
-                        disabledbackground=self.entry_disabled_color,
-                        disabledforeground=self.text_disabled_color,
-                        selectbackground=self.entry_highlighted_color,
-                        selectforeground=self.text_highlighted_color,
-                        readonlybackground=self.entry_disabled_color,)
+                try:
+                    if isinstance(w, tk.Menu):
+                        w.config(
+                            fg=self.text_normal_color, bg=self.default_bg_color,
+                            font=font)
+                    elif isinstance(w, tk.PanedWindow):
+                        w.config(bd=self.frame_depth, bg=self.default_bg_color)
+                    elif isinstance(w, tk.Listbox):
+                        w.config(
+                            bg=self.enum_normal_color, fg=self.text_normal_color,
+                            selectbackground=self.enum_highlighted_color,
+                            selectforeground=self.text_highlighted_color, font=font)
+                    elif isinstance(w, tk.Text):
+                        w.config(
+                            bd=self.entry_depth, font=font,
+                            bg=self.entry_normal_color, fg=self.text_normal_color,
+                            selectbackground=self.entry_highlighted_color,
+                            selectforeground=self.text_highlighted_color)
+                    elif isinstance(w, tk.Spinbox):
+                        w.config(
+                            bd=self.entry_depth, font=font,
+                            bg=self.entry_normal_color, fg=self.text_normal_color,
+                            disabledbackground=self.entry_disabled_color,
+                            disabledforeground=self.text_disabled_color,
+                            selectbackground=self.entry_highlighted_color,
+                            selectforeground=self.text_highlighted_color,
+                            activebackground=self.default_bg_color,
+                            readonlybackground=self.entry_disabled_color,
+                            buttonbackground=self.default_bg_color,)
+                    elif isinstance(w, tk.LabelFrame):
+                        w.config(
+                            fg=self.text_normal_color, bg=self.default_bg_color,
+                            font=font)
+                    elif isinstance(w, tk.Label):
+                        w.config(
+                            fg=self.text_normal_color, bg=self.default_bg_color,
+                            font=font)
+                    elif isinstance(w, (tk.Frame, tk.Canvas, tk.Toplevel)):
+                        w.config(bg=self.default_bg_color)
+                    elif isinstance(w, (tk.Radiobutton, tk.Checkbutton)):
+                        w.config(
+                            disabledforeground=self.text_disabled_color,
+                            bg=self.default_bg_color, fg=self.text_normal_color,
+                            activebackground=self.default_bg_color,
+                            activeforeground=self.text_normal_color,
+                            selectcolor=self.entry_normal_color, font=font,)
+                    elif isinstance(w, tk.Button):
+                        w.config(
+                            bg=self.button_color, activebackground=self.button_color,
+                            fg=self.text_normal_color, bd=self.button_depth,
+                            disabledforeground=self.text_disabled_color, font=font)
+                    elif isinstance(w, tk.Entry):
+                        w.config(
+                            bd=self.entry_depth, font=font,
+                            bg=self.entry_normal_color, fg=self.text_normal_color,
+                            disabledbackground=self.entry_disabled_color,
+                            disabledforeground=self.text_disabled_color,
+                            selectbackground=self.entry_highlighted_color,
+                            selectforeground=self.text_highlighted_color,
+                            readonlybackground=self.entry_disabled_color,)
+                except tk.TclError:
+                    pass
 
                 if hasattr(w, "children"):
                     next_widgets.extend(w.children.values())

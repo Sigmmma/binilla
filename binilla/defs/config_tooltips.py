@@ -131,6 +131,8 @@ tag_printint_print_indent = (
     "Number of spaces to indent each print level.")
 
 # tag backup
+tag_backup_notify = (
+    "When a backup occurs, the path to the backup will be printed in the console.")
 tag_backup_max_count = (
     "Max number of rolling backups to make before overwriting the oldest.")
 tag_backup_interval = (

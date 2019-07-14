@@ -16,6 +16,7 @@ these files and backup old files.
 '''
 import os
 import sys
+import time
 
 from datetime import datetime
 from importlib import import_module
@@ -29,6 +30,7 @@ from supyr_struct.defs.tag_def import TagDef
 # make sure the new constants are injected and used
 from binilla.constants import PATHDIV, BPI
 from binilla.util import sanitize_path, is_main_frozen
+from supyr_struct.util import is_in_dir
 
 
 ######################################################
@@ -62,13 +64,13 @@ class Handler():
             tags
             id_ext_map ------ maps each def_id(key) to its extension(value)
         int:
-            rename_tries
             debug
             tags_indexed
             tags_loaded
         bool:
             allow_corrupt
             check_extension
+            case_sensitive
             write_as_temp
             backup
         str:
@@ -139,12 +141,6 @@ class Handler():
         debug ------------ The level of debugging information to show. 0 to 10.
                            The higher the number, the more information shown.
                            Currently this is of very limited use.
-        rename_tries ----- The number of times that self.get_unique_filename()
-                           can fail to make the 'filepath' string argument
-                           unique before raising a RuntimeError. This renaming
-                           process is used when calling self.extend_tags() with
-                           'replace'=False to merge a collection of tags into
-                           the tags of this Handler.
         tags_indexed ----- This is the number of tags that were found when
                            self.index_tags() was run.
         tags_loaded ------ This is the number of tags that were loaded when
@@ -186,7 +182,6 @@ class Handler():
             kwargs["valid_def_ids"] = tuple([kwargs["valid_def_ids"]])
 
         self.debug = kwargs.pop("debug", 0)
-        self.rename_tries = kwargs.pop("rename_tries", sys.getrecursionlimit())
         self.log_filename = kwargs.pop("log_filename", self.log_filename)
         self.backup = bool(kwargs.pop("backup", True))
         self.int_test = bool(kwargs.pop("int_test", True))
@@ -399,21 +394,18 @@ class Handler():
         else:
             raise KeyError("Could not locate the specified tag.")
 
-    def get_unique_filename(self, filepath, dest, src=(), rename_tries=0):
+    def get_unique_filename(self, filepath, dest, src=()):
         '''
         Attempts to rename the string 'filepath' to a name that
         does not already exist in 'dest' or 'src'. This is done by
         incrementing a number on the end of the filepath(if it's a
         valid integer), or appending one if one doesnt already exist.
 
-        Raises RuntimeError if 'rename_tries' is exceeded.
-
         Required arguments:
             filepath(str)
             dest(iterable)
         Optional arguments:
             src(iterable)
-            rename_tries(int)
 
         src and dest are iterables which contain the filepaths to
         check against to see if the generated filename is unique.
@@ -421,21 +413,15 @@ class Handler():
         splitpath, ext = splitext(sanitize_path(filepath))
         newpath = splitpath
 
-        # this is the max number of attempts to os.rename a tag
-        # that the below routine will attempt. this is to
-        # prevent infinite recursion, or really long stalls
-        if not isinstance(rename_tries, int) or rename_tries <= 0:
-            rename_tries = self.rename_tries
-
-        # sets are MUCH faster for testing membership than lists
-        src = set(src)
-        dest = set(dest)
-
         # find the location of the last underscore
         last_us = None
         for i in range(len(splitpath)):
             if splitpath[i] == '_':
                 last_us = i
+
+        # sets are MUCH faster for testing membership than lists
+        src = set(src)
+        dest = set(dest)
 
         # if the stuff after the last underscore is not an
         # integer, treat it as if there is no last underscore
@@ -447,7 +433,7 @@ class Handler():
             oldpath = splitpath + '_'
 
         # increase rename_tries by the number we are starting at
-        rename_tries += i
+        rename_tries = i + len(src) + len(dest)
 
         # make sure the name doesnt already
         # exist in both src or dest
@@ -461,15 +447,81 @@ class Handler():
 
         return newpath + ext
 
-    def get_backup_path(self, filepath, backup_count=0):
-        # self.tagsdir
-        # self.backup_dir_basename
-        pass
+    def get_next_backup_filepath(self, filepath, backup_count=1):
+        backup_count = max(backup_count, 1)
+        backup_dir = self.get_backup_dir(filepath)
 
-    def get_most_recent_backup_path(self, filepath):
+        existing_backup_paths = self.get_backup_paths_by_timestamps(filepath)
+        if existing_backup_paths and len(existing_backup_paths) >= backup_count:
+            return existing_backup_paths[sorted(existing_backup_paths)[0]]
+
+        tags_dir = os.path.realpath(self.tagsdir)
+        if not self.case_sensitive:
+            tags_dir = tags_dir.lower()
+            filepath = filepath.lower()
+
+        if self.tagsdir_relative and is_in_dir(filepath, tags_dir):
+            backup_path = os.path.join(tags_dir, self.backup_dir_basename,
+                                       os.path.relpath(filepath, tags_dir))
+        else:
+            backup_path = os.path.join(backup_dir, os.path.basename(filepath))
+
+        backup_paths = set(existing_backup_paths.values())
+        if not self.case_sensitive:
+            backup_paths = set(s.lower() for s in backup_paths)
+
+        return self.get_unique_filename(backup_path, backup_paths, ())
+
+    def get_backup_dir(self, filepath=None):
         # self.tagsdir
-        # self.backup_dir_basename
-        pass
+        filepath = os.path.realpath(filepath)
+        fallback_dir = os.path.join(os.path.dirname(filepath),
+                                    self.backup_dir_basename)
+        if not self.tagsdir_relative:
+            return fallback_dir
+
+        tags_dir = os.path.realpath(self.tagsdir)
+        if not is_in_dir(filepath, tags_dir):
+            return fallback_dir
+
+        return os.path.join(
+            tags_dir, self.backup_dir_basename,
+            os.path.dirname(os.path.relpath(filepath, tags_dir)))
+
+    def get_backup_paths_by_timestamps(self, filepath,
+                                       ignore_future_dates=False):
+        backup_paths = {}
+        backup_dir = self.get_backup_dir(filepath)
+        filepath = sanitize_path(os.path.realpath(filepath))
+        src_fname = os.path.splitext(os.path.basename(filepath))[0]
+        if self.case_sensitive:
+            src_fname = src_fname.lower()
+
+        for root, _, files in os.walk(backup_dir):
+            for fname in files:
+                fpath = sanitize_path(join(root, fname))
+                if not self.case_sensitive:
+                    fname = fname.lower()
+
+                # split the file basename by the src basename.
+                # if there is leftover on the left side, the file
+                # names don't match. if we can't convert the right
+                # side to an int, it's not a backup of this tag
+                try:
+                    fname = os.path.splitext(fname)[0]
+                    remainder, num = fname.split(src_fname)
+                    if remainder:
+                        continue
+                    elif num:
+                        int(num.lstrip("_ "))
+
+                    timestamp = os.path.getmtime(fpath)
+                    if timestamp <= time.time() or not ignore_future_dates:
+                        backup_paths[timestamp] = fpath
+                except Exception:
+                    pass
+
+        return backup_paths
 
     def iter_to_collection(self, new_tags, tags=None):
         '''

@@ -1760,7 +1760,7 @@ class Binilla(tk.Tk, BinillaWidget):
                 pass
 
         try:
-            style_file.theme_name.data = BinillaWidget.ttk_theme
+            style_data.appearance.theme_name.data = BinillaWidget.ttk_theme
         except Exception:
             pass
 

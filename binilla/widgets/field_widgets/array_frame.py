@@ -95,11 +95,13 @@ class ArrayFrame(container_frame.ContainerFrame):
                   self.delete_all_btn, self.delete_btn, self.duplicate_btn,
                   self.insert_btn, self.add_btn):
             w.pack(side="right", padx=(0, 4), pady=(2, 2))
+
         self.show_btn.pack(side="left")
         if self.gui_name != '':
             self.title_label.pack(side="left", fill="x", expand=True)
+
         self.sel_menu.pack(side="left", fill="x", expand=True, padx=(0, 4))
-        self.shift_up_btn.pack(side="right", padx=(0, 4), pady=(2, 2))
+        self.shift_up_btn.pack(side="right", padx=(0, 1), pady=(2, 2))
 
         self.title.pack(fill="x", expand=True, padx=0)
         self.buttons.pack(fill="x", expand=True, padx=0)

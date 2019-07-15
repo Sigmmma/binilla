@@ -134,7 +134,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             max_undos = 100
 
         try:
-            use_def_dims = self.window_flags.use_default_window_dimensions
+            use_def_dims = self.settings.window_flags.use_default_dimensions
         except AttributeError:
             use_def_dims = False
 
@@ -198,8 +198,8 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         with self.style_change_lock:
             self.update()
             if use_def_dims:
-                width  = config_data.tag_windows.default_tag_window_width
-                height = config_data.tag_windows.default_tag_window_height
+                width  = self.settings.default_dimensions.w
+                height = self.settings.default_dimensions.h
             else:
                 width  = rf.winfo_reqwidth()  + self.root_vsb.winfo_reqwidth()  + 2
                 height = rf.winfo_reqheight() + self.root_hsb.winfo_reqheight() + 2

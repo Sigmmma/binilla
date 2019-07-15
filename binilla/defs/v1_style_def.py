@@ -8,7 +8,7 @@ from binilla.defs.style_def import padding, depths, color
 
 
 __all__ = (
-    "font_families", "theme_names", "get", "v1_style_def",
+    "get", "v1_style_def",
     )
 
 

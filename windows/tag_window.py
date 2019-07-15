@@ -1,3 +1,4 @@
+import os
 import platform
 import threadsafe_tkinter as tk
 import string
@@ -570,10 +571,10 @@ class TagWindow(tk.Toplevel, BinillaWidget):
                 kwargs.setdefault('int_test', self.file_handling_flags.integrity_test)
                 kwargs.setdefault("replace_backup", True)
 
-                backup = kwargs.setdefault(
+                kwargs.setdefault(
                     'backup', self.backup_settings.max_count > 0)
                 time_since_backup = float("inf")
-                if backup:
+                if kwargs["backup"]:
                     backup_paths = self.tag.handler.\
                                    get_backup_paths_by_timestamps(
                                        self.tag.filepath, True)
@@ -582,14 +583,19 @@ class TagWindow(tk.Toplevel, BinillaWidget):
 
                 if time_since_backup < max(0.0, self.backup_settings.interval):
                     # not enough time has passed to backup
-                    backup = False
+                    kwargs["backup"] = False
 
-                if backup:
+                if kwargs["backup"]:
                     if not kwargs.get("backuppath"):
                         kwargs["backuppath"] = self.tag.handler.get_next_backup_filepath(
                             self.tag.filepath, self.backup_settings.max_count)
 
-                    if self.backup_settings.flags.notify_when_backing_up:
+                    if kwargs["backuppath"] == self.tag.filepath:
+                        # somehow backuppath became self.tag.filepath
+                        kwargs["backup"] = False
+
+                    if (os.path.isfile(self.tag.filepath) and
+                        self.backup_settings.flags.notify_when_backing_up):
                         print("Backing up to: '%s'" % kwargs["backuppath"])
 
             self.field_widget.set_disabled(True)

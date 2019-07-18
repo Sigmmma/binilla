@@ -25,14 +25,16 @@ class ColorPickerFrame(container_frame.ContainerFrame):
     def apply_style(self, seen=None):
         container_frame.ContainerFrame.apply_style(self, seen)
         if getattr(self, 'color_btn', None):
-            self.color_btn.config(bg=self.get_color()[1])
+            self.update_selector_button()
 
     def update_selector_button(self):
         if not getattr(self, 'color_btn', None):
             return
 
-        self.color_btn.config(bg=self.get_color()[1],
-                              state=tk.DISABLED if self.disabled else tk.NORMAL)
+        self.color_btn.config(
+            bg=self.get_color()[1], activebackground=self.get_color()[1],
+            highlightbackground=self.get_color()[1], highlightthickness=1,
+            state=tk.DISABLED if self.disabled else tk.NORMAL)
 
     def reload(self):
         container_frame.ContainerFrame.reload(self)

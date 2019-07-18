@@ -483,14 +483,15 @@ class BinillaWidget():
         # Treeview
         self.configure_ttk_style(
             ("Treeview", ), font="treeview",
-            background=self.default_bg_color,
+            background=self.entry_normal_color,
             foreground=self.text_normal_color,
-            fieldbackground=self.default_bg_color,
+            fieldbackground=self.entry_normal_color,
             )
         self.configure_ttk_style(
-            ("Treeview.Row", "Treeview.Item", "Treeview.Cell"),
-            font="treeview", background=self.default_bg_color,
+            ("Treeview.Row", "Treeview.Item", "Treeview.Cell"), font="treeview",
+            background=self.entry_normal_color,
             foreground=self.text_normal_color,
+            fieldbackground=self.entry_normal_color,
             )
         self.configure_ttk_style(
             ("Treeview.Heading", ), font="heading_small",
@@ -506,5 +507,17 @@ class BinillaWidget():
 
         # TNotebook
         self.configure_ttk_style(
-            ("TNotebook.Tab", ), font="heading_small"
+            ("TNotebook", ),
+            background=self.default_bg_color,
+            )
+        self.configure_ttk_style(
+            ("TNotebook.Tab", ), font="heading_small",
+            background=self.default_bg_color,
+            foreground=self.text_normal_color,
+            )
+
+        self.map_ttk_style(
+            ("TNotebook.Tab", ),
+            background=[("active", self.default_bg_color)],
+            foreground=[("active", self.text_normal_color)]
             )

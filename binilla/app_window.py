@@ -130,6 +130,7 @@ class Binilla(tk.Tk, BinillaWidget):
     #                   in its name like so: 'untitled%s' % self.untitled_num
     max_undos = 1000
     icon_filepath = ""
+    app_bitmap_filepath = ""
 
     '''Config properties'''
     style_def = None
@@ -212,7 +213,7 @@ class Binilla(tk.Tk, BinillaWidget):
         if 'handler' in kwargs:
             self.handler = kwargs.pop('handler')
         else:
-            self.handler = Handler(debug=self.debug)
+            self.handler = Handler(debug=self.debug, case_sensitive=e_c.IS_LNX)
 
         self.recent_tagpaths = []
         if self.curr_hotkeys is None:
@@ -228,13 +229,13 @@ class Binilla(tk.Tk, BinillaWidget):
         except AttributeError:
             _tk = None
 
-        BinillaWidget.__init__(self)
         if _tk is None:
             tk.Tk.__init__(self, *args, **{
                 k: v for k, v in kwargs.items() if k in (
                 "screenName", "baseName", "className", "useTk", "sync", "use"
                 )})
 
+        BinillaWidget.__init__(self)
         # NOTE: Do this import AFTER Tk interpreter is set up, otherwise
         # it will fail to get the names of the font families
         from binilla.defs.config_def import config_def, config_version_def
@@ -1800,8 +1801,8 @@ class Binilla(tk.Tk, BinillaWidget):
 
         self.about_window = AboutWindow(
             self, module_names=self.about_module_names,
-            iconbitmap=self.icon_filepath, app_name=self.app_name,
-            messages=self.about_messages)
+            iconbitmap=self.icon_filepath, appbitmap=self.app_bitmap_filepath, 
+            app_name=self.app_name, messages=self.about_messages)
         self.place_window_relative(self.about_window, 30, 50)
 
     def upgrade_config_version(self, filepath):

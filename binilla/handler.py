@@ -188,6 +188,7 @@ class Handler():
         self.allow_corrupt = bool(kwargs.pop("allow_corrupt", False))
         self.write_as_temp = bool(kwargs.pop("write_as_temp", True))
         self.check_extension = bool(kwargs.pop("check_extension", True))
+        self.case_sensitive = bool(kwargs.pop("case_sensitive", False))
 
         self.import_rootpath = kwargs.pop("import_rootpath",
                                           self.import_rootpath)

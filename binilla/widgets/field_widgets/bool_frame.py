@@ -222,7 +222,7 @@ class BoolFrame(data_frame.DataFrame):
 
         for k in self.checkbtns:
             self.checkbtns[k].config(
-                bg=self.entry_normal_color, fg=self.text_normal_color,
+                bg=self.entry_normal_color, fg=self.text_normal_color, 
                 activebackground=self.entry_highlighted_color,
                 activeforeground=self.text_highlighted_color,)
         self.pose_fields()

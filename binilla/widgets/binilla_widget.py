@@ -229,8 +229,11 @@ class BinillaWidget():
             if settings is None:
                 continue
 
-            if typ not in self._fonts or self._fonts[typ].actual() != settings:
-                self._fonts[typ] = tkinter.font.Font(root, **settings)
+            try:
+                if typ not in self._fonts or self._fonts[typ].actual() != settings:
+                    self._fonts[typ] = tkinter.font.Font(root, **settings)
+            except Exception:
+                pass
 
     def delete_all_traces(self, modes="rwu"):
         for mode, traces in (("r", self.read_traces),
@@ -359,20 +362,24 @@ class BinillaWidget():
                     if isinstance(w, tk.Menu):
                         w.config(
                             fg=self.text_normal_color, bg=self.default_bg_color,
-                            font=font)
+                            font=font, highlightthickness=0,)
                     elif isinstance(w, tk.PanedWindow):
-                        w.config(bd=self.frame_depth, bg=self.default_bg_color)
+                        w.config(
+                            bd=self.frame_depth, bg=self.default_bg_color,
+                            highlightthickness=0,)
                     elif isinstance(w, tk.Listbox):
                         w.config(
                             bg=self.enum_normal_color, fg=self.text_normal_color,
                             selectbackground=self.enum_highlighted_color,
-                            selectforeground=self.text_highlighted_color, font=font)
+                            selectforeground=self.text_highlighted_color, 
+                            font=font, highlightthickness=0,)
                     elif isinstance(w, tk.Text):
                         w.config(
                             bd=self.entry_depth, font=font,
                             bg=self.entry_normal_color, fg=self.text_normal_color,
                             selectbackground=self.entry_highlighted_color,
-                            selectforeground=self.text_highlighted_color)
+                            selectforeground=self.text_highlighted_color,
+                            highlightthickness=0,)
                     elif isinstance(w, tk.Spinbox):
                         w.config(
                             bd=self.entry_depth, font=font,
@@ -383,29 +390,32 @@ class BinillaWidget():
                             selectforeground=self.text_highlighted_color,
                             activebackground=self.default_bg_color,
                             readonlybackground=self.entry_disabled_color,
-                            buttonbackground=self.default_bg_color,)
+                            buttonbackground=self.default_bg_color,
+                            highlightthickness=0,)
                     elif isinstance(w, tk.LabelFrame):
                         w.config(
                             fg=self.text_normal_color, bg=self.default_bg_color,
-                            font=font)
+                            font=font, highlightthickness=0,)
                     elif isinstance(w, tk.Label):
                         w.config(
                             fg=self.text_normal_color, bg=self.default_bg_color,
-                            font=font)
+                            font=font, highlightthickness=0,)
                     elif isinstance(w, (tk.Frame, tk.Canvas, tk.Toplevel)):
-                        w.config(bg=self.default_bg_color)
+                        w.config(bg=self.default_bg_color, highlightthickness=0,)
                     elif isinstance(w, (tk.Radiobutton, tk.Checkbutton)):
                         w.config(
                             disabledforeground=self.text_disabled_color,
                             bg=self.default_bg_color, fg=self.text_normal_color,
                             activebackground=self.default_bg_color,
                             activeforeground=self.text_normal_color,
-                            selectcolor=self.entry_normal_color, font=font,)
+                            selectcolor=self.entry_normal_color, font=font,
+                            highlightthickness=0,)
                     elif isinstance(w, tk.Button):
                         w.config(
                             bg=self.button_color, activebackground=self.button_color,
                             fg=self.text_normal_color, bd=self.button_depth,
-                            disabledforeground=self.text_disabled_color, font=font)
+                            disabledforeground=self.text_disabled_color, font=font,
+                            highlightthickness=0,)
                     elif isinstance(w, tk.Entry):
                         w.config(
                             bd=self.entry_depth, font=font,
@@ -414,7 +424,8 @@ class BinillaWidget():
                             disabledforeground=self.text_disabled_color,
                             selectbackground=self.entry_highlighted_color,
                             selectforeground=self.text_highlighted_color,
-                            readonlybackground=self.entry_disabled_color,)
+                            readonlybackground=self.entry_disabled_color,
+                            highlightthickness=0,)
                 except tk.TclError:
                     pass
 
@@ -486,6 +497,7 @@ class BinillaWidget():
             background=self.default_bg_color,
             foreground=self.text_normal_color
             )
+
         self.map_ttk_style(
             ("Treeview.Heading", ),
             background=[("active", self.default_bg_color)],
@@ -494,4 +506,5 @@ class BinillaWidget():
 
         # TNotebook
         self.configure_ttk_style(
-            ("TNotebook.Tab", ), font="heading_small")
+            ("TNotebook.Tab", ), font="heading_small"
+            )

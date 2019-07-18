@@ -1,3 +1,4 @@
+import os
 import platform
 import threadsafe_tkinter as tk
 import string
@@ -10,10 +11,11 @@ from tkinter import messagebox
 from tkinter import constants as t_c
 from traceback import format_exc
 
-from .edit_manager import EditManager
-from .field_widgets import *
-from .widgets import BinillaWidget, get_mouse_delta
-from .widget_picker import *
+from binilla.edit_manager import EditManager
+from binilla.widgets.field_widgets import FieldWidget
+from binilla.widgets.field_widget_picker import def_widget_picker
+from binilla.widgets.binilla_widget import BinillaWidget
+from binilla.widgets import get_mouse_delta
 
 
 __all__ = ("TagWindow", "ConfigWindow",
@@ -97,9 +99,6 @@ class TagWindow(tk.Toplevel, BinillaWidget):
     # whether the user declined to resize the edit history
     resize_declined = False
 
-    # The config flags governing the way the window works
-    flags = None
-
     # Whether or not the Tag this window is editing was created
     # from scratch, i.e. it isn't actually being read from anything.
     is_new_tag = False
@@ -136,16 +135,19 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             max_undos = 100
 
         try:
-            config_data = self.app_root.config_file.data
-            self.flags = config_data.header.tag_window_flags
-            use_def_dims = self.flags.use_default_window_dimensions
+            use_def_dims = self.settings.window_flags.use_default_dimensions
         except AttributeError:
             use_def_dims = False
 
         kwargs.update(bg=self.default_bg_color)
 
+        BinillaWidget.__init__(self)
         tk.Toplevel.__init__(self, master, *args, **kwargs)
         self.update_title()
+        self.creating_label = tk.Label(
+            self, text=("Creating widgets. Please wait..."))
+        self.styling_label = tk.Label(
+            self, text=("Styling widgets. Please wait..."))
 
         self.edit_manager = EditManager(max_undos)
 
@@ -174,16 +176,13 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         if self.app_root:
             self.transient(self.app_root)
 
-        # do this before populating as otherwise it'll call populate again
-        self.apply_style()
-
         # populate the window
+        self.creating_label.pack(fill="both", expand=True)
         self.populate()
 
         # pack da stuff
         self.root_hsb.pack(side=t_c.BOTTOM, fill='x')
         self.root_vsb.pack(side=t_c.RIGHT,  fill='y')
-        rc.pack(side='left', fill='both', expand=True)
 
         # set the hotkey bindings
         self.bind_hotkeys()
@@ -196,15 +195,54 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             try: self.field_widget.set_edited()
             except Exception: pass
 
-        self.update()
-        if use_def_dims:
-            width  = config_data.app_window.default_tag_window_width
-            height = config_data.app_window.default_tag_window_height
-        else:
-            width  = rf.winfo_reqwidth()  + self.root_vsb.winfo_reqwidth()  + 2
-            height = rf.winfo_reqheight() + self.root_hsb.winfo_reqheight() + 2
+        self.creating_label.pack_forget()
+        with self.style_change_lock:
+            self.update()
+            if use_def_dims:
+                width  = self.settings.default_dimensions.w
+                height = self.settings.default_dimensions.h
+            else:
+                width  = rf.winfo_reqwidth()  + self.root_vsb.winfo_reqwidth()  + 2
+                height = rf.winfo_reqheight() + self.root_hsb.winfo_reqheight() + 2
 
-        self.resize_window(width, height)
+            self.resize_window(width, height)
+            self.apply_style()
+
+    # The config settings governing the way the window works
+    @property
+    def settings(self):
+        try:
+            return self.app_root.config_file.data.tag_windows
+        except Exception:
+            return None
+
+    @property
+    def backup_settings(self):
+        try:
+            return self.app_root.config_file.data.tag_backup
+        except Exception:
+            return None
+
+    @property
+    def window_flags(self):
+        try:
+            return self.settings.window_flags
+        except Exception:
+            return None
+
+    @property
+    def widget_flags(self):
+        try:
+            return self.settings.widget_flags
+        except Exception:
+            return None
+
+    @property
+    def file_handling_flags(self):
+        try:
+            return self.settings.file_handling_flags
+        except Exception:
+            return None
 
     @property
     def needs_flushing(self):
@@ -223,76 +261,82 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         return getattr(self.field_widget, "edited", False)
 
     @property
+    def max_undos(self):
+        try:
+            return bool(self.app_root.config_file.data.tag_windows.max_undos)
+        except Exception:
+            return 0
+
+    @property
     def enforce_max(self):
         try:
-            return bool(self.app_root.config_file.data.\
-                        header.tag_window_flags.enforce_max)
+            return bool(self.widget_flags.enforce_max)
         except Exception:
             return True
 
     @property
     def enforce_min(self):
         try:
-            return bool(self.app_root.config_file.data.\
-                        header.tag_window_flags.enforce_min)
+            return bool(self.widget_flags.enforce_min)
         except Exception:
             return True
 
     @property
     def use_gui_names(self):
         try:
-            return bool(self.app_root.config_file.data.\
-                        header.tag_window_flags.use_gui_names)
+            return bool(self.widget_flags.use_gui_names)
         except Exception:
             return True
 
     @property
+    def is_config(self):
+        try:
+            return self.tag is self.app_root.config_file
+        except Exception:
+            return False
+
+    @property
     def all_visible(self):
         try:
-            return bool(self.app_root.config_file.data.\
-                        header.tag_window_flags.show_invisible)
+            if self.is_config and not (self.app_root.config_file.data.\
+                                       app_window.flags.debug_mode):
+                # No one should be fucking with the configs hidden values
+                return False
+        except Exception:
+            pass
+
+        try:
+            return bool(self.widget_flags.show_invisible)
         except Exception:
             return False
 
     @property
     def all_editable(self):
         try:
-            return bool(self.app_root.config_file.data.\
-                        header.tag_window_flags.edit_uneditable)
+            return bool(self.widget_flags.edit_uneditable)
         except Exception:
             return False
 
     @property
     def all_bools_visible(self):
         try:
-            return bool(self.app_root.config_file.data.\
-                        header.tag_window_flags.show_all_bools)
+            return bool(self.widget_flags.show_all_bools)
         except Exception:
             return False
 
     @property
     def show_comments(self):
         try:
-            return bool(self.app_root.config_file.data.\
-                        header.tag_window_flags.show_comments)
+            return bool(self.widget_flags.show_comments)
         except Exception:
             return False
 
     @property
     def show_sidetips(self):
         try:
-            return bool(self.app_root.config_file.data.\
-                        header.tag_window_flags.show_sidetips)
+            return bool(self.widget_flags.show_sidetips)
         except Exception:
             return False
-
-    @property
-    def max_undos(self):
-        try:
-            return bool(self.app_root.config_file.data.header.max_undos)
-        except Exception:
-            pass
-        return 0
 
     @property
     def max_height(self):
@@ -323,13 +367,13 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             new_window_width  = rf_w + self.root_vsb.winfo_reqwidth()  + 2
             new_window_height = rf_h + self.root_hsb.winfo_reqheight() + 2
 
-            if self.flags is not None:
-                cap_size = self.flags.cap_window_size
-                dont_shrink_width  = self.flags.dont_shrink_width
-                dont_shrink_height = self.flags.dont_shrink_height
-                if not self.flags.auto_resize_width:
+            if self.window_flags is not None:
+                cap_size = self.window_flags.cap_window_size
+                dont_shrink_width  = self.window_flags.dont_shrink_width
+                dont_shrink_height = self.window_flags.dont_shrink_height
+                if not self.window_flags.auto_resize_width:
                     new_window_width = None
-                if not self.flags.auto_resize_height:
+                if not self.window_flags.auto_resize_height:
                     new_window_height = None
             else:
                 cap_size = dont_shrink_width = dont_shrink_height = True
@@ -428,7 +472,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
 
         if new_hotkeys is None:
             new_hotkeys = {}
-            for hotkey in self.app_root.config_file.data.tag_window_hotkeys:
+            for hotkey in self.app_root.config_file.data.all_hotkeys.tag_window_hotkeys:
                 combo = make_hotkey_string(hotkey)
                 if combo is None or not hotkey.method.enum_name:
                     continue
@@ -523,10 +567,36 @@ class TagWindow(tk.Toplevel, BinillaWidget):
                 self.field_widget.flush()
 
             if hasattr(self.app_root, 'config_file'):
-                handler_flags = self.app_root.config_file.data.header.handler_flags
-                kwargs.setdefault('temp', handler_flags.write_as_temp)
-                kwargs.setdefault('backup', handler_flags.backup_tags)
-                kwargs.setdefault('int_test', handler_flags.integrity_test)
+                kwargs.setdefault('temp', self.file_handling_flags.write_as_temp)
+                kwargs.setdefault('int_test', self.file_handling_flags.integrity_test)
+                kwargs.setdefault("replace_backup", True)
+
+                kwargs.setdefault(
+                    'backup', self.backup_settings.max_count > 0)
+                time_since_backup = float("inf")
+                if kwargs["backup"]:
+                    backup_paths = self.tag.handler.\
+                                   get_backup_paths_by_timestamps(
+                                       self.tag.filepath, True)
+                    if backup_paths:
+                        time_since_backup = time.time() - max(backup_paths)
+
+                if time_since_backup < max(0.0, self.backup_settings.interval):
+                    # not enough time has passed to backup
+                    kwargs["backup"] = False
+
+                if kwargs["backup"]:
+                    if not kwargs.get("backuppath"):
+                        kwargs["backuppath"] = self.tag.handler.get_next_backup_filepath(
+                            self.tag.filepath, self.backup_settings.max_count)
+
+                    if kwargs["backuppath"] == self.tag.filepath:
+                        # somehow backuppath became self.tag.filepath
+                        kwargs["backup"] = False
+
+                    if (os.path.isfile(self.tag.filepath) and
+                        self.backup_settings.flags.notify_when_backing_up):
+                        print("Backing up to: '%s'" % kwargs["backuppath"])
 
             self.field_widget.set_disabled(True)
             save_thread = Thread(target=self.tag.serialize, kwargs=kwargs,
@@ -562,6 +632,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         If cap_size is True the width and height will be capped so they
         do not expand beyond the right and bottom edges of the screen.
         '''
+
         old_width, old_height  = self.winfo_width(), self.winfo_height()
         if new_width is None or (dont_shrink_width and new_width < old_width):
             new_width = old_width
@@ -591,6 +662,15 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         if new_width == old_width and new_height == old_height:
             return
         self.geometry('%sx%s' % (new_width, new_height))
+
+    def enter_style_change(self):
+        self.root_canvas.pack_forget()
+        self.styling_label.pack(fill="both", expand=True)
+        self.update()
+
+    def exit_style_change(self):
+        self.styling_label.pack_forget()
+        self.root_canvas.pack(side='left', fill='both', expand=True)
 
     def apply_style(self, seen=None):
         BinillaWidget.apply_style(self, seen)
@@ -631,7 +711,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
     def unbind_hotkeys(self, hotkeys=None):
         if hotkeys is None:
             hotkeys = {}
-            for hotkey in self.app_root.config_file.data.tag_window_hotkeys:
+            for hotkey in self.app_root.config_file.data.all_hotkeys.tag_window_hotkeys:
                 combo = make_hotkey_string(hotkey)
                 if combo is None or not hotkey.method.enum_name:
                     continue

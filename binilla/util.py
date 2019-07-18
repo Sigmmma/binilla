@@ -11,14 +11,15 @@ from io import StringIO
 
 from math import log, ceil
 from time import sleep
-from supyr_struct.defs.util import *
 from traceback import format_exc
+
+from binilla.editor_constants import IS_LNX
+from supyr_struct.util import sanitize_path
 
 POS_INF = float("inf")
 NEG_INF = float("-inf")
 FLOAT_PREC  = 23*log(2, 10)
 DOUBLE_PREC = 52*log(2, 10)
-IS_LINUX = "linux" in platform.system().lower()
 
 
 def is_main_frozen():
@@ -40,12 +41,17 @@ def float_to_str(f, max_sig_figs=FLOAT_PREC):
     
     sig_figs = -1
     if abs(f) > 0:
-        sig_figs = int(round(max_sig_figs - log(abs(f), 10)))
+        sig_figs = int(round(max_sig_figs - log(abs(f), 10) - 1))
 
     if sig_figs < 0:
+        # do the string conversion this way so large numbers
+        # dont get converted into exponential notation
         return ("%f" % f).split(".")[0]
 
-    return (("%" + (".%sf" % sig_figs)) % f).rstrip("0").rstrip(".")
+    str_float = ("%" + (".%sf" % sig_figs)) % f
+    if "." in str_float:
+        return str_float.rstrip("0").rstrip(".")
+    return str_float
 
 
 class IORedirecter(StringIO):
@@ -90,7 +96,7 @@ def do_subprocess(exec_path, cmd_args=(), exec_args=(), **kw):
     proc_controller = kw.pop("proc_controller", ProcController())
     try:
 
-        if IS_LINUX:
+        if IS_LNX:
             args = (exec_path, ) + exec_args
         else:
             cmd_args  = ''.join((" /%s" % a.lower()) for a in cmd_args)

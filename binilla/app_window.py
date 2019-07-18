@@ -6,12 +6,11 @@ import re
 import sys
 import threadsafe_tkinter as tk
 
-from copy import deepcopy
+# make the ui more responsive by lowering the time between processing events
+tk.TkWrapper.idle_time = 2
+
 from datetime import datetime
 from time import time, sleep
-from os.path import basename, dirname, exists, join, isfile, relpath
-from tkinter.font import Font
-from tkinter.constants import *
 from tkinter.filedialog import askopenfilenames, askopenfilename,\
      askdirectory, asksaveasfilename
 from traceback import format_exc
@@ -24,13 +23,16 @@ s_c.inject()
 from supyr_struct.field_types import FieldType
 
 from binilla import editor_constants as e_c
-from binilla.tag_window import *
-from binilla.config_def import *
-from binilla.widget_picker import *
-from binilla.widgets import BinillaWidget, ToolTipHandler
+from binilla.widgets.field_widget_picker import WidgetPicker
+from binilla.widgets.binilla_widget import BinillaWidget
+from binilla.widgets.tooltip_handler import ToolTipHandler
 from binilla.handler import Handler
-from binilla.util import *
-from binilla.about_window import AboutWindow
+from binilla.util import sanitize_path, get_cwd, IORedirecter
+from binilla.windows.about_window import AboutWindow
+from binilla.windows.def_selector_window import DefSelectorWindow
+from binilla.windows.tag_window import TagWindow, ConfigWindow,\
+     make_hotkey_string, read_hotkey_string
+from binilla.windows.tag_window_manager import TagWindowManager
 
 
 this_curr_dir = get_cwd(__file__)
@@ -97,7 +99,7 @@ class Binilla(tk.Tk, BinillaWidget):
 
     '''Directories'''
     curr_dir = this_curr_dir
-    styles_dir = join(curr_dir, "styles")
+    styles_dir = os.path.join(curr_dir, "styles")
     last_load_dir = curr_dir
     last_defs_dir = curr_dir
     last_imp_dir  = curr_dir
@@ -117,6 +119,8 @@ class Binilla(tk.Tk, BinillaWidget):
 
     '''Miscellaneous properties'''
     _initialized = False
+    _window_geometry_initialized = False
+    config_made_anew = False
     app_name = "Binilla"  # the name of the app(used in window title)
     version = "%s.%s.%s" % binilla.__version__
     log_filename = 'binilla.log'
@@ -126,16 +130,27 @@ class Binilla(tk.Tk, BinillaWidget):
     #                   in its name like so: 'untitled%s' % self.untitled_num
     max_undos = 1000
     icon_filepath = ""
+    app_bitmap_filepath = ""
 
     '''Config properties'''
-    style_def = style_def
-    config_def = config_def
-    config_version = 1
+    style_def = None
+    config_def = None
+    config_version_def = None
+    style_version_def = None
+    style_defs = ()
+    config_defs = ()
+
+    config_version = 2
+    style_version = 2
     config_path = default_config_path
     config_window = None
     # the tag that holds all the config settings for this application
     config_file = None
     log_file = None
+
+    widget_depth_names = e_c.widget_depth_names
+    color_names = e_c.color_names
+    font_names = e_c.font_names
 
     '''Window properties'''
     # When tags are opened they are tiled, first vertically, then horizontally.
@@ -151,7 +166,7 @@ class Binilla(tk.Tk, BinillaWidget):
     curr_step_x = 0
     curr_step_y = 0
 
-    cascade_stride_x = 60
+    cascade_stride = 60
     tile_stride_x = 120
     tile_stride_y = 30
 
@@ -164,6 +179,9 @@ class Binilla(tk.Tk, BinillaWidget):
     app_height = 480
     app_offset_x = 0
     app_offset_y = 0
+
+    sync_offset_x = 0
+    sync_offset_y = 0
 
     scroll_increment_x = 50
     scroll_increment_y = 50
@@ -195,7 +213,7 @@ class Binilla(tk.Tk, BinillaWidget):
         if 'handler' in kwargs:
             self.handler = kwargs.pop('handler')
         else:
-            self.handler = Handler(debug=self.debug)
+            self.handler = Handler(debug=self.debug, case_sensitive=e_c.IS_LNX)
 
         self.recent_tagpaths = []
         if self.curr_hotkeys is None:
@@ -203,41 +221,67 @@ class Binilla(tk.Tk, BinillaWidget):
         if self.curr_tag_window_hotkeys is None:
             self.curr_tag_window_hotkeys = {}
 
+        try:
+            # will fail with an AttributeError not initialized.
+            # also, cant use getattr, as tkinter.Tk overloads __getattr__
+            # with a call to getattr, so it will recurse to max stack depth
+            _tk = object.__getattribute__(self, "tk")
+        except AttributeError:
+            _tk = None
+
+        if _tk is None:
+            tk.Tk.__init__(self, *args, **{
+                k: v for k, v in kwargs.items() if k in (
+                "screenName", "baseName", "className", "useTk", "sync", "use"
+                )})
+
+        BinillaWidget.__init__(self)
+        # NOTE: Do this import AFTER Tk interpreter is set up, otherwise
+        # it will fail to get the names of the font families
+        from binilla.defs.config_def import config_def, config_version_def
+        from binilla.defs.style_def import style_def, style_version_def
+        from binilla.defs.v1_config_def import v1_config_def
+        from binilla.defs.v1_style_def import v1_style_def
+
+        style_defs  = {1: v1_style_def,  2: style_def}
+        config_defs = {1: v1_config_def, 2: config_def}
+
+        self.style_def  = kwargs.pop('style_def', style_def)
+        self.config_def = kwargs.pop('config_def', config_def)
+        self.style_defs  = kwargs.pop('style_defs', style_defs)
+        self.config_defs = kwargs.pop('config_defs', config_defs)
+        self.style_version_def  = kwargs.pop('style_version_def', style_version_def)
+        self.config_version_def = kwargs.pop('config_version_def', config_version_def)
         if self.config_file is not None:
             pass
-        elif exists(self.config_path):
+        elif os.path.exists(self.config_path):
             # load the config file
             try:
                 self.load_config()
             except Exception:
                 print(format_exc())
                 self.make_config()
+                self.config_made_anew = True
         else:
             # make a config file
             self.make_config()
+            self.config_made_anew = True
 
-        if not exists(self.curr_dir):
+        if not os.path.exists(self.curr_dir):
             self.curr_dir = this_curr_dir
             try:
                 self.config_file.data.directory_paths.curr_dir.path = this_curr_dir
             except Exception:
                 pass
 
-        self.app_name = str(kwargs.pop('app_name', self.app_name))
-        self.version  = str(kwargs.pop('version', self.version))
-
         if self.handler is not None:
             self.handler.log_filename = self.log_filename
 
-        tk.Tk.__init__(self, *args, **kwargs)
-
         #fonts
-        self.default_font = Font(family="Segoe UI", size=9)
-        self.fixed_font = Font(family="Courier", size=8)
-        self.container_title_font = Font(
-            family="Courier", size=10, weight='bold')
-        self.comment_font = Font(family="Courier", size=9)
+        self.reload_fonts()
 
+        self.app_name = str(kwargs.pop('app_name', self.app_name))
+        self.version  = str(kwargs.pop('version', self.version))
         self.title('%s v%s' % (self.app_name, self.version))
         self.minsize(width=200, height=50)
         self.protocol("WM_DELETE_WINDOW", self.exit)
@@ -272,11 +316,11 @@ class Binilla(tk.Tk, BinillaWidget):
         self.main_menu.add_cascade(label="File",    menu=self.file_menu)
         #self.main_menu.add_cascade(label="Edit",   menu=self.edit_menu)
         self.main_menu.add_cascade(label="Settings", menu=self.settings_menu)
-        self.main_menu.add_cascade(label="Windows", menu=self.windows_menu)
+        self.main_menu.add_cascade(label="Tag Windows", menu=self.windows_menu)
         #self.main_menu.add_command(label="Help")
         self.main_menu.add_command(label="About", command=self.show_about_window)
         try:
-            self.debug_mode = bool(self.config_file.data.header.flags.debug_mode)
+            self.debug_mode = bool(self.config_file.data.app_window.flags.debug_mode)
         except Exception:
             self.debug_mode = True
 
@@ -326,14 +370,14 @@ class Binilla(tk.Tk, BinillaWidget):
 
         # make the canvas for anything in the main window
         self.root_frame = tk.Frame(self, bd=3, highlightthickness=0,
-                                   relief=SUNKEN)
-        self.root_frame.pack(fill=BOTH, side=LEFT, expand=True)
+                                   relief=tk.SUNKEN)
+        self.root_frame.pack(fill=tk.BOTH, side=tk.LEFT, expand=True)
         self.tooltip_handler = ToolTipHandler(self)
 
         # make the io redirector and redirect sys.stdout to it
         self.orig_stdout = sys.stdout
 
-        flags = self.config_file.data.header.flags
+        flags = self.config_file.data.app_window.flags
         if flags.log_output:
             curr_dir = self.curr_dir
             if not curr_dir.endswith(s_c.PATHDIV):
@@ -351,16 +395,16 @@ class Binilla(tk.Tk, BinillaWidget):
 
         # make the console output
         self.make_io_text()
-
-        self.geometry("%sx%s+%s+%s" %
-                      (self.app_width, self.app_height,
-                       self.app_offset_x, self.app_offset_y))
         self.apply_style()
-        try:
-            if self.config_file.data.header.flags.load_last_workspace:
+
+        if flags.load_last_workspace:
+            try:
                 self.load_last_workspace()
-        except Exception:
-            pass
+            except Exception:
+                pass
+
+        self.sync_offset_x = self.winfo_x()
+        self.sync_offset_y = self.winfo_y()
         self._initialized = True
 
     def add_to_recent(self, filepath):
@@ -387,8 +431,8 @@ class Binilla(tk.Tk, BinillaWidget):
         abs_filepath = tag.filepath
         abs_new_filepath = new_filepath
         if tagsdir_rel:
-            abs_filepath = join(tags_dir, abs_filepath)
-            abs_new_filepath = join(tags_dir, abs_new_filepath)
+            abs_filepath = os.path.join(tags_dir, abs_filepath)
+            abs_new_filepath = os.path.join(tags_dir, abs_new_filepath)
 
         try:
             existing_tag = handler.get_tag(tag.rel_filepath, tag.def_id)
@@ -409,7 +453,7 @@ class Binilla(tk.Tk, BinillaWidget):
         if not filepath:
             # the path is blank(new tag), give it a unique name
             new_filepath = 'untitled%s%s' % (self.untitled_num, tag.ext)
-            abs_new_filepath = join(tags_dir, new_filepath)
+            abs_new_filepath = os.path.join(tags_dir, new_filepath)
             self.untitled_num += 1
             add_to_recent = False
 
@@ -433,20 +477,21 @@ class Binilla(tk.Tk, BinillaWidget):
             master = self.root_frame
 
         self.io_frame = tk.Frame(master, highlightthickness=0)
-        self.io_text = tk.Text(self.io_frame,
-                               font=self.fixed_font, state=DISABLED,
-                               fg=self.io_fg_color, bg=self.io_bg_color)
-        self.io_scroll_y = tk.Scrollbar(self.io_frame, orient=VERTICAL)
+        self.io_text = tk.Text(
+            self.io_frame, font=self.get_font("console"), state=tk.DISABLED,
+            fg=self.io_fg_color, bg=self.io_bg_color)
+        self.io_text.font_type = "console"
+        self.io_scroll_y = tk.Scrollbar(self.io_frame, orient=tk.VERTICAL)
 
         self.io_scroll_y.config(command=self.io_text.yview)
         self.io_text.config(yscrollcommand=self.io_scroll_y.set)
 
-        self.io_scroll_y.pack(fill=Y, side=RIGHT)
-        self.io_text.pack(fill=BOTH, expand=True)
-        self.io_frame.pack(fill=BOTH, expand=True)
+        self.io_scroll_y.pack(fill=tk.Y, side=tk.RIGHT)
+        self.io_text.pack(fill=tk.BOTH, expand=True)
+        self.io_frame.pack(fill=tk.BOTH, expand=True)
 
         try:
-            flags = self.config_file.data.header.flags
+            flags = self.config_file.data.app_window.flags
             edit_log, disable = flags.log_output, flags.disable_io_redirect
         except Exception:
             edit_log, disable = True, False
@@ -462,7 +507,7 @@ class Binilla(tk.Tk, BinillaWidget):
         '''
         if new_hotkeys is None:
             new_hotkeys = {}
-            for hotkey in self.config_file.data.hotkeys:
+            for hotkey in self.config_file.data.all_hotkeys.hotkeys:
                 combo = make_hotkey_string(hotkey)
                 if combo is None or not hotkey.method.enum_name:
                     continue
@@ -491,7 +536,7 @@ class Binilla(tk.Tk, BinillaWidget):
         # reset the offsets to 0 and get the strides
         self.curr_step_y = 0
         self.curr_step_x = 0
-        x_stride = self.cascade_stride_x
+        x_stride = self.cascade_stride
         y_stride = self.tile_stride_y
 
         # reposition the window
@@ -538,9 +583,9 @@ class Binilla(tk.Tk, BinillaWidget):
 
     def clear_console(self, e=None):
         try:
-            self.io_text.config(state=NORMAL)
-            self.io_text.delete('1.0', END)
-            self.io_text.config(state=DISABLED)
+            self.io_text.config(state=tk.NORMAL)
+            self.io_text.delete('1.0', tk.END)
+            self.io_text.config(state=tk.DISABLED)
         except Exception:
             print(format_exc())
 
@@ -753,19 +798,20 @@ class Binilla(tk.Tk, BinillaWidget):
 
     def apply_config(self, e=None):
         config_data = self.config_file.data
-        header = config_data.header
         app_window = config_data.app_window
+        tag_windows = config_data.tag_windows
 
         open_tags = config_data.open_tags
         recent_tags = config_data.recent_tags
         dir_paths = config_data.directory_paths
 
-        self.sync_window_movement = header.flags.sync_window_movement
-        self.debug = self.handler.debug = header.flags.debug_mode
+        self.debug = self.handler.debug = app_window.flags.debug_mode
+        self.sync_window_movement = tag_windows.window_flags.sync_window_movement
 
         if self._initialized:
             self.bind_hotkeys()
-            sys.stdout = (self.orig_stdout if header.flags.disable_io_redirect
+            sys.stdout = (self.orig_stdout
+                          if app_window.flags.disable_io_redirect
                           else self.terminal_out)
         else:
             # only load the recent tagpaths when loading binilla
@@ -774,13 +820,23 @@ class Binilla(tk.Tk, BinillaWidget):
             for tagpath in recent_tags:
                 paths.append(tagpath.path)
 
-        for s in app_window.NAME_MAP.keys():
-            try: setattr(self, s, app_window[s])
-            except IndexError: pass
+        try:
+            for s in app_window.NAME_MAP.keys():
+                if hasattr(self, s):
+                    setattr(self, s, app_window[s])
 
-        for s in ('recent_tag_max', 'max_undos'):
-            try: setattr(self, s, header[s])
-            except IndexError: pass
+            self.max_step_x, self.max_step_y = app_window.max_step
+            self.tile_stride_x, self.tile_stride_y = app_window.tile_stride
+
+            self.default_tag_window_width, self.default_tag_window_height = \
+                                           tag_windows.default_dimensions
+            self.scroll_increment_x, self.scroll_increment_y = \
+                                     tag_windows.scroll_increment
+        except Exception:
+            print(format_exc())
+
+        self.recent_tag_max = app_window.recent_tag_max
+        self.max_undos = tag_windows.max_undos
 
         for s in ('last_load_dir', 'last_defs_dir', 'last_imp_dir',
                   'curr_dir', 'styles_dir')[:len(dir_paths)]:
@@ -795,11 +851,12 @@ class Binilla(tk.Tk, BinillaWidget):
                 print(format_exc())
 
         self.handler.tagsdir = dir_paths.tags_dir.path
+        self.handler.backup_dir_basename = config_data.tag_backup.folder_basename
 
-        self.log_filename = basename(dir_paths.debug_log_path.path)
+        self.log_filename = os.path.basename(dir_paths.debug_log_path.path)
 
         try:
-            self.debug_mode = bool(header.flags.debug_mode)
+            self.debug_mode = bool(app_window.flags.debug_mode)
         except Exception:
             self.debug_mode = True
 
@@ -808,13 +865,19 @@ class Binilla(tk.Tk, BinillaWidget):
     def load_config(self, filepath=None):
         if filepath is None:
             filepath = self.config_path
-        assert exists(filepath)
+        assert os.path.exists(filepath)
 
         # load the config file
-        self.config_file = self.config_def.build(filepath=filepath)
-        if self.config_file.data.header.version != self.config_version:
-            raise ValueError(
-                "Config version is not what this application is expecting.")
+        version_info = self.config_version_def.build(filepath=filepath).data
+        if version_info.id.data != version_info.id.DEFAULT:
+            raise ValueError("Config header signature is invalid.")
+
+        if version_info.version == self.config_version:
+            self.config_file = self.config_def.build(filepath=filepath)
+        else:
+            print("Upgrading config to version %s" % self.config_version)
+            self.config_file = self.upgrade_config_version(filepath)
+
         app_window = self.config_file.data.app_window
 
         self.app_width = app_window.app_width
@@ -824,8 +887,8 @@ class Binilla(tk.Tk, BinillaWidget):
 
         self.apply_config()
 
-        hotkeys = self.config_file.data.hotkeys
-        tag_window_hotkeys = self.config_file.data.tag_window_hotkeys
+        hotkeys = self.config_file.data.all_hotkeys.hotkeys
+        tag_window_hotkeys = self.config_file.data.all_hotkeys.tag_window_hotkeys
 
         for hotkey in hotkeys:
             combo = make_hotkey_string(hotkey)
@@ -853,53 +916,87 @@ class Binilla(tk.Tk, BinillaWidget):
             if not filepath:
                 return
 
-            assert exists(filepath)
-            self.styles_dir = dirname(filepath)
-            style_file = self.style_def.build(filepath=filepath)
+            assert os.path.exists(filepath)
+            self.styles_dir = os.path.dirname(filepath)
+
+            version_info = self.style_version_def.build(filepath=filepath).data
+            if version_info.id.data != version_info.id.DEFAULT:
+                raise ValueError("Style header signature is invalid.")
+
+            if version_info.version == self.style_version:
+                style_file = self.style_def.build(filepath=filepath)
+            else:
+                print("Upgrading style to version %s" % self.style_version)
+                style_file = self.upgrade_style_version(filepath)
 
         assert hasattr(style_file, 'data')
 
         style_data = style_file.data
 
-        header = style_data.header
-        widgets = style_data.widgets
+        w_and_h = style_data.appearance.widths_and_heights
+        padding = style_data.appearance.padding
+        depths = style_data.appearance.depths
+        colors = style_data.appearance.colors
+        fonts = style_data.appearance.fonts
 
-        widget_depths = widgets.depths
-        colors = style_data.colors
+        try:
+            BinillaWidget.title_width = w_and_h.title_width
+            BinillaWidget.scroll_menu_width = w_and_h.scroll_menu_width
+            BinillaWidget.enum_menu_width = w_and_h.enum_menu_width
+            BinillaWidget.min_entry_width = w_and_h.min_entry_width
 
-        for s in ('title_width', 'scroll_menu_width', 'enum_menu_width',
-                  'min_entry_width', 'textbox_width', 'textbox_height',
-                  'bool_frame_min_width', 'bool_frame_min_height',
-                  'bool_frame_max_width', 'bool_frame_max_height',
-                  'def_int_entry_width',    'max_int_entry_width',
-                  'def_float_entry_width',  'max_float_entry_width',
-                  'def_string_entry_width', 'max_string_entry_width',
-                  'scroll_menu_max_width', 'scroll_menu_max_height', ):
-            try: setattr(BinillaWidget, s, widgets[s])
-            except IndexError: pass
+            BinillaWidget.textbox_width, BinillaWidget.textbox_height = w_and_h.textbox
+            BinillaWidget.scroll_menu_max_width, BinillaWidget.scroll_menu_max_height = w_and_h.scroll_menu
+            BinillaWidget.bool_frame_min_width, BinillaWidget.bool_frame_max_width = w_and_h.bool_frame_width
+            BinillaWidget.bool_frame_min_height, BinillaWidget.bool_frame_max_height = w_and_h.bool_frame_height
+
+            BinillaWidget.def_int_entry_width, BinillaWidget.def_float_entry_width,\
+                                               BinillaWidget.def_string_entry_width\
+                                               = w_and_h.default_entry_widths
+            BinillaWidget.max_int_entry_width, BinillaWidget.max_float_entry_width,\
+                                               BinillaWidget.max_string_entry_width\
+                                               = w_and_h.max_entry_widths
+        except Exception:
+            print(format_exc())
 
         for s in ('vertical_padx', 'vertical_pady',
                   'horizontal_padx', 'horizontal_pady'):
-            try: setattr(BinillaWidget, s, tuple(widgets[s]))
+            try: setattr(BinillaWidget, s, tuple(padding[s]))
             except IndexError: pass
 
-        for s in widget_depth_names[:len(widget_depths)]:
-            try: setattr(BinillaWidget, s + '_depth', widget_depths[s])
+        for s in self.widget_depth_names[:len(depths)]:
+            try: setattr(BinillaWidget, s + '_depth', depths[s])
             except IndexError: pass
 
-        for s in color_names[:len(colors)]:
+        for i in range(len(colors)):
             try:
-                setattr(BinillaWidget, s + '_color',
-                        '#%02x%02x%02x' % tuple(colors[s]))
+                setattr(BinillaWidget, self.color_names[i] + '_color',
+                        '#%02x%02x%02x' % tuple(colors[i]))
             except IndexError:
                 pass
+
+        for i in range(len(fonts)):
+            try:
+                font_flags = fonts[i].flags
+                self.set_font_config(
+                    self.font_names[i],
+                    family=fonts[i].family.data, size=fonts[i].size,
+                    weight=("bold" if font_flags.bold else "normal"),
+                    slant=("italic" if font_flags.italic else "roman"),
+                    underline=bool(font_flags.underline),
+                    overstrike=bool(font_flags.overstrike),
+                    )
+            except IndexError:
+                pass
+
+        try:
+            BinillaWidget.ttk_theme = style_data.appearance.theme_name.data
+        except Exception:
+            pass
 
         if self._initialized:
             self.update_config()
             self.apply_style()
-            self.geometry("%sx%s+%s+%s" %
-                          (self.app_width, self.app_height,
-                           self.app_offset_x, self.app_offset_y))
 
     def make_config(self, filepath=None):
         if filepath is None:
@@ -912,7 +1009,8 @@ class Binilla(tk.Tk, BinillaWidget):
         data = self.config_file.data
 
         # make sure these have as many entries as they're supposed to
-        for block in (data.directory_paths, data.widgets.depths, data.colors):
+        for block in (data.directory_paths, data.appearance.colors,
+                      data.appearance.depths):
             block.extend(len(block.NAME_MAP))
 
         self.curr_hotkeys = dict(default_hotkeys)
@@ -920,8 +1018,8 @@ class Binilla(tk.Tk, BinillaWidget):
 
         self.update_config()
 
-        c_hotkeys = data.hotkeys
-        c_tag_window_hotkeys = data.tag_window_hotkeys
+        c_hotkeys = data.all_hotkeys.hotkeys
+        c_tag_window_hotkeys = data.all_hotkeys.tag_window_hotkeys
 
         for k_set, b in ((default_hotkeys, c_hotkeys),
                          (default_tag_window_hotkeys, c_tag_window_hotkeys)):
@@ -947,18 +1045,21 @@ class Binilla(tk.Tk, BinillaWidget):
         if not filepath:
             return
 
-        self.styles_dir = dirname(filepath)
+        self.styles_dir = os.path.dirname(filepath)
         style_file = self.style_def.build()
         style_file.filepath = filepath
 
-        style_file.data.widgets.depths.extend(len(widget_depth_names))
-        style_file.data.colors.extend(len(color_names))
+        appearance = style_file.data.appearance
+        appearance.depths.extend(len(self.widget_depth_names))
+        appearance.colors.extend(len(self.color_names))
+        appearance.fonts.extend(len(self.font_names))
+        appearance.theme_name.data = BinillaWidget.ttk_theme
 
         self.update_style(style_file)
         style_file.serialize(temp=0, backup=0, calc_pointers=0)
 
     def toggle_sync(self):
-        self.config_file.data.header.flags.sync_window_movement = (
+        self.config_file.data.tag_windows.window_flags.sync_window_movement = (
             self.sync_window_movement) = not self.sync_window_movement
 
     def get_tag(self, filepath, def_id=None):
@@ -1009,13 +1110,13 @@ class Binilla(tk.Tk, BinillaWidget):
             else:
                 filepaths = (filepaths, )
 
-        self.last_load_dir = dirname(filepaths[-1])
+        self.last_load_dir = os.path.dirname(filepaths[-1])
         w = None
 
         windows = []
         handler = self.handler
-        handler_flags = self.config_file.data.header.handler_flags
-        tags_dir = join(handler.tagsdir, "")
+        handler_flags = self.config_file.data.tag_windows.file_handling_flags
+        tags_dir = os.path.join(handler.tagsdir, "")
 
         for path in filepaths:
             path = abs_path = sanitize_path(path)
@@ -1035,7 +1136,7 @@ class Binilla(tk.Tk, BinillaWidget):
                 # try to load the new tags
                 try:
                     if handler.tagsdir_relative and not is_new_tag:
-                        abs_path = join(tags_dir, abs_path)
+                        abs_path = os.path.join(tags_dir, abs_path)
                     new_tag = handler.build_tag(
                         filepath=abs_path, def_id=def_id,
                         allow_corrupt=handler_flags.allow_corrupt)
@@ -1083,11 +1184,12 @@ class Binilla(tk.Tk, BinillaWidget):
         if not fp:
             return
 
-        self.last_load_dir = dirname(fp)
+        self.last_load_dir = os.path.dirname(fp)
         dsw = DefSelectorWindow(
             self, title="Select a definition to use", action=lambda def_id:
             self.load_tags(filepaths=fp, def_id=def_id))
         self.def_selector_window = dsw
+        self.update()
         self.place_window_relative(self.def_selector_window, 30, 50)
 
     def make_tag_window(self, tag, *, focus=True, window_cls=None,
@@ -1147,6 +1249,7 @@ class Binilla(tk.Tk, BinillaWidget):
             self, title="Select a definition to use", action=lambda def_id:
             self.load_tags(filepaths='', def_id=def_id))
         self.def_selector_window = dsw
+        self.update()
         self.place_window_relative(self.def_selector_window, 30, 50)
 
     def load(self, e=None):
@@ -1166,23 +1269,31 @@ class Binilla(tk.Tk, BinillaWidget):
         try:
             if self.selected_tag is None:
                 return
+
+            precision = indent = None
             try:
                 show = set()
-                header = self.config_file.data.header
-                precision = header.print_precision
-                indent = header.print_indent
+                app_window = self.config_file.data.app_window
+                tag_printing = self.config_file.data.tag_printing
+                precision = tag_printing.print_precision
+                indent = tag_printing.print_indent
 
-                for name in header.block_print.NAME_MAP:
-                    if header.block_print.get(name):
+                for name in tag_printing.block_print.NAME_MAP:
+                    if tag_printing.block_print.get(name):
                         show.add(name.split('show_')[-1])
 
-                if not header.flags.log_tag_print:
+                if not app_window.flags.log_tag_print:
                     self.terminal_out.edit_log = False
             except Exception:
                 show = s_c.MOST_SHOW
 
             tag_str = self.selected_tag.pprint(
                 show=show, precision=precision, indent=indent)
+
+            try:
+                self.terminal_out.edit_log = bool(app_window.flags.log_output)
+            except Exception:
+                pass
 
             # print the string line by line
             for line in tag_str.split('\n'):
@@ -1191,9 +1302,6 @@ class Binilla(tk.Tk, BinillaWidget):
                 except:
                     print(' '*(len(line)-len(line.lstrip(' ')))+s_c.UNPRINTABLE)
                 self.io_text.update()
-
-            try: self.terminal_out.edit_log = bool(header.flags.log_output)
-            except Exception: pass
         except Exception:
             print(format_exc())
 
@@ -1231,7 +1339,7 @@ class Binilla(tk.Tk, BinillaWidget):
             w = self.get_tag_window_by_tag(tag)
             if ((w and w.is_new_tag) or (not(hasattr(tag, "filepath") and
                                              tag.filepath and
-                                             dirname(tag.filepath)))):
+                                             os.path.dirname(tag.filepath)))):
                 return self.save_tag_as(tag)
 
             exception = None
@@ -1262,7 +1370,7 @@ class Binilla(tk.Tk, BinillaWidget):
         if filepath is None:
             ext = tag.ext
             filepath = asksaveasfilename(
-                initialdir=dirname(tag.filepath), defaultextension=ext,
+                initialdir=os.path.dirname(tag.filepath), defaultextension=ext,
                 title="Save tag as...", filetypes=[
                     (ext[1:], "*" + ext), ('All', '*')] )
 
@@ -1273,9 +1381,9 @@ class Binilla(tk.Tk, BinillaWidget):
         w = self.get_tag_window_by_tag(tag)
 
         try:
-            self.last_load_dir = dirname(filepath)
+            self.last_load_dir = os.path.dirname(filepath)
             if tag.handler.tagsdir_relative:
-                filepath = relpath(filepath, tags_dir)
+                filepath = os.path.relpath(filepath, tag.tags_dir)
 
             self.add_tag(tag, filepath)
             w.save(temp=False)
@@ -1352,16 +1460,16 @@ class Binilla(tk.Tk, BinillaWidget):
             self.update_idletasks()
             if not defs_dir.endswith(s_c.PATHDIV):
                 defs_dir += s_c.PATHDIV
-            defs_dir = sanitize_path(dirname(defs_dir))
+            defs_dir = sanitize_path(os.path.dirname(defs_dir))
 
             # try and find the module_root
             mod_root = defs_dir
             parent_dir = mod_root
-            while isfile(parent_dir + s_c.PATHDIV + "__init__.py"):
+            while os.path.isfile(parent_dir + s_c.PATHDIV + "__init__.py"):
                 mod_root = parent_dir
-                parent_dir = dirname(parent_dir)
+                parent_dir = os.path.dirname(parent_dir)
 
-            mod_root = dirname(parent_dir)
+            mod_root = os.path.dirname(parent_dir)
 
             # if the module_root isnt in sys.path, we need to add it so
             # the importer can resolve the import path for the definitions
@@ -1410,14 +1518,14 @@ class Binilla(tk.Tk, BinillaWidget):
 
     def sync_tag_window_pos(self, e):
         '''Syncs TagWindows to move with the app.'''
-        dx = int(self.winfo_x()) - self.app_offset_x
-        dy = int(self.winfo_y()) - self.app_offset_y
-        self.app_offset_x += dx
-        self.app_offset_y += dy
+        if not(self._window_geometry_initialized and self._initialized):
+            return
 
-        # keep a tabs on these so the config file can be updated
-        self.app_width  = self.winfo_width()
-        self.app_height = self.winfo_height()
+        dx = int(self.winfo_x()) - self.sync_offset_x
+        dy = int(self.winfo_y()) - self.sync_offset_y
+
+        self.sync_offset_x = self.winfo_x()
+        self.sync_offset_y = self.winfo_y()
 
         if not self.sync_window_movement:
             return
@@ -1512,29 +1620,41 @@ class Binilla(tk.Tk, BinillaWidget):
     def update_config(self, config_file=None):
         if config_file is None:
             config_file = self.config_file
-        config_data = config_file.data
 
-        header = config_data.header
+        config_data = config_file.data
+        config_data.version_info.version = self.config_version
 
         open_tags = config_data.open_tags
         recent_tags = config_data.recent_tags
         dir_paths = config_data.directory_paths
         app_window = config_data.app_window
+        tag_windows = config_data.tag_windows
 
-        header.version = self.config_version
-        header.flags.sync_window_movement = self.sync_window_movement
+        tag_windows.window_flags.sync_window_movement = self.sync_window_movement
 
         del recent_tags[:]
 
-        if self._initialized:
+        if self._window_geometry_initialized:
             self.app_width = self.winfo_width()
             self.app_height = self.winfo_height()
             self.app_offset_x = self.winfo_x()
             self.app_offset_y = self.winfo_y()
 
-            for s in app_window.NAME_MAP.keys():
-                try: app_window[s] = getattr(self, s)
-                except IndexError: pass
+        if self._initialized:
+            try:
+                for s in app_window.NAME_MAP.keys():
+                    if hasattr(self, s):
+                        app_window[s] = getattr(self, s)
+
+                app_window.max_step[:] = (self.max_step_x, self.max_step_y)
+                app_window.tile_stride[:] = (self.tile_stride_x, self.tile_stride_y)
+
+                tag_windows.default_dimensions[:] = (self.default_tag_window_width,
+                                                     self.default_tag_window_height)
+                tag_windows.scroll_increment[:] = (self.scroll_increment_x,
+                                                   self.scroll_increment_y)
+            except Exception:
+                print(format_exc())
 
         # make sure there are enough tagsdir entries in the directory_paths
         if len(dir_paths.NAME_MAP) > len(dir_paths):
@@ -1543,10 +1663,9 @@ class Binilla(tk.Tk, BinillaWidget):
         for path in self.recent_tagpaths:
             recent_tags.append()
             recent_tags[-1].path = path
-
-        for s in ('recent_tag_max', 'max_undos'):
-            try: header[s] = getattr(self, s)
-            except IndexError: pass
+    
+        app_window.recent_tag_max = self.recent_tag_max
+        tag_windows.max_undos = self.max_undos
 
         for s in ('last_load_dir', 'last_defs_dir', 'last_imp_dir',
                   'curr_dir', 'styles_dir', ):
@@ -1560,47 +1679,118 @@ class Binilla(tk.Tk, BinillaWidget):
 
     def update_style(self, style_file):
         style_data = style_file.data
-        config_data = self.config_file.data
+        style_data.version_info.parse(attr_index='date_modified')
 
-        header = style_data.header
-        widgets = style_data.widgets
+        w_and_h = style_data.appearance.widths_and_heights
+        padding = style_data.appearance.padding
+        depths = style_data.appearance.depths
+        colors = style_data.appearance.colors
+        fonts = style_data.appearance.fonts
 
-        widget_depths = widgets.depths
-        colors = style_data.colors
+        try:
+            w_and_h.title_width = BinillaWidget.title_width
+            w_and_h.scroll_menu_width = BinillaWidget.scroll_menu_width
+            w_and_h.enum_menu_width = BinillaWidget.enum_menu_width
+            w_and_h.min_entry_width = BinillaWidget.min_entry_width
 
-        header.parse(attr_index='date_modified')
-        for s in ('title_width', 'scroll_menu_width', 'enum_menu_width',
-                  'min_entry_width', 'textbox_width', 'textbox_height',
-                  'bool_frame_min_width', 'bool_frame_min_height',
-                  'bool_frame_max_width', 'bool_frame_max_height',
-                  'def_int_entry_width',    'max_int_entry_width',
-                  'def_float_entry_width',  'max_float_entry_width',
-                  'def_string_entry_width', 'max_string_entry_width',
-                  'scroll_menu_max_width', 'scroll_menu_max_height', ):
-            try: widgets[s] = getattr(BinillaWidget, s)
-            except IndexError: pass
+            w_and_h.textbox[:] = (BinillaWidget.textbox_width,
+                                  BinillaWidget.textbox_height)
+            w_and_h.scroll_menu[:] = (BinillaWidget.scroll_menu_max_width,
+                                      BinillaWidget.scroll_menu_max_height)
+            w_and_h.bool_frame_width[:] = (BinillaWidget.bool_frame_min_width,
+                                           BinillaWidget.bool_frame_max_width)
+            w_and_h.bool_frame_height[:] = (BinillaWidget.bool_frame_min_height,
+                                            BinillaWidget.bool_frame_max_height)
+            w_and_h.default_entry_widths[:] = (BinillaWidget.def_int_entry_width,
+                                               BinillaWidget.def_float_entry_width,
+                                               BinillaWidget.def_string_entry_width)
+            w_and_h.max_entry_widths[:] = (BinillaWidget.max_int_entry_width,
+                                           BinillaWidget.max_float_entry_width,
+                                           BinillaWidget.max_string_entry_width)
+        except Exception:
+            print(format_exc())
 
         for s in ('vertical_padx', 'vertical_pady',
                   'horizontal_padx', 'horizontal_pady'):
-            try: widgets[s][:] = tuple(getattr(BinillaWidget, s))
+            try: padding[s][:] = tuple(getattr(BinillaWidget, s))
             except IndexError: pass
 
-        for s in widget_depth_names:
-            try: widget_depths[s] = getattr(BinillaWidget, s + '_depth')
+        for s in self.widget_depth_names:
+            try: depths[s] = getattr(BinillaWidget, s + '_depth')
             except IndexError: pass
 
-        for s in color_names:
+        for i in range(len(self.color_names)):
             try:
-                color = getattr(BinillaWidget, s + '_color')[1:]
-                colors[s][0] = int(color[0:2], 16)
-                colors[s][1] = int(color[2:4], 16)
-                colors[s][2] = int(color[4:6], 16)
+                color_block = colors[i]
+            except IndexError:
+                colors.append()
+                try:
+                    color_block = colors[i]
+                except IndexError:
+                    continue
+            
+            try:
+                color = getattr(BinillaWidget, self.color_names[i] + '_color')[1:]
+                color_block[0] = int(color[0:2], 16)
+                color_block[1] = int(color[2:4], 16)
+                color_block[2] = int(color[4:6], 16)
             except IndexError:
                 pass
 
+        for i in range(len(self.font_names)):
+            try:
+                font_block = fonts[i]
+            except IndexError:
+                fonts.append()
+                try:
+                    font_block = fonts[i]
+                except IndexError:
+                    continue
+
+            try:
+                font_cfg = self.get_font_config(self.font_names[i])
+                font_block.family.data = font_cfg.family
+                font_block.size = font_cfg.size
+
+                font_flags = font_block.flags
+                font_flags.bold = font_cfg.weight.lower() == "bold"
+                font_flags.italic = font_cfg.slant.lower() == "italic"
+                font_flags.underline = font_cfg.underline
+                font_flags.overstrike = font_cfg.overstrike
+            except IndexError:
+                pass
+
+        try:
+            style_data.appearance.theme_name.data = BinillaWidget.ttk_theme
+        except Exception:
+            pass
+
+    def enter_style_change(self):
+        # force all tag windows to unpack their root frame to make updating fast
+        try:
+            for w in self.tag_windows.values():
+                w.enter_style_change()
+        except Exception:
+            pass
+
+    def exit_style_change(self):
+        try:
+            for w in self.tag_windows.values():
+                w.exit_style_change()
+        except Exception:
+            pass
+
     def apply_style(self, seen=None):
-        BinillaWidget.apply_style(self, seen)
-        self.io_text.config(fg=self.io_fg_color, bg=self.io_bg_color)
+        with self.style_change_lock as lock_depth:
+            self.update_ttk_style()
+            BinillaWidget.apply_style(self, seen)
+            self.io_text.config(fg=self.io_fg_color, bg=self.io_bg_color)
+            if not self._window_geometry_initialized:
+                self._window_geometry_initialized = True
+                self.update()
+                self.geometry("%sx%s+%s+%s" %
+                              (self.app_width, self.app_height,
+                               self.app_offset_x, self.app_offset_y))
 
     def show_about_window(self):
         w = getattr(self, "about_window", None)
@@ -1611,219 +1801,28 @@ class Binilla(tk.Tk, BinillaWidget):
 
         self.about_window = AboutWindow(
             self, module_names=self.about_module_names,
-            iconbitmap=self.icon_filepath, app_name=self.app_name,
-            messages=self.about_messages)
+            iconbitmap=self.icon_filepath, appbitmap=self.app_bitmap_filepath, 
+            app_name=self.app_name, messages=self.about_messages)
         self.place_window_relative(self.about_window, 30, 50)
 
+    def upgrade_config_version(self, filepath):
+        old_version = self.config_version_def.build(filepath=filepath).data.version
+        if old_version == 1:
+            new_config = binilla.defs.upgrade_config.upgrade_v1_to_v2(
+                self.config_defs[1].build(filepath=filepath),
+                self.config_defs[2].build())
+        else:
+            raise ValueError("Config header version is not valid")
 
-class DefSelectorWindow(tk.Toplevel, BinillaWidget):
+        return new_config
 
-    def __init__(self, app_root, action, *args, **kwargs):
-        self.app_root = app_root
-        try:
-            title = app_root.handler.defs_filepath
-        except AttributeError:
-            title = "Tag definitions"
+    def upgrade_style_version(self, filepath):
+        old_version = self.style_version_def.build(filepath=filepath).data.version
+        if old_version == 1:
+            new_style = binilla.defs.upgrade_style.upgrade_v1_to_v2(
+                self.style_defs[1].build(filepath=filepath),
+                self.style_defs[2].build())
+        else:
+            raise ValueError("Style header version is not valid")
 
-        title = kwargs.pop('title', title)
-        tk.Toplevel.__init__(self, app_root, *args, **kwargs)
-        self.title(title)
-
-        self.action = action
-        self.def_id = None
-        self.sorted_def_ids = []
-        self.minsize(width=400, height=300)
-
-        self.list_canvas = tk.Canvas(self, highlightthickness=0)
-        self.button_canvas = tk.Canvas(self, height=50, highlightthickness=0)
-
-        #create and set the y scrollbar for the canvas root
-        self.def_listbox = tk.Listbox(
-            self.list_canvas, selectmode=SINGLE, exportselection=False,
-            highlightthickness=0, font=app_root.fixed_font)
-
-        self.ok_btn = tk.Button(
-            self.button_canvas, text='OK', command=self.complete_action, width=16)
-        self.cancel_btn = tk.Button(
-            self.button_canvas, text='Cancel', command=self.destroy, width=16)
-        self.hsb = tk.Scrollbar(self.button_canvas, orient='horizontal')
-        self.vsb = tk.Scrollbar(self.list_canvas,   orient='vertical')
-
-        self.def_listbox.config(xscrollcommand=self.hsb.set,
-                                yscrollcommand=self.vsb.set)
-
-        self.hsb.config(command=self.def_listbox.xview)
-        self.vsb.config(command=self.def_listbox.yview)
-
-        self.list_canvas.pack(fill='both', expand=True)
-        self.button_canvas.pack(fill='x')
-
-        self.vsb.pack(side=RIGHT, fill='y')
-        self.def_listbox.pack(fill='both', expand=True)
-
-        self.hsb.pack(side=TOP, fill='x')
-        self.ok_btn.pack(side=LEFT,      padx=9)
-        self.cancel_btn.pack(side=RIGHT, padx=9)
-
-        # make selecting things more natural
-        self.def_listbox.bind('<<ListboxSelect>>', self.set_selected_def)
-        self.def_listbox.bind('<Return>', self.complete_action)
-        self.def_listbox.bind('<Double-Button-1>', self.complete_action)
-        self.ok_btn.bind('<Return>', self.complete_action)
-        self.cancel_btn.bind('<Return>', self.destroy)
-        self.bind('<Escape>', self.destroy)
-
-        self.transient(self.app_root)
-        self.grab_set()
-
-        self.apply_style()
-        self.cancel_btn.focus_set()
-        self.populate_listbox()
-
-    def destroy(self, e=None):
-        try:
-            self.app_root.def_selector_window = None
-        except AttributeError:
-            pass
-        tk.Toplevel.destroy(self)
-
-    def complete_action(self, e=None):
-        if self.def_id is not None:
-            self.action(self.def_id)
-        self.destroy()
-
-    def populate_listbox(self):
-        defs_root = self.app_root.handler.defs_path
-        defs = self.app_root.handler.defs
-
-        id_pad = ext_pad = 0
-        defs_by_ext = {}
-
-        #loop over all the defs and find the max amount of
-        #padding needed between the ID and the Ext strings
-        for def_id in defs:
-            d = defs[def_id]
-            if len(def_id) > id_pad:
-                id_pad = len(def_id)
-
-        for def_id in defs.keys():
-            definiton = defs[def_id]
-            ext = definiton.ext[1:]
-            local_defs = defs_by_ext.get(ext, {})
-            local_defs[def_id] = definiton
-
-            defs_by_ext[ext] = local_defs
-
-        sorted_ids = []
-        for ext in sorted(defs_by_ext.keys()):
-            sorted_ids.extend(tuple(defs_by_ext[ext].keys()))
-
-        self.sorted_def_ids = tuple(sorted_ids)
-
-        #loop over all the definitions
-        for def_id in sorted_ids:
-            d = defs[def_id]
-
-            self.def_listbox.insert(END, 'ID=%s  %sExt=%s'%
-                                    (def_id, ' '*(id_pad-len(def_id)),
-                                     d.ext[1:] ))
-
-    def set_selected_def(self, event=None):
-        indexes = [int(i) for i in self.def_listbox.curselection()]
-
-        if len(indexes) == 1:
-            self.def_id = self.sorted_def_ids[indexes[0]]
-
-
-class TagWindowManager(tk.Toplevel, BinillaWidget):
-
-    app_root = None
-
-    list_index_to_window = None
-
-    def __init__(self, app_root, *args, **kwargs):
-        self.app_root = app_root
-        tk.Toplevel.__init__(self, app_root, *args, **kwargs)
-
-        self.list_index_to_window = []
-
-        self.title("Tag window manager")
-        self.minsize(width=400, height=250)
-
-        # make the frames
-        self.windows_frame = tk.Frame(self)
-        self.button_frame = tk.Frame(self)
-        self.ok_frame = tk.Frame(self.button_frame)
-        self.cancel_frame = tk.Frame(self.button_frame)
-
-        # make the buttons
-        self.ok_button = tk.Button(
-            self.ok_frame, text='OK', width=15, command=self.select)
-        self.cancel_button = tk.Button(
-            self.cancel_frame, text='Cancel', width=15, command=self.destroy)
-
-        # make the scrollbars and listbox
-        self.scrollbar_y = tk.Scrollbar(self.windows_frame, orient="vertical")
-        self.scrollbar_x = tk.Scrollbar(self, orient="horizontal")
-        self.windows_listbox = tk.Listbox(
-            self.windows_frame, selectmode='single',
-            exportselection=False, highlightthickness=0,
-            xscrollcommand=self.scrollbar_x.set,
-            yscrollcommand=self.scrollbar_y.set)
-
-        # set up the scrollbars
-        self.scrollbar_x.config(command=self.windows_listbox.xview)
-        self.scrollbar_y.config(command=self.windows_listbox.yview)
-
-        # set up the keybindings
-        self.windows_listbox.bind('<Return>', self.select)
-        self.scrollbar_x.bind('<Return>', self.select)
-        self.scrollbar_y.bind('<Return>', self.select)
-        self.windows_listbox.bind('<Double-Button-1>', self.select)
-        self.ok_button.bind('<Return>', self.select)
-        self.cancel_button.bind('<Return>', self.destroy)
-        self.bind('<Escape>', self.destroy)
-
-        # store the windows by title
-        windows_by_title = {}
-        for w in self.app_root.tag_windows.values():
-            windows_by_title[w.title()] = w
-
-        # populate the listbox
-        for title in sorted(windows_by_title):
-            self.list_index_to_window.append(windows_by_title[title])
-            self.windows_listbox.insert('end', title)
-
-        self.windows_listbox.select_set(0)
-
-        # pack everything
-        self.ok_button.pack(padx=12, pady=5, side='right')
-        self.cancel_button.pack(padx=12, pady=5, side='left')
-        self.ok_frame.pack(side='left', fill='x', expand=True)
-        self.cancel_frame.pack(side='right', fill='x', expand=True)
-
-        self.windows_listbox.pack(side='left', fill="both", expand=True)
-        self.scrollbar_y.pack(side='left', fill="y")
-
-        self.windows_frame.pack(fill="both", expand=True)
-        self.scrollbar_x.pack(fill="x")
-        self.button_frame.pack(fill="x")
-
-        self.apply_style()
-        self.transient(self.app_root)
-        self.ok_button.focus_set()
-        self.grab_set()
-
-    def destroy(self, e=None):
-        try:
-            self.app_root.tag_window_manager = None
-        except AttributeError:
-            pass
-        tk.Toplevel.destroy(self)
-
-    def select(self, e=None):
-        indexes = [int(i) for i in self.windows_listbox.curselection()]
-        w = self.list_index_to_window[indexes[0]]
-
-        self.destroy()
-        self.app_root.select_tag_window(w)
+        return new_style

@@ -8,7 +8,8 @@ from traceback import format_exc
 import threadsafe_tkinter as tk
 
 from tkinter import messagebox
-from binilla.widgets import BinillaWidget
+from binilla import editor_constants as e_c
+from binilla.widgets.binilla_widget import BinillaWidget
 
 VALID_MODULE_CHARACTERS = frozenset(string.ascii_letters + "_" + string.digits)
 
@@ -26,7 +27,8 @@ try:
                     if os.path.isfile(iconbitmap):
                         self.iconbitmap(iconbitmap)
                 except Exception:
-                    print("Could not load window icon.")
+                    if not e_c.IS_LNX:
+                        print("Could not load window icon.")
 
         def wait_window(self):
             # null this method
@@ -52,16 +54,18 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
 
     app_name = "Unknown"
     iconbitmap_filepath = ""
+    appbitmap_filepath = ""
 
     def __init__(self, master, *a, **kw):
-        BinillaWidget.__init__(self, *a, **kw)
         kw.update(highlightthickness=0)
         self.messages = kw.pop("messages", self.messages)
         self.app_name = kw.pop("app_name", self.app_name)
         self.module_infos = {name: None for name in kw.pop("module_names", ())}
         self.iconbitmap_filepath = str(kw.pop("iconbitmap", self.iconbitmap_filepath))
+        self.appbitmap_filepath = str(kw.pop("appbitmap", self.appbitmap_filepath))
 
         tk.Toplevel.__init__(self, master, *a, **kw)
+        BinillaWidget.__init__(self, *a, **kw)
         self.resizable(0, 0)
         self.title("About " + self.app_name)
         self.transient(master)
@@ -110,18 +114,16 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
         header_frame = tk.Frame(main_frame)
         py_label_frame = tk.Frame(header_frame, borderwidth=0)
 
-        image_filepath = os.path.splitext(self.iconbitmap_filepath)[0] + ".png"
         app_image_button = None
-        if os.path.isfile(image_filepath):
-            self.app_image = tk.PhotoImage(file=image_filepath)
-            app_image_button = tk.Button(header_frame, text='[picture]', bd=0,
-                                         image=self.app_image, relief='flat',
-                                         command=self._pressed,
-                                         highlightthickness=0)
-            app_image_button.config(relief="sunken")
+        if os.path.isfile(self.appbitmap_filepath):
+            self.app_image = tk.PhotoImage(file=self.appbitmap_filepath)
+            app_image_button = tk.Button(
+                header_frame, text='[picture]', bd=0, image=self.app_image,
+                relief='flat', command=self._pressed, highlightthickness=0)
 
         app_name_label = tk.Label(header_frame, text=self.app_name,
-                                  font=('Copperplate Gothic', 24, 'bold italic'))
+                                  font=self.get_font("heading"))
+        app_name_label.font_type = "heading"
         python_ver_label = tk.Label(
             py_label_frame, text='Python version:  %s' % pr_version_str)
         tk_ver_label = tk.Label(

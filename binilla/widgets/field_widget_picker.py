@@ -4,8 +4,11 @@ to build to represent a field when given a descriptor.
 '''
 from supyr_struct.field_types import *
 
-from . import constants as const
-from .field_widgets import *
+from binilla import constants as const
+from binilla.widgets.field_widgets import NullFrame, StreamAdapterFrame,\
+     PadFrame, VoidFrame, UnionFrame, EntryFrame, BoolSingleFrame,\
+     ArrayFrame, ContainerFrame, NumberEntryFrame, TimestampFrame,\
+     EnumFrame, BoolFrame, RawdataFrame, HexEntryFrame
 
 __all__ = ("add_widget", "get_widget", "copy_widget",
            "def_widget_picker", "WidgetPicker")
@@ -106,9 +109,13 @@ for f_type in (UBitInt, SBitInt, S1BitInt, UIntBig, SIntBig, S1IntBig,
 for f_type in (FloatTimestamp, DoubleTimestamp, Timestamp32, Timestamp64):
     add_widget(f_type, TimestampFrame)
 
-for f_type in (UBitEnum, SBitEnum, UEnumBig, SEnumBig, StrAsciiEnum,
+for f_type in (UBitEnum, SBitEnum, UEnumBig, SEnumBig,
                UEnum8,  SEnum8, UEnum16, UEnum24, UEnum32, UEnum64,
                SEnum16, SEnum24, SEnum32, SEnum64, BytesRawEnum):
+    add_widget(f_type, EnumFrame)
+
+for f_type in (StrAsciiEnum, StrUtf8Enum):
+    # CHANGE THIS TO USE A CUSTOM WIDGET THAT DISPLAYS THE FONT
     add_widget(f_type, EnumFrame)
 
 for f_type in (BitBool, BoolBig, Bool8, Bool16, Bool24, Bool32, Bool64):

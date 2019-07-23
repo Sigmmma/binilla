@@ -1,4 +1,6 @@
 syntax: glob
 *__pycache__*
-binilla.cfg
+*.cfg
 *.log
+*.backup
+*.BACKUP

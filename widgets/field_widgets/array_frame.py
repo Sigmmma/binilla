@@ -206,8 +206,6 @@ class ArrayFrame(container_frame.ContainerFrame):
         if (self.option_cache is None or not self.options_sane or
                 opt_index is not None):
             result = self.generate_options(opt_index)
-            self.options_sane = True
-            self.sel_menu.options_menu_sane = False
             if opt_index is not None:
                 return result
 
@@ -257,11 +255,6 @@ class ArrayFrame(container_frame.ContainerFrame):
                 self.sel_menu.max_index = len(node) - 1
             return options
         return options.get(opt_index, None)
-
-    def cache_options(self):
-        # TODO: remove this function
-        print("DEPRECATE THIS")
-        return self.generate_options()
 
     def set_shift_up_disabled(self, disable=True):
         '''
@@ -836,7 +829,6 @@ class DynamicArrayFrame(ArrayFrame):
                 self.generate_dynamic_options(options, options_to_generate)
             except Exception:
                 print(format_exc())
-                print("Guess something got mistyped. Tell Moses about it.")
         else:
             # sort the options by value(values are integers)
             options.update({i: n for n, i in

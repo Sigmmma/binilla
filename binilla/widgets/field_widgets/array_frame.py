@@ -16,6 +16,7 @@ class ArrayFrame(container_frame.ContainerFrame):
     for selecting which array element is displayed.'''
 
     sel_index = -1
+    sel_menu = None
     populated = False
     option_cache = None
     options_sane = False
@@ -129,6 +130,9 @@ class ArrayFrame(container_frame.ContainerFrame):
                 if attr_index < 0:
                     attr_index = None
 
+        if self.sel_menu is not None:
+            self.options_sane = self.sel_menu.options_menu_sane = False
+
         for wid in self.f_widgets:
             # there must be only one entry in self.f_widgets
             w = self.f_widgets[wid]
@@ -199,8 +203,13 @@ class ArrayFrame(container_frame.ContainerFrame):
         '''
         Returns a list of the option strings sorted by option index.
         '''
-        if not self.options_sane or self.option_cache is None:
-            self.cache_options()
+        if (self.option_cache is None or not self.options_sane or
+                opt_index is not None):
+            result = self.generate_options(opt_index)
+            self.options_sane = True
+            self.sel_menu.options_menu_sane = False
+            if opt_index is not None:
+                return result
 
         if opt_index is None:
             return self.option_cache
@@ -211,16 +220,23 @@ class ArrayFrame(container_frame.ContainerFrame):
 
         return self.option_cache.get(opt_index)
 
-    def cache_options(self):
+    def generate_options(self, opt_index=None):
         # sort the options by value(values are integers)
         options = {i: n for n, i in self.desc.get('NAME_MAP', {}).items()}
 
         if self.node:
             node, desc = self.node, self.desc
             sub_desc = desc['SUB_STRUCT']
-            def_struct_name = sub_desc.get('GUI_NAME', sub_desc['NAME'])
+            def_struct_name = sub_desc['NAME']
+            if self.use_gui_names and 'GUI_NAME' in sub_desc:
+                def_struct_name = sub_desc['GUI_NAME']
 
-            for i in range(len(node)):
+            options_to_generate = range(len(node))
+            if opt_index is not None:
+                options_to_generate = (
+                    (opt_index, ) if opt_index in options_to_generate else ())
+
+            for i in options_to_generate:
                 if i in options:
                     continue
                 sub_node = node[i]
@@ -233,8 +249,19 @@ class ArrayFrame(container_frame.ContainerFrame):
 
                 options[i] = sub_struct_name
 
-        self.options_sane = True
-        self.option_cache = options
+        if opt_index is None:
+            self.options_sane = True
+            self.option_cache = options
+            if self.sel_menu is not None:
+                self.sel_menu.options_menu_sane = False
+                self.sel_menu.max_index = len(node) - 1
+            return options
+        return options.get(opt_index, None)
+
+    def cache_options(self):
+        # TODO: remove this function
+        print("DEPRECATE THIS")
+        return self.generate_options()
 
     def set_shift_up_disabled(self, disable=True):
         '''
@@ -338,7 +365,7 @@ class ArrayFrame(container_frame.ContainerFrame):
 
                 max_index = len(node) - 1
                 w.sel_menu.max_index = max_index
-                w.options_sane = w.sel_menu.options_sane = False
+                w.options_sane = w.sel_menu.options_menu_sane = False
                 if w.sel_index < 0:
                     w.select_option(0, force=True)
                 elif w.sel_index > max_index:
@@ -371,7 +398,7 @@ class ArrayFrame(container_frame.ContainerFrame):
         node[index], node[index - 1] = node[index - 1], node[index]
 
         self.sel_index = self.sel_menu.sel_index = index - 1
-        self.options_sane = self.sel_menu.options_sane = False
+        self.options_sane = self.sel_menu.options_menu_sane = False
         self.sel_menu.update_label()
 
     def shift_entry_down(self):
@@ -389,7 +416,7 @@ class ArrayFrame(container_frame.ContainerFrame):
         node[index], node[index + 1] = node[index + 1], node[index]
 
         self.sel_index = self.sel_menu.sel_index = index + 1
-        self.options_sane = self.sel_menu.options_sane = False
+        self.options_sane = self.sel_menu.options_menu_sane = False
         self.sel_menu.update_label()
 
     def add_entry(self):
@@ -409,7 +436,7 @@ class ArrayFrame(container_frame.ContainerFrame):
         self.edit_create(edit_type='add', attr_index=attr_index,
                          redo_node=self.node[attr_index], sel_index=attr_index)
 
-        self.options_sane = self.sel_menu.options_sane = False
+        self.options_sane = self.sel_menu.options_menu_sane = False
         self.set_all_buttons_disabled(self.disabled)
         self.disable_unusable_buttons() 
         self.select_option(len(self.node) - 1, True)
@@ -431,7 +458,7 @@ class ArrayFrame(container_frame.ContainerFrame):
         self.edit_create(edit_type='insert', attr_index=attr_index,
                          redo_node=self.node[attr_index], sel_index=attr_index)
 
-        self.options_sane = self.sel_menu.options_sane = False
+        self.options_sane = self.sel_menu.options_menu_sane = False
         self.set_all_buttons_disabled(self.disabled)
         self.disable_unusable_buttons()
         self.select_option(attr_index, True)  # select the new entry
@@ -456,7 +483,7 @@ class ArrayFrame(container_frame.ContainerFrame):
 
         self.node.append(new_subnode)
 
-        self.options_sane = self.sel_menu.options_sane = False
+        self.options_sane = self.sel_menu.options_menu_sane = False
         self.set_all_buttons_disabled(self.disabled)
         self.disable_unusable_buttons()
         self.select_option(attr_index, True)
@@ -487,7 +514,7 @@ class ArrayFrame(container_frame.ContainerFrame):
         del self.node[attr_index]
         attr_index = max(-1, min(len(self.node) - 1, attr_index))
 
-        self.options_sane = self.sel_menu.options_sane = False
+        self.options_sane = self.sel_menu.options_menu_sane = False
         self.select_option(attr_index, True)
         self.set_all_buttons_disabled(self.disabled)
         self.disable_unusable_buttons()
@@ -514,7 +541,7 @@ class ArrayFrame(container_frame.ContainerFrame):
 
         del self.node[:]
 
-        self.options_sane = self.sel_menu.options_sane = False
+        self.options_sane = self.sel_menu.options_menu_sane = False
         self.set_all_buttons_disabled(self.disabled)
         self.disable_unusable_buttons()
         self.select_option(self.sel_index, True)
@@ -771,56 +798,81 @@ class ArrayFrame(container_frame.ContainerFrame):
 
 
 class DynamicArrayFrame(ArrayFrame):
+
     def __init__(self, *args, **kwargs):
         ArrayFrame.__init__(self, *args, **kwargs)
 
-        self.sel_menu.bind('<FocusIn>', self.set_not_sane)
-        self.sel_menu.arrow_button.bind('<FocusIn>', self.set_not_sane)
-        self.sel_menu.options_volatile = True
+        self.sel_menu.bind('<FocusIn>', self.flag_sanity_change)
+        self.sel_menu.arrow_button.bind('<FocusIn>', self.flag_sanity_change)
+        self.sel_menu.options_volatile = 'DYN_NAME_PATH' in self.desc
 
-    def cache_options(self):
+    def generate_dynamic_options(self, options, options_to_generate):
         node, desc = self.node, self.desc
         dyn_name_path = desc.get('DYN_NAME_PATH')
-        if node is None:
-            dyn_name_path = ""
-
-        options = {}
         if dyn_name_path:
             try:
-                for i in range(len(node)):
+                for i in options_to_generate:
                     name = str(node[i].get_neighbor(dyn_name_path))
                     if name:
                         options[i] = name.split('\n')[0]
             except Exception:
                 pass
 
-        if not dyn_name_path:
+    def generate_options(self, opt_index=None):
+        node, desc = self.node, self.desc
+        if node is None:
+            if opt_index is None:
+                return options
+            return ""
+
+        options = {}
+        options_to_generate = range(len(node))
+        if opt_index is not None:
+            options_to_generate = (
+                (opt_index, ) if opt_index in options_to_generate else ())
+
+        if desc.get('DYN_NAME_PATH'):
+            try:
+                self.generate_dynamic_options(options, options_to_generate)
+            except Exception:
+                print(format_exc())
+                print("Guess something got mistyped. Tell Moses about it.")
+        else:
             # sort the options by value(values are integers)
             options.update({i: n for n, i in
                             self.desc.get('NAME_MAP', {}).items()
                             if i not in options})
             sub_desc = desc['SUB_STRUCT']
-            def_struct_name = sub_desc.get('GUI_NAME', sub_desc['NAME'])
+            def_struct_name = sub_desc['NAME']
+            if self.use_gui_names and 'GUI_NAME' in sub_desc:
+                def_struct_name = sub_desc['GUI_NAME']
 
-            for i in range(len(node)):
+            for i in options_to_generate:
                 if i in options:
                     continue
                 sub_node = node[i]
                 if not hasattr(sub_node, 'desc'):
                     continue
-                sub_desc = sub_node.desc
-                sub_struct_name = sub_desc.get('GUI_NAME', sub_desc['NAME'])
-                if sub_struct_name == def_struct_name:
-                    continue
+                sub_struct_name = sub_node.desc['NAME']
+                if self.use_gui_names and 'GUI_NAME' in sub_node.desc:
+                    sub_struct_name = sub_node.desc['GUI_NAME']
 
-                options[i] = sub_struct_name
+                if sub_struct_name != def_struct_name:
+                    options[i] = sub_struct_name
 
         for i, v in options.items():
             options[i] = '%s. %s' % (i, v)
 
-        self.options_sane = True
-        self.option_cache = options
-        self.sel_menu.update_label()
 
-    def set_not_sane(self, e=None):
-        self.options_sane = self.sel_menu.options_sane = False
+        if opt_index is None:
+            self.option_cache = options
+            self.options_sane = True
+            if self.sel_menu is not None:
+                self.sel_menu.options_menu_sane = False
+                self.sel_menu.max_index = len(node) - 1
+            return options
+        return options.get(opt_index, None)
+
+    def flag_sanity_change(self, e=None):
+        self.options_sane = self.sel_menu.options_menu_sane = (
+            not self.sel_menu.options_volatile)

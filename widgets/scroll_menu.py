@@ -26,7 +26,7 @@ class ScrollMenu(tk.Frame, BinillaWidget):
 
     option_cache = None
     option_getter = None
-    options_sane = False
+    options_menu_sane = False
     options_volatile = False
     selecting = False  # prevents multiple selections at once
 
@@ -54,7 +54,6 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         self.max_height = kwargs.pop('max_height', self.max_height)
         self.f_widget_parent = kwargs.pop('f_widget_parent', None)
         self.menu_width = kwargs.pop('menu_width', self.menu_width)
-        self.options_sane = kwargs.pop('options_sane', False)
         self.options_volatile = kwargs.pop('options_volatile', False)
         self.default_text = kwargs.pop('default_text', e_c.INVALID_OPTION)
 
@@ -178,22 +177,24 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         return text
 
     def get_option(self, opt_index=None):
-        if opt_index is None:
-            opt_index = e_c.ACTIVE_ENUM_NAME
-        assert isinstance(opt_index, (int, str))
-        return self.get_options(opt_index)
+        if opt_index in (None, e_c.ACTIVE_ENUM_NAME):
+            opt_index = self.sel_index
 
-    def get_options(self, opt_index=None):
+        assert isinstance(opt_index, (int, str))
         if self.option_getter is not None:
             return self.option_getter(opt_index)
         elif self.option_cache is None:
             self.option_cache = {}
 
-        if opt_index is None:
-            return self.option_cache
-        elif opt_index == e_c.ACTIVE_ENUM_NAME:
-            opt_index = self.sel_index
         return self.option_cache.get(opt_index)
+
+    def get_options(self):
+        if self.option_getter is not None:
+            return self.option_getter()
+        elif self.option_cache is None:
+            self.option_cache = {}
+
+        return self.option_cache
 
     def set_options(self, new_options):
         if (not isinstance(new_options, dict) and
@@ -201,7 +202,7 @@ class ScrollMenu(tk.Frame, BinillaWidget):
             new_options = {i: new_options[i] for i in range(len(new_options))}
         self.option_cache = dict(new_options)
         self.max_index = len(new_options) - 1
-        self.options_sane = False
+        self.options_menu_sane = False
         self.update_label()
 
     def _mousewheel_scroll(self, e):
@@ -384,7 +385,7 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         options = self.get_options()
         option_cnt = self.max_index + 1
 
-        if not self.options_sane or self.options_volatile:
+        if not self.options_menu_sane or self.options_volatile:
             END = tk.END
             self.option_box.delete(0, END)
             insert = self.option_box.insert
@@ -397,7 +398,7 @@ class ScrollMenu(tk.Frame, BinillaWidget):
                 else:
                     insert(END, def_str % i)
 
-            self.options_sane = True
+            self.options_menu_sane = True
             self.sel_label.config(width=menu_width)
 
         # explicitly forget these so they can be repacked properly
@@ -405,7 +406,7 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         self.option_box.pack_forget()
         self.option_bar.pack(side='right', fill='y')
         self.option_box.pack(side='right', expand=True, fill='both')
-        self.update()
+        #self.update()
 
         self_height = self.winfo_reqheight()
         root = self.winfo_toplevel()

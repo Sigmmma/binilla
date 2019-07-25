@@ -116,7 +116,7 @@ class UnionFrame(container_frame.ContainerFrame):
         Returns a list of the option strings sorted by option index.
         '''
         if self.option_cache is None:
-            self.cache_options()
+            return self.generate_options(opt_index)
 
         if opt_index is None:
             return self.option_cache
@@ -128,12 +128,18 @@ class UnionFrame(container_frame.ContainerFrame):
         if opt_index is None:
             opt_index = -1
 
-        return self.option_cache.get(opt_index, e_c.INVALID_OPTION)
+        return self.option_cache.get(opt_index, None)
 
-    def cache_options(self):
+    def generate_options(self, opt_index=None):
         options = {i: c for c, i in self.desc['CASE_MAP'].items()}
         options[len(options)] = e_c.RAW_BYTES
-        self.option_cache = options
+
+        if opt_index is None:
+            self.option_cache = options
+            if self.sel_menu is not None:
+                self.sel_menu.options_menu_sane = False
+            return options
+        return options.get(opt_index, None)
 
     def edit_apply(self=None, *, edit_state, undo=True):
         edit_info = edit_state.edit_info

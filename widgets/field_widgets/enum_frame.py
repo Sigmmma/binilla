@@ -12,6 +12,7 @@ class EnumFrame(data_frame.DataFrame):
     a dropdown box of all available enumerator options.'''
 
     option_cache = None
+    sel_menu = None
 
     def __init__(self, *args, **kwargs):
         kwargs.update(relief='flat', bd=0, highlightthickness=0)
@@ -103,28 +104,48 @@ class EnumFrame(data_frame.DataFrame):
         '''
         Returns a list of the option strings sorted by option index.
         '''
-        if self.option_cache is None:
-            self.cache_options()
+        if self.option_cache is None or opt_index is not None:
+            return self.generate_options(opt_index)
 
         if opt_index is None:
             return self.option_cache
         elif opt_index == e_c.ACTIVE_ENUM_NAME:
             opt_index = self.sel_menu.sel_index
 
-        return self.option_cache.get(opt_index, e_c.INVALID_OPTION)
+        return self.option_cache.get(opt_index, None)
 
-    def cache_options(self):
+    def generate_options(self, opt_index=None):
         desc = self.desc
         options = {}
+        option_count = desc.get('ENTRIES', 0)
+        options_to_generate = range(option_count)
+        if opt_index is not None:
+            options_to_generate = (
+                (opt_index, ) if opt_index in options_to_generate else ())
+
         # sort the options by value(values are integers)
-        for i in range(desc.get('ENTRIES', 0)):
+        use_gui_names = self.use_gui_names
+        for i in options_to_generate:
             opt = desc[i]
-            if 'GUI_NAME' in opt:
+            if use_gui_names and 'GUI_NAME' in opt:
                 options[i] = opt['GUI_NAME']
             else:
                 options[i] = opt.get('NAME', '<UNNAMED %s>' % i)\
                              .replace('_', ' ')
-        self.option_cache = options
+
+        if opt_index is None:
+            self.options_sane = True
+            self.option_cache = options
+            if self.sel_menu is not None:
+                self.sel_menu.options_menu_sane = False
+                self.sel_menu.max_index = option_count - 1
+            return options
+        return options.get(opt_index, None)
+
+    def cache_options(self):
+        # TODO: remove this function
+        print("DEPRECATE THIS")
+        return self.generate_options()
 
     def reload(self):
         try:
@@ -205,8 +226,10 @@ class DynamicEnumFrame(EnumFrame):
             sel_index=sel_index, max_index=0,
             disabled=self.disabled, default_text="<INVALID>",
             option_getter=self.get_options,  callback=self.select_option)
-        self.sel_menu.bind('<FocusIn>', self.set_not_sane)
-        self.sel_menu.arrow_button.bind('<FocusIn>', self.set_not_sane)
+
+        self.sel_menu.bind('<FocusIn>', self.flag_sanity_change)
+        self.sel_menu.arrow_button.bind('<FocusIn>', self.flag_sanity_change)
+        self.sel_menu.options_volatile = 'DYN_NAME_PATH' in self.desc
 
         if self.gui_name != '':
             self.title_label.pack(side="left", fill="x")
@@ -214,16 +237,6 @@ class DynamicEnumFrame(EnumFrame):
         self.sel_menu.pack(side="left", fill="x")
         self.populate()
         self._initialized = True
-
-    def get_options(self, opt_index=None):
-        '''
-        Returns a list of the option strings sorted by option index.
-        '''
-        if not self.options_sane:
-            self.cache_options()
-            self.options_sane = True
-            self.sel_menu.options_sane = False
-        return EnumFrame.get_options(self, opt_index)
 
     def edit_apply(self=None, *, edit_state, undo=True):
         state = edit_state
@@ -251,45 +264,55 @@ class DynamicEnumFrame(EnumFrame):
             except Exception:
                 print(format_exc())
 
-    def set_not_sane(self, e=None):
-        if self.desc.get('DYN_NAME_PATH'):
-            self.options_sane = self.sel_menu.options_sane = False
-
-    def cache_options(self):
+    def generate_options(self, opt_index=None):
         desc = self.desc
-        options = {0: "-1: NONE"}
+        options = {0: "-1. NONE"}
 
         dyn_name_path = desc.get('DYN_NAME_PATH')
         if self.node is None:
-            return
+            if opt_index is None:
+                return options
+            return ""
         elif not dyn_name_path:
             print("Missing DYN_NAME_PATH path in dynamic enumerator.")
             print(self.parent.get_root().def_id, self.name)
+            if opt_index is not None:
+                return None
+        else:
+            try:
+                p_out, p_in = dyn_name_path.split('[DYN_I]')
+
+                # We are ALWAYS going to go to the parent, so we need to slice
+                if p_out.startswith('..'): p_out = p_out.split('.', 1)[-1]
+                array = self.parent.get_neighbor(p_out)
+
+                options_to_generate = range(len(array))
+                if opt_index is not None:
+                    options_to_generate = (
+                        (opt_index - 1, ) if opt_index - 1 in
+                        options_to_generate else ())
+
+                for i in options_to_generate:
+                    name = array[i].get_neighbor(p_in)
+                    if isinstance(name, list):
+                        name = repr(name).strip("[").strip("]")
+                    else:
+                        name = str(name)
+
+                    options[i + 1] = '%s. %s' % (i, name.split('\n')[0])
+                option_count = len(array) + 1
+            except Exception:
+                print(format_exc())
+                option_count = 1
+
+        if opt_index is None:
             self.option_cache = options
-            return
-        try:
-            p_out, p_in = dyn_name_path.split('[DYN_I]')
-
-            # We are ALWAYS going to go to the parent, so we need to slice
-            if p_out.startswith('..'): p_out = p_out.split('.', 1)[-1]
-            array = self.parent.get_neighbor(p_out)
-            for i in range(len(array)):
-                name = array[i].get_neighbor(p_in)
-                if isinstance(name, list):
-                    name = repr(name).strip("[").strip("]")
-                else:
-                    name = str(name)
-
-                options[i + 1] = '%s. %s' % (i, name.split('\n')[0])
-        except Exception:
-            print(format_exc())
-            dyn_name_path = False
-
-        try:
-            self.sel_menu.max_index = len(options) - 1
-        except Exception:
-            pass
-        self.option_cache = options
+            self.options_sane = True
+            if self.sel_menu is not None:
+                self.sel_menu.options_menu_sane = False
+                self.sel_menu.max_index = option_count - 1
+            return options
+        return options.get(opt_index, None)
 
     def reload(self):
         try:
@@ -301,7 +324,7 @@ class DynamicEnumFrame(EnumFrame):
             else:
                 self.sel_menu.enable()
 
-            self.cache_options()
+            self.generate_options()
             if self.node is not None:
                 self.sel_menu.sel_index = self.node + 1
             self.sel_menu.update_label()
@@ -326,3 +349,7 @@ class DynamicEnumFrame(EnumFrame):
         # are one less than the entry index they are located in.
         self.node = self.parent[self.attr_index] = opt_index - 1
         self.sel_menu.update_label()
+
+    def flag_sanity_change(self, e=None):
+        self.options_sane = self.sel_menu.options_menu_sane = (
+            not self.sel_menu.options_volatile)

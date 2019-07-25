@@ -767,6 +767,9 @@ class ArrayFrame(container_frame.ContainerFrame):
         if opt_index is None:
             opt_index = curr_index
 
+        if opt_index < 0:
+            opt_index = 0
+
         if opt_index == curr_index and not force:
             return
         elif not node:

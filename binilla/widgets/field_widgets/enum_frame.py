@@ -142,11 +142,6 @@ class EnumFrame(data_frame.DataFrame):
             return options
         return options.get(opt_index, None)
 
-    def cache_options(self):
-        # TODO: remove this function
-        print("DEPRECATE THIS")
-        return self.generate_options()
-
     def reload(self):
         try:
             if self.disabled == self.sel_menu.disabled:
@@ -272,38 +267,39 @@ class DynamicEnumFrame(EnumFrame):
         if self.node is None:
             if opt_index is None:
                 return options
-            return ""
+            return None
         elif not dyn_name_path:
             print("Missing DYN_NAME_PATH path in dynamic enumerator.")
             print(self.parent.get_root().def_id, self.name)
+            if opt_index is None:
+                return options
+            return None
+
+        try:
+            p_out, p_in = dyn_name_path.split('[DYN_I]')
+
+            # We are ALWAYS going to go to the parent, so we need to slice
+            if p_out.startswith('..'): p_out = p_out.split('.', 1)[-1]
+            array = self.parent.get_neighbor(p_out)
+
+            options_to_generate = range(len(array))
             if opt_index is not None:
-                return None
-        else:
-            try:
-                p_out, p_in = dyn_name_path.split('[DYN_I]')
+                options_to_generate = (
+                    (opt_index - 1, ) if opt_index - 1 in
+                    options_to_generate else ())
 
-                # We are ALWAYS going to go to the parent, so we need to slice
-                if p_out.startswith('..'): p_out = p_out.split('.', 1)[-1]
-                array = self.parent.get_neighbor(p_out)
+            for i in options_to_generate:
+                name = array[i].get_neighbor(p_in)
+                if isinstance(name, list):
+                    name = repr(name).strip("[").strip("]")
+                else:
+                    name = str(name)
 
-                options_to_generate = range(len(array))
-                if opt_index is not None:
-                    options_to_generate = (
-                        (opt_index - 1, ) if opt_index - 1 in
-                        options_to_generate else ())
-
-                for i in options_to_generate:
-                    name = array[i].get_neighbor(p_in)
-                    if isinstance(name, list):
-                        name = repr(name).strip("[").strip("]")
-                    else:
-                        name = str(name)
-
-                    options[i + 1] = '%s. %s' % (i, name.split('\n')[0])
-                option_count = len(array) + 1
-            except Exception:
-                print(format_exc())
-                option_count = 1
+                options[i + 1] = '%s. %s' % (i, name.split('\n')[0])
+            option_count = len(array) + 1
+        except Exception:
+            print(format_exc())
+            option_count = 1
 
         if opt_index is None:
             self.option_cache = options

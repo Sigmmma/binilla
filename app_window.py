@@ -1635,10 +1635,12 @@ class Binilla(tk.Tk, BinillaWidget):
         del recent_tags[:]
 
         if self._window_geometry_initialized:
-            self.app_width = self.winfo_width()
-            self.app_height = self.winfo_height()
-            self.app_offset_x = self.winfo_x()
-            self.app_offset_y = self.winfo_y()
+            w, geom = self.geometry().split("x")
+            h, x, y = geom.split("+")
+            self.app_width = int(w)
+            self.app_height = int(h)
+            self.app_offset_x = int(x)
+            self.app_offset_y = int(y)
 
         if self._initialized:
             try:
@@ -1788,6 +1790,12 @@ class Binilla(tk.Tk, BinillaWidget):
             if not self._window_geometry_initialized:
                 self._window_geometry_initialized = True
                 self.update()
+                if self.app_offset_x not in range(0, self.winfo_screenwidth()):
+                    self.app_offset_x = 0
+
+                if self.app_offset_y not in range(0, self.winfo_screenheight()):
+                    self.app_offset_y = 0
+
                 self.geometry("%sx%s+%s+%s" %
                               (self.app_width, self.app_height,
                                self.app_offset_x, self.app_offset_y))

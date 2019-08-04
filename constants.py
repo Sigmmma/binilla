@@ -9,7 +9,11 @@ from supyr_struct.defs.constants import *
 
 # These keywords are used in the gui struct editor
 EDITABLE = "EDITABLE"  # If False, attribute is greyed out and uneditable
-VISIBLE = "VISIBLE"  # False = Attribute is not rendered when loaded
+VISIBLE = "VISIBLE"  # VISIBILITY_SHOWN  = Attribute is always rendered
+#                      VISIBILITY_HIDDEN = Attribute is only rendered if
+#                          hidden fields are allowed to render.
+#                      VISIBILITY_METADATA = Attribute is only rendered if
+#                          structural(meta) fields are allowed to render.
 GUI_NAME = "GUI_NAME"  # The displayed name of the attribute
 HIDE_TITLE = "HIDE_TITLE"  # If True, hides the title bar for structs
 ORIENT = "ORIENT"  # Which way to display the container entries.
@@ -60,3 +64,9 @@ def inject():
         MAX, MIN, ALLOW_MAX, ALLOW_MIN, UNIT_SCALE,
         EXT, PORTABLE, WIDGET, DYN_NAME_PATH,
         TOOLTIP, COMMENT, SIDETIP)
+
+
+# determines the required visibility level for the field to be displayed
+VISIBILITY_SHOWN = 1
+VISIBILITY_HIDDEN = 0
+VISIBILITY_METADATA = -1

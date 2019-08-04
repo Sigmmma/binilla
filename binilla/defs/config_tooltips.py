@@ -29,7 +29,12 @@ file_handling_integrity_test = (
 # field widgets
 field_widget_edit_uneditable = "Enables editing all fields.\nBE CAREFUL!"
 field_widget_show_invisible = (
-    "Shows every field(even internal values like array counts).\nBE CAREFUL!")
+    "Shows hidden fields(except for fields that describe the structure)."
+    )
+field_widget_show_structure_meta = (
+    "Shows fields that describe the structure of the data\n"
+    "This even shows internal values like array counts, so BE CAREFUL!"
+    )
 field_widget_show_comments = "Whether to show comments. Comments appear above fields"
 field_widget_show_tooltips = "Whether to show tooltips. Fields with tooltips are suffixed with �"
 field_widget_show_sidetips = "Whether to show sidetips. Sidetips appear on the right side of fields."
@@ -62,7 +67,6 @@ field_widget_evaluate_entry_fields = (
     "Whether to evaluate the contents of a number entry field, rather\n"
     "than directly converting it to a float. Allows user to type in\n"
     "simple functions for a number, such as '(log10(50) + 1) / 2'")
-
 
 # main window
 app_window_recent_tag_max = "Max number of files in the 'recent' menu."

@@ -8,7 +8,7 @@ from binilla.defs.style_def import appearance, widths_and_heights, padding,\
      depths, colors, fonts, theme_name
 from binilla.widgets.field_widgets.array_frame import DynamicArrayFrame
 from binilla.constants import GUI_NAME, NAME, TOOLTIP, VALUE, VISIBLE,\
-     NODE_PRINT_INDENT, DEFAULT
+     NODE_PRINT_INDENT, DEFAULT, VISIBILITY_METADATA, VISIBILITY_HIDDEN
 from binilla.editor_constants import widget_depth_names, color_names,\
      font_names
 from binilla.defs import config_tooltips as ttip
@@ -41,8 +41,8 @@ open_tag = Container("open_tag",
         # UPDATE THIS PADDING WHEN ADDING STUFF ABOVE IT
         Pad(48 - 2*4 - 4*1),
 
-        UInt16("def_id_len", VISIBLE=False, EDITABLE=False),
-        UInt16("path_len", VISIBLE=False, EDITABLE=False),
+        UInt16("def_id_len", VISIBLE=VISIBILITY_HIDDEN, EDITABLE=False),
+        UInt16("path_len", VISIBLE=VISIBILITY_HIDDEN, EDITABLE=False),
         SIZE=64
         ),
 
@@ -51,7 +51,7 @@ open_tag = Container("open_tag",
     )
 
 filepath = Container("filepath",
-    UInt16("path_len", VISIBLE=False),
+    UInt16("path_len", VISIBLE=VISIBILITY_HIDDEN),
     StrUtf8("path", SIZE=".path_len")
     )
 
@@ -61,7 +61,7 @@ main_window_flags = Bool32("flags",
     {NAME: "log_tag_print", TOOLTIP: ttip.main_window_log_tag_print},
     {NAME: "debug_mode",    TOOLTIP: ttip.main_window_debug_mode},
     {NAME: "disable_io_redirect", TOOLTIP: ttip.main_window_disable_io_redirect,
-     VISIBLE: False},
+     VISIBLE: VISIBILITY_HIDDEN},
 
     DEFAULT=sum([1<<i for i in (1, 2)])
     )
@@ -70,12 +70,12 @@ file_handling_flags = Bool32("file_handling_flags",
     {NAME: "allow_corrupt", TOOLTIP: ttip.file_handling_allow_corrupt},
     {NAME: "integrity_test", TOOLTIP: ttip.file_handling_integrity_test},
     {NAME: "write_as_temp", TOOLTIP: ttip.file_handling_write_as_temp,
-     VISIBLE: False},
+     VISIBLE: VISIBILITY_HIDDEN},
     DEFAULT=sum([1<<i for i in (1, )])
     )
 
 tag_windows_flags = Bool32("window_flags",
-    {NAME: "sync_window_movement",   TOOLTIP: ttip.tag_windows_sync_window_movement, VISIBLE: False},
+    {NAME: "sync_window_movement",   TOOLTIP: ttip.tag_windows_sync_window_movement, VISIBLE: VISIBILITY_HIDDEN},
     {NAME: "use_default_dimensions", TOOLTIP: ttip.tag_windows_use_default_dimensions},
     {NAME: "cap_window_size",    TOOLTIP: ttip.tag_windows_cap_window_size},
     {NAME: "dont_shrink_width",  TOOLTIP: ttip.tag_windows_dont_shrink_width},
@@ -105,6 +105,7 @@ field_widget_flags = Bool32("widget_flags",
 
     {NAME: "scroll_unselected", TOOLTIP: ttip.field_widget_scroll_unselected}, # RENAMED
     {NAME: "evaluate_entry_fields", TOOLTIP: ttip.field_widget_evaluate_entry_fields},
+    {NAME: "show_structure_meta", TOOLTIP: ttip.field_widget_show_structure_meta},
     DEFAULT=sum([1<<i for i in (2, 3, 4, 6, 7, 8, 9, 10)])
     )
 
@@ -141,10 +142,10 @@ app_window = Struct("app_window",
 
     Pad(32 - 4*1 - 2*1),
 
-    UInt16("app_width", DEFAULT=640, VISIBLE=False),
-    UInt16("app_height", DEFAULT=480, VISIBLE=False),
-    SInt16("app_offset_x", VISIBLE=False),
-    SInt16("app_offset_y", VISIBLE=False),
+    UInt16("app_width", DEFAULT=640, VISIBLE=VISIBILITY_HIDDEN),
+    UInt16("app_height", DEFAULT=480, VISIBLE=VISIBILITY_HIDDEN),
+    SInt16("app_offset_x", VISIBLE=VISIBILITY_HIDDEN),
+    SInt16("app_offset_y", VISIBLE=VISIBILITY_HIDDEN),
 
     UInt16("window_menu_max_len", DEFAULT=15,
         TOOLTIP=ttip.app_window_window_menu_max_len,
@@ -193,11 +194,11 @@ tag_windows = Struct("tag_windows",
 tag_printing = Struct("tag_printing",
     block_print_flags,
 
-    UInt16("print_precision", DEFAULT=8, TOOLTIP="unused", VISIBLE=False),
-    UInt16("print_indent", DEFAULT=NODE_PRINT_INDENT, VISIBLE=False,
+    UInt16("print_precision", DEFAULT=8, TOOLTIP="unused", VISIBLE=VISIBILITY_HIDDEN),
+    UInt16("print_indent", DEFAULT=NODE_PRINT_INDENT, VISIBLE=VISIBILITY_HIDDEN,
         TOOLTIP=ttip.tag_printint_print_indent),
 
-    SIZE=16, VISIBLE=False, GUI_NAME='Tag printing settings'
+    SIZE=16, VISIBLE=VISIBILITY_HIDDEN, GUI_NAME='Tag printing settings'
     )
 
 tag_backup = Struct("tag_backup",
@@ -217,31 +218,31 @@ tag_backup = Struct("tag_backup",
     )
 
 array_counts = Struct("array_counts",
-    UInt32("open_tag_count", VISIBLE=False, EDITABLE=False),
-    UInt32("recent_tag_count", VISIBLE=False, EDITABLE=False),
-    UInt32("directory_path_count", VISIBLE=False, EDITABLE=False),
-    UInt32("depth_count", VISIBLE=False, EDITABLE=False),
-    UInt32("color_count", VISIBLE=False, EDITABLE=False),
-    UInt32("hotkey_count", VISIBLE=False, EDITABLE=False),
-    UInt32("tag_window_hotkey_count", VISIBLE=False, EDITABLE=False),
-    UInt32("font_count", VISIBLE=False, EDITABLE=False),
-    SIZE=128, VISIBLE=False, EDITABLE=False,
+    UInt32("open_tag_count", EDITABLE=False),
+    UInt32("recent_tag_count", EDITABLE=False),
+    UInt32("directory_path_count", EDITABLE=False),
+    UInt32("depth_count", EDITABLE=False),
+    UInt32("color_count", EDITABLE=False),
+    UInt32("hotkey_count", EDITABLE=False),
+    UInt32("tag_window_hotkey_count", EDITABLE=False),
+    UInt32("font_count", EDITABLE=False),
+    SIZE=128, VISIBLE=VISIBILITY_METADATA, EDITABLE=False,
     COMMENT="\n\n\n\nDONT TOUCH THIS SHIT. Messing with these can damage your config file.\n\n\n\n"
     )
 
 open_tags = Array("open_tags",
-    SUB_STRUCT=open_tag, SIZE="array_counts.open_tag_count", VISIBLE=False
+    SUB_STRUCT=open_tag, SIZE="array_counts.open_tag_count", VISIBLE=VISIBILITY_HIDDEN
     )
 
 recent_tags = Array("recent_tags",
-    SUB_STRUCT=filepath, SIZE="array_counts.recent_tag_count", VISIBLE=False
+    SUB_STRUCT=filepath, SIZE="array_counts.recent_tag_count", VISIBLE=VISIBILITY_HIDDEN
     )
 
 directory_paths = Array("directory_paths",
     SUB_STRUCT=filepath, SIZE="array_counts.directory_path_count",
     NAME_MAP=("last_load_dir", "last_defs_dir", "last_imp_dir", "curr_dir",
               "tags_dir", "debug_log_path", "styles_dir",),
-    VISIBLE=False
+    VISIBLE=VISIBILITY_HIDDEN
     )
 
 hotkeys = Array("hotkeys",
@@ -257,11 +258,11 @@ tag_window_hotkeys = Array(
     )
 
 version_info = Struct("version_info",
-    UEnum32("id", ('Bnla', 'alnB'), VISIBLE=False, DEFAULT='alnB'),
-    UInt32("version", DEFAULT=2, VISIBLE=False, EDITABLE=False),
+    UEnum32("id", ('Bnla', 'alnB'), VISIBLE=VISIBILITY_METADATA, DEFAULT='alnB'),
+    UInt32("version", DEFAULT=2, VISIBLE=VISIBILITY_METADATA, EDITABLE=False),
     Timestamp32("date_created", EDITABLE=False),
     Timestamp32("date_modified", EDITABLE=False),
-    SIZE=16, VISIBLE=False
+    SIZE=16, VISIBLE=VISIBILITY_HIDDEN
     )
 
 all_hotkeys = Container("all_hotkeys",

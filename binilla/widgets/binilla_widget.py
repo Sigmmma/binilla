@@ -246,7 +246,7 @@ class BinillaWidget():
                     var = traces.pop(cb_name)
                     var.trace_vdelete(mode, cb_name)
                 except Exception:
-                    print(format_exc())
+                    pass
 
     def delete_all_widget_refs(self):
         '''

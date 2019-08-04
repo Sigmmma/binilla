@@ -4,7 +4,7 @@ import tkinter.font
 from supyr_struct.defs.tag_def import TagDef
 from supyr_struct.field_types import *
 
-from binilla.constants import NAME, VALUE, GUI_NAME
+from binilla.constants import NAME, VALUE, GUI_NAME, VISIBILITY_METADATA
 from binilla.defs import style_tooltips as ttip
 from binilla.widgets.field_widgets.color_picker_frame import ColorPickerFrame
 from binilla.editor_constants import widget_depth_names, color_names, font_names
@@ -57,10 +57,10 @@ theme_name = StrUtf8Enum("theme_name",
     )
 
 array_counts = Struct("array_counts",
-    UInt32("depth_count", VISIBLE=False, EDITABLE=False),
-    UInt32("color_count", VISIBLE=False, EDITABLE=False),
-    UInt32("font_count", VISIBLE=False, EDITABLE=False),
-    SIZE=128, VISIBLE=False, EDITABLE=False,
+    UInt32("depth_count", EDITABLE=False),
+    UInt32("color_count", EDITABLE=False),
+    UInt32("font_count", EDITABLE=False),
+    SIZE=128, VISIBLE=VISIBILITY_METADATA, EDITABLE=False,
     COMMENT="Messing with these can damage your style file."
     )
 
@@ -158,8 +158,8 @@ fonts = Array("fonts",
     )
 
 version_info = Struct("version_info",
-    UEnum32("id", ('Styl', 'lytS'), VISIBLE=False, DEFAULT='lytS'),
-    UInt32("version", DEFAULT=2, VISIBLE=False),
+    UEnum32("id", ('Styl', 'lytS'), VISIBLE=VISIBILITY_METADATA, DEFAULT='lytS'),
+    UInt32("version", DEFAULT=2, VISIBLE=VISIBILITY_METADATA),
     Timestamp32("date_created"),
     Timestamp32("date_modified"),
     SIZE=16

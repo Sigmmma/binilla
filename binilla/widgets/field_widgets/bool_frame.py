@@ -124,10 +124,9 @@ class BoolFrame(data_frame.DataFrame):
                   self.check_frame, self.title_label):
             w.tooltip_string = self.desc.get('TOOLTIP')
 
-        all_visible = self.all_bools_visible
         visible_bits = [int(math.log(mask, 2.0)) for mask in sorted(desc['VALUE_MAP'])]
         # create visible bits for all flags that dont have one defined
-        if all_visible:
+        if self.all_bools_visible:
             bit_ct = self.field_size * (1 if self.is_bit_based else 8)
             for i in range(bit_ct):
                 if len(visible_bits) <= i:
@@ -141,8 +140,8 @@ class BoolFrame(data_frame.DataFrame):
             mask = 1 << bit
             opt = desc.get(desc['VALUE_MAP'].get(mask))
 
-            if opt is None or not opt.get("VISIBLE", True):
-                if not all_visible:
+            if opt is None or not self.get_visible(opt.get("VISIBLE", True)):
+                if not self.all_bools_visible:
                     continue
                 name = e_c.UNKNOWN_BOOLEAN % bit
                 opt = dict(GUI_NAME=name.replace('_', ' '), NAME=name)

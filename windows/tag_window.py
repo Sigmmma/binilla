@@ -11,6 +11,7 @@ from tkinter import messagebox
 from tkinter import constants as t_c
 from traceback import format_exc
 
+from binilla import constants
 from binilla.edit_manager import EditManager
 from binilla.widgets.field_widgets import FieldWidget
 from binilla.widgets.field_widget_picker import def_widget_picker
@@ -296,21 +297,6 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             return False
 
     @property
-    def all_visible(self):
-        try:
-            if self.is_config and not (self.app_root.config_file.data.\
-                                       app_window.flags.debug_mode):
-                # No one should be fucking with the configs hidden values
-                return False
-        except Exception:
-            pass
-
-        try:
-            return bool(self.widget_flags.show_invisible)
-        except Exception:
-            return False
-
-    @property
     def all_editable(self):
         try:
             return bool(self.widget_flags.edit_uneditable)
@@ -347,6 +333,29 @@ class TagWindow(tk.Toplevel, BinillaWidget):
     def max_width(self):
         # OS_PAD_X accounts for the width of the windows border
         return self.winfo_screenwidth() - self.winfo_x() - OS_PAD_X
+
+    def get_visible(self, visibility_level):
+        if (visibility_level is None or
+            visibility_level >= constants.VISIBILITY_SHOWN):
+            return True
+
+        try:
+            if self.is_config and not (self.app_root.config_file.data.\
+                                       app_window.flags.debug_mode):
+                # No one should be fucking with the configs hidden values
+                return False
+        except Exception:
+            pass
+
+        try:
+            if visibility_level == constants.VISIBILITY_METADATA:
+                return bool(self.widget_flags.show_structure_meta)
+            elif visibility_level == constants.VISIBILITY_HIDDEN:
+                return bool(self.widget_flags.show_invisible)
+            else:
+                return True
+        except Exception:
+            return False
 
     def _resize_canvas(self, e):
         '''

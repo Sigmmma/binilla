@@ -3,6 +3,7 @@ import tkinter.ttk as ttk
 
 from traceback import format_exc
 
+from binilla import constants
 from binilla import editor_constants as e_c
 from binilla.widgets.field_widgets import field_widget, data_frame
 
@@ -126,6 +127,14 @@ class ContainerFrame(tk.Frame, field_widget.FieldWidget):
         #    self.pose_fields()
 
     @property
+    def field_count(self):
+        desc = self.desc
+        try:
+            return desc.get('ENTRIES', 0) + ('STEPTREE' in desc)
+        except Exception:
+            return 0
+
+    @property
     def visible_field_count(self):
         desc = self.desc
         try:
@@ -136,9 +145,6 @@ class ContainerFrame(tk.Frame, field_widget.FieldWidget):
             if 'STEPTREE' in desc:
                 entries += ('STEPTREE',)
 
-            if self.all_visible:
-                return len(entries)
-
             for i in entries:
                 sub_desc = desc[i]
                 if hasattr(node, "__getitem__"):
@@ -147,7 +153,7 @@ class ContainerFrame(tk.Frame, field_widget.FieldWidget):
                 if hasattr(sub_node, 'desc'):
                     sub_desc = sub_node.desc
 
-                if sub_desc.get('VISIBLE', True):
+                if self.get_visible(sub_desc.get('VISIBLE', True)):
                     total += 1
             return total
         except (IndexError, KeyError, AttributeError):
@@ -245,23 +251,20 @@ class ContainerFrame(tk.Frame, field_widget.FieldWidget):
         kwargs = dict(parent=node, tag_window=tag_window, f_widget_parent=self,
                       disabled=self.disabled, vert_oriented=vertical)
 
-        all_visible = self.all_visible
-        visible_count = self.visible_field_count
-
+        visible_field_count = self.visible_field_count
         # if only one sub-widget being displayed, dont
         # display the title of the widget being displayed
-        if not all_visible:
-            s_desc = desc.get('STEPTREE', dict(VISIBLE=False))
-            if visible_count < 2:
-                if not s_desc.get('VISIBLE', 1):
-                    # only make the title not shown if the only
-                    # visible widget will not be the subtree
-                    kwargs.update(show_title=False)
-                kwargs.update(dont_padx_fields=True)
+        if self.field_count != visible_field_count and visible_field_count < 2:
+            if 'STEPTREE' not in desc or not self.get_visible(
+                    desc['STEPTREE'].get('VISIBLE', True)):
+                # only make the title not shown if the only
+                # visible widget will not be the subtree
+                kwargs.update(show_title=False)
+            kwargs.update(dont_padx_fields=True)
 
         if self.dont_padx_fields:
             kwargs.update(pack_padx=0)
-        elif visible_count < 2 and not self.show_title:
+        elif visible_field_count < 2 and not self.show_title:
             # Use this widgets x padding amount so that its
             # singular child appears where this widget would.
             kwargs.update(use_parent_pack_padx=True)
@@ -277,7 +280,7 @@ class ContainerFrame(tk.Frame, field_widget.FieldWidget):
                 sub_desc = sub_node.desc
 
             # if the field shouldnt be visible, dont make its widget
-            if not(sub_desc.get('VISIBLE', True) or all_visible):
+            if not self.get_visible(sub_desc.get('VISIBLE', True)):
                 continue
 
             widget_cls = picker.get_widget(sub_desc)
@@ -306,15 +309,6 @@ class ContainerFrame(tk.Frame, field_widget.FieldWidget):
     def reload(self):
         '''Resupplies the nodes to the widgets which display them.'''
         try:
-            desc = self.desc
-            field_indices = range(desc['ENTRIES'])
-            # if the node has a steptree node, include its index in the indices
-            if 'STEPTREE' in desc:
-                field_indices = tuple(field_indices) + ('STEPTREE',)
-
-            f_widget_ids_map = self.f_widget_ids_map
-            all_visible = self.all_visible
-
             # if any of the descriptors are different between
             # the sub-nodes of the previous and new sub-nodes,
             # then this widget will need to be repopulated.

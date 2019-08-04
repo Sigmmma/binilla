@@ -7,6 +7,7 @@ from tkinter.filedialog import asksaveasfilename, askopenfilename
 from traceback import format_exc
 
 from binilla.edit_manager import EditState
+from binilla import constants
 from binilla import editor_constants as e_c
 from binilla.widgets.binilla_widget import BinillaWidget
 
@@ -158,9 +159,17 @@ class FieldWidget(BinillaWidget):
         if self.comment_frame:
             self.comment_frame.config(bd=self.comment_depth,
                                       bg=self.comment_bg_color)
+
         if self.comment_label:
             self.comment_label.config(bg=self.comment_bg_color,
                                       fg=self.text_normal_color)
+
+    def get_visible(self, visibility_level):
+        try:
+            return self.tag_window.get_visible(visibility_level)
+        except Exception:
+            return (visibility_level is None or
+                    visibility_level >= constants.VISIBILITY_SHOWN)
 
     @property
     def is_empty(self):
@@ -214,13 +223,6 @@ class FieldWidget(BinillaWidget):
             return self.desc.get('EDITABLE', True) or self.all_editable
         except Exception:
             return self.all_editable
-
-    @property
-    def all_visible(self):
-        try:
-            return bool(self.tag_window.all_visible)
-        except Exception:
-            return False
 
     @property
     def all_editable(self):

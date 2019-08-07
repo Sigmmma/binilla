@@ -323,7 +323,9 @@ class NumberEntryFrame(EntryFrame):
 
         new_node = self.entry_string.get()
         if self.evaluate_entry_fields:
-            new_node = eval(new_node, {}, number_eval_globals)
+            if "__" in new_node:
+                raise ValueError("Unsafe operations included in evaluation string.")
+            new_node = eval(new_node, {'__builtins__': {}}, number_eval_globals)
 
         if unit_scale is None:
             unit_scale = 1

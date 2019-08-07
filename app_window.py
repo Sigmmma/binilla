@@ -1214,20 +1214,27 @@ class Binilla(tk.Tk, BinillaWidget):
         if self.curr_step_x > self.max_step_x:
             self.curr_step_x = 0
 
-        self.place_window_relative(
-            window, self.curr_step_x*self.tile_stride_x + 5,
-            self.curr_step_y*self.tile_stride_y + 50)
-        self.curr_step_y += 1
+        try:
+            self.place_window_relative(
+                window, self.curr_step_x*self.tile_stride_x + 5,
+                self.curr_step_y*self.tile_stride_y + 50)
 
-        self.tag_windows[id(window)] = window
-        self.tag_id_to_window_id[id(tag)] = id(window)
+            self.curr_step_y += 1
 
-        # make sure the window is drawn now that it exists
-        window.update_idletasks()
+            self.tag_windows[id(window)] = window
+            self.tag_id_to_window_id[id(tag)] = id(window)
 
-        if focus:
-            # set the focus to the new TagWindow
-            self.select_tag_window(window)
+            # make sure the window is drawn now that it exists
+            window.update_idletasks()
+
+            if focus:
+                # set the focus to the new TagWindow
+                self.select_tag_window(window)
+
+        except tk.TclError:
+            # something happened to the window while trying to position
+            # it or select it. not really an issue, so don't report it.
+            return
 
         return window
 

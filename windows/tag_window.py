@@ -109,6 +109,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
     _applying_edit_state = False
     _resizing_window = False
     _saving = False
+    _initialized = False
     _scrolling = False
     _last_saved_edit_index = 0
     _pending_scroll_counts = ()
@@ -208,6 +209,8 @@ class TagWindow(tk.Toplevel, BinillaWidget):
 
             self.resize_window(width, height)
             self.apply_style()
+
+        self._initialized = True
 
     # The config settings governing the way the window works
     @property
@@ -515,6 +518,12 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         '''
         if self._saving:
             print("Still saving. Please wait.")
+            return True
+        elif self.applying_style_change:
+            print("Still applying style change. Please wait.")
+            return True
+        elif not self._initialized:
+            print("Still initializing window. Please wait.")
             return True
 
         try:
@@ -886,6 +895,16 @@ class TagWindow(tk.Toplevel, BinillaWidget):
 class ConfigWindow(TagWindow):
 
     def destroy(self):
+        if self._saving:
+            print("Still saving. Please wait.")
+            return True
+        elif self.applying_style_change:
+            print("Still applying style change. Please wait.")
+            return True
+        elif not self._initialized:
+            print("Still initializing window. Please wait.")
+            return True
+
         tag = self.tag
         self.tag = None
         try:

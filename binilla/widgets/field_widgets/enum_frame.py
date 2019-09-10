@@ -23,12 +23,6 @@ class EnumFrame(data_frame.DataFrame):
         except Exception:
             sel_index = -1
 
-        label_width = self.widget_width
-        if not label_width:
-            label_width = self.enum_menu_width
-            for s in self.get_options().values():
-                label_width = max(label_width, len(s))
-
         # make the widgets
         self.content = tk.Frame(self, relief='flat', bd=0)
 
@@ -39,7 +33,7 @@ class EnumFrame(data_frame.DataFrame):
             justify='left', anchor='w', width=self.title_size,
             disabledforeground=self.text_disabled_color)
         self.sel_menu = ScrollMenu(
-            self.content, f_widget_parent=self, menu_width=label_width,
+            self.content, f_widget_parent=self, menu_width=self.widget_width,
             sel_index=sel_index, max_index=self.desc.get('ENTRIES', 0) - 1,
             disabled=self.disabled, default_text="<INVALID>",
             option_getter=self.get_options, callback=self.select_option)
@@ -51,6 +45,20 @@ class EnumFrame(data_frame.DataFrame):
         self.populate()
         self.pose_fields()
         self._initialized = True
+
+    @property
+    def widget_width(self):
+        desc = self.desc
+        width = desc.get('WIDGET_WIDTH', self.enum_menu_width)
+        if width <= 0:
+            for s in self.get_options().values():
+                width = max(width, len(s))
+
+        return width
+
+    def apply_style(self, seen=None):
+        self.sel_menu.menu_width = self.widget_width
+        data_frame.DataFrame.apply_style(self, seen)
 
     def unload_node_data(self):
         field_widget.FieldWidget.unload_node_data(self)

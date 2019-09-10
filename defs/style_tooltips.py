@@ -5,11 +5,11 @@ appearance_theme = (
 title_width = (
     "Number of characters wide the title of each vertically oriented field is.")
 scroll_menu_width = (
-    "Default number of characters wide the drop-down menu will be when\n" +
-    "not being used to represent an enumerator(such as in an array or union).")
+    "The number of characters wide the scroll menus will be.")
 enum_menu_width = (
-    "Default number of characters wide the drop-down menu will be when\n"
-    "used to represent an enumerator.")
+    "Number of characters wide the scroll menus will be when\n"
+    "used to represent an enumerator. If set to 0, the width\n"
+    "will be chosen as the length of the longest enum option.")
 min_entry_width = (
     "Minimum number of characters wide an entry field must be.")
 
@@ -18,11 +18,11 @@ textbox_max_width = "Width of multi-line text boxes."
 textbox_max_height = "Height of multi-line text boxes."
 
 scroll_menu_width_height = (
-    "Maximum number of characters wide/tall an enumerator widget can be.")
+    "Maximum number of characters wide/tall a scroll menu widget can be.")
 scroll_menu_max_width = (
-    "Maximum number of characters wide an enumerator widget can be.")
+    "Maximum number of characters wide a scroll menu can be.")
 scroll_menu_max_height = (
-    "Maximum number of characters tall an enumerator widget can be.")
+    "Maximum number of characters tall a scroll menu can be.")
 
 bool_frame_width  = "Minimum/maximum number of pixels wide a boolean frame can be."
 bool_frame_min_width  = "Minimum number of pixels wide a boolean frame can be."

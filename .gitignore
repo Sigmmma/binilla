@@ -1,5 +1,5 @@
-**__pycache__/
-**.cfg
-**.log
-**.backup
-**.BACKUP
+__pycache__/
+*.cfg
+*.log
+*.backup
+*.BACKUP

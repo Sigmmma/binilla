@@ -357,3 +357,6 @@ class DynamicEnumFrame(EnumFrame):
     def flag_sanity_change(self, e=None):
         self.options_sane = self.sel_menu.options_menu_sane = (
             not self.sel_menu.options_volatile)
+
+        if not self.options_sane:
+            self.option_cache = None

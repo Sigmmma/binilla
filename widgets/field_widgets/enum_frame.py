@@ -224,6 +224,8 @@ class DynamicEnumFrame(EnumFrame):
 
         self.sel_menu.bind('<FocusIn>', self.flag_sanity_change)
         self.sel_menu.arrow_button.bind('<FocusIn>', self.flag_sanity_change)
+        self.sel_menu.bind('<Enter>', self.flag_sanity_change)
+        self.sel_menu.arrow_button.bind('<Enter>', self.flag_sanity_change)
         self.sel_menu.options_volatile = 'DYN_NAME_PATH' in self.desc
 
         if self.gui_name != '':

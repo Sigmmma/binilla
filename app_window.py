@@ -1,6 +1,7 @@
 import collections
 import gc
 import os
+from pathlib import Path
 import platform
 import re
 import sys
@@ -379,7 +380,7 @@ class Binilla(tk.Tk, BinillaWidget):
 
         flags = self.config_file.data.app_window.flags
         if flags.log_output:
-            curr_dir = self.curr_dir
+            curr_dir = str(self.curr_dir)
             if not curr_dir.endswith(s_c.PATHDIV):
                 curr_dir += s_c.PATHDIV
 
@@ -427,12 +428,13 @@ class Binilla(tk.Tk, BinillaWidget):
         tags_dir = handler.tagsdir
         tagsdir_rel = handler.tagsdir_relative
         add_to_recent = True
+        new_filepath = Path(new_filepath)
 
         abs_filepath = tag.filepath
         abs_new_filepath = new_filepath
         if tagsdir_rel:
-            abs_filepath = os.path.join(tags_dir, abs_filepath)
-            abs_new_filepath = os.path.join(tags_dir, abs_new_filepath)
+            abs_filepath = Path(tags_dir, abs_filepath)
+            abs_new_filepath = Path(tags_dir, abs_new_filepath)
 
         try:
             existing_tag = handler.get_tag(tag.rel_filepath, tag.def_id)
@@ -452,8 +454,8 @@ class Binilla(tk.Tk, BinillaWidget):
 
         if not filepath:
             # the path is blank(new tag), give it a unique name
-            new_filepath = 'untitled%s%s' % (self.untitled_num, tag.ext)
-            abs_new_filepath = os.path.join(tags_dir, new_filepath)
+            new_filepath = Path('untitled%s%s' % (self.untitled_num, tag.ext))
+            abs_new_filepath = Path(tags_dir, new_filepath)
             self.untitled_num += 1
             add_to_recent = False
 
@@ -465,7 +467,10 @@ class Binilla(tk.Tk, BinillaWidget):
 
         tag.tags_dir = tags_dir
         if tagsdir_rel:
-            tag.rel_filepath = new_filepath
+            try:
+                tag.rel_filepath = new_filepath.relative_to(Path(tags_dir))
+            except:
+                tag.rel_filepath = new_filepath
 
         # index the tag under its new filepath
         handler.add_tag(tag, new_filepath)
@@ -840,7 +845,7 @@ class Binilla(tk.Tk, BinillaWidget):
 
         for s in ('last_load_dir', 'last_defs_dir', 'last_imp_dir',
                   'curr_dir', 'styles_dir')[:len(dir_paths)]:
-            try: setattr(self, s, dir_paths[s].path)
+            try: setattr(self, s, Path(dir_paths[s].path))
             except IndexError: pass
 
         for wid in sorted(self.tag_windows):
@@ -1118,8 +1123,9 @@ class Binilla(tk.Tk, BinillaWidget):
         handler_flags = self.config_file.data.tag_windows.file_handling_flags
         tags_dir = os.path.join(handler.tagsdir, "")
 
+        print(filepaths, file=sys.stderr)
         for path in filepaths:
-            path = abs_path = sanitize_path(path)
+            abs_path = path
             is_new_tag = not bool(abs_path)
 
             if self.get_is_tag_loaded(path):
@@ -1503,7 +1509,7 @@ class Binilla(tk.Tk, BinillaWidget):
         dir_paths = self.config_file.data.directory_paths
         for s in ('last_load_dir', 'last_defs_dir', 'last_imp_dir',
                   'curr_dir', 'styles_dir', ):
-            try: dir_paths[s].path = getattr(self, s)
+            try: dir_paths[s].path = str(getattr(self, s))
             except IndexError: pass
 
         self.config_window = self.make_tag_window(self.config_file,
@@ -1678,7 +1684,7 @@ class Binilla(tk.Tk, BinillaWidget):
 
         for s in ('last_load_dir', 'last_defs_dir', 'last_imp_dir',
                   'curr_dir', 'styles_dir', ):
-            try: dir_paths[s].path = getattr(self, s)
+            try: dir_paths[s].path = str(getattr(self, s))
             except IndexError: pass
 
         dir_paths.tags_dir.path = self.handler.tagsdir

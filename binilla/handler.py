@@ -29,8 +29,10 @@ from supyr_struct.defs.tag_def import TagDef
 
 # make sure the new constants are injected and used
 from binilla.constants import PATHDIV, BPI
-from binilla.util import sanitize_path, is_main_frozen
+from binilla.util import is_main_frozen
 from supyr_struct.util import is_in_dir
+
+from reclaimer.util.path import path_normalize
 
 
 ######################################################
@@ -100,8 +102,7 @@ class Handler():
     default_import_rootpath = "supyr_struct"
     default_defs_path = "supyr_struct.defs"
 
-    tagsdir = "%s%stags%s" % (
-        dirname(os.path.abspath(os.curdir)), PATHDIV, PATHDIV)
+    tagsdir = join(dirname(os.curdir), "tags")
 
     def __init__(self, **kwargs):
         '''
@@ -195,7 +196,7 @@ class Handler():
         self.defs_filepath = kwargs.pop("defs_filepath", self.defs_filepath)
         self.defs_path = kwargs.pop("defs_path", self.defs_path)
 
-        self.tagsdir = sanitize_path(kwargs.pop("tagsdir", self.tagsdir))
+        self.tagsdir = path_normalize(kwargs.pop("tagsdir", self.tagsdir))
         self.tags = kwargs.pop("tags", self.tags)
 
         # make sure there is an ending folder slash on the tags directory
@@ -288,7 +289,7 @@ class Handler():
         this handlers tagsdir, but rather is an absolute filepath.
         '''
         def_id = kwargs.get("def_id", None)
-        filepath = sanitize_path(kwargs.get("filepath", ''))
+        filepath = kwargs.get("filepath", None)
         rawdata = kwargs.get("rawdata", None)
         int_test = kwargs.get("int_test", False)
         allow_corrupt = kwargs.get("allow_corrupt", self.allow_corrupt)
@@ -351,7 +352,8 @@ class Handler():
         if not self.case_sensitive:
             filepath = filepath.lower()
 
-        filepath = sanitize_path(filepath)
+        #TODO: Danger! The path helpers should really be moved to supyr_struct
+        filepath = path_normalize(filepath)
         if filepath in self.tags.get(def_id, ()):
             del self.tags[def_id][filepath]
 
@@ -414,7 +416,7 @@ class Handler():
         src and dest are iterables which contain the filepaths to
         check against to see if the generated filename is unique.
         '''
-        splitpath, ext = splitext(sanitize_path(filepath))
+        splitpath, ext = splitext(path_normalize(filepath))
         newpath = splitpath
 
         # find the location of the last underscore
@@ -499,14 +501,14 @@ class Handler():
                                        ignore_future_dates=False):
         backup_paths = {}
         backup_dir = self.get_backup_dir(filepath)
-        filepath = sanitize_path(os.path.realpath(filepath))
+        filepath = path_normalize(os.path.realpath(filepath))
         src_fname = os.path.splitext(os.path.basename(filepath))[0]
         if self.case_sensitive:
             src_fname = src_fname.lower()
 
         for root, _, files in os.walk(backup_dir):
             for fname in files:
-                fpath = sanitize_path(join(root, fname))
+                fpath = path_normalize(join(root, fname))
                 if not self.case_sensitive:
                     fname = fname.lower()
 
@@ -621,7 +623,7 @@ class Handler():
             # in the above code. This method must be used(which I
             # think looks kinda hacky)
             self.defs_filepath = tuple(defs_module.__path__)[0]
-        self.defs_filepath = sanitize_path(self.defs_filepath)
+        self.defs_filepath = path_normalize(self.defs_filepath)
 
         if 'imp_paths' in kwargs:
             imp_paths = kwargs['imp_paths']
@@ -770,7 +772,7 @@ class Handler():
         
         for root, directories, files in os.walk(searchdir):
             for filename in files:
-                filepath = sanitize_path(join(root, filename))
+                filepath = path_normalize(join(root, filename))
                 if not self.case_sensitive:
                     filepath = filepath.lower()
 

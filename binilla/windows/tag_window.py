@@ -888,7 +888,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
 
     def update_title(self, new_title=None):
         if new_title is None:
-            new_title = self.tag.filepath
+            new_title = str(self.tag.filepath)
         self.title(new_title)
 
 

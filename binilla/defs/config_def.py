@@ -12,6 +12,7 @@ from binilla.constants import GUI_NAME, NAME, TOOLTIP, VALUE, VISIBLE,\
 from binilla.editor_constants import widget_depth_names, color_names,\
      font_names
 from binilla.defs import config_tooltips as ttip
+from binilla import editor_constants as e_c
 
 
 __all__ = (
@@ -106,7 +107,10 @@ field_widget_flags = Bool32("widget_flags",
     {NAME: "scroll_unselected", TOOLTIP: ttip.field_widget_scroll_unselected}, # RENAMED
     {NAME: "evaluate_entry_fields", TOOLTIP: ttip.field_widget_evaluate_entry_fields},
     {NAME: "show_structure_meta", TOOLTIP: ttip.field_widget_show_structure_meta},
-    DEFAULT=sum([1<<i for i in (2, 3, 4, 6, 7, 8, 9, 10)])
+    DEFAULT=(
+        sum([1<<i for i in (2, 3, 4, 6, 7, 8)])
+        if e_c.IS_LNX else
+        sum([1<<i for i in (2, 3, 4, 6, 7, 8, 9, 10)]))
     )
 
 block_print_flags = Bool32("block_print_flags",

@@ -271,7 +271,7 @@ class Binilla(tk.Tk, BinillaWidget):
         if not os.path.exists(self.curr_dir):
             self.curr_dir = this_curr_dir
             try:
-                self.config_file.data.directory_paths.curr_dir.path = this_curr_dir
+                self.config_file.data.directory_paths.curr_dir.path = str(this_curr_dir)
             except Exception:
                 pass
 
@@ -711,7 +711,7 @@ class Binilla(tk.Tk, BinillaWidget):
                 open_header.offset_x, open_header.offset_y = pos_x, pos_y
                 open_header.width, open_header.height = int(width), int(height)
 
-                open_tag.def_id, open_tag.path = tag.def_id, tag.filepath
+                open_tag.def_id, open_tag.path = tag.def_id, str(tag.filepath)
         except Exception:
             print(format_exc())
 
@@ -1677,7 +1677,7 @@ class Binilla(tk.Tk, BinillaWidget):
 
         for path in self.recent_tagpaths:
             recent_tags.append()
-            recent_tags[-1].path = path
+            recent_tags[-1].path = str(path)
     
         app_window.recent_tag_max = self.recent_tag_max
         tag_windows.max_undos = self.max_undos
@@ -1687,8 +1687,8 @@ class Binilla(tk.Tk, BinillaWidget):
             try: dir_paths[s].path = str(getattr(self, s))
             except IndexError: pass
 
-        dir_paths.tags_dir.path = self.handler.tagsdir
-        dir_paths.debug_log_path.path = self.log_filename
+        dir_paths.tags_dir.path = str(self.handler.tagsdir)
+        dir_paths.debug_log_path.path = str(self.log_filename)
 
         self.update_style(config_file)
 

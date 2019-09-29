@@ -1123,7 +1123,6 @@ class Binilla(tk.Tk, BinillaWidget):
         handler_flags = self.config_file.data.tag_windows.file_handling_flags
         tags_dir = os.path.join(handler.tagsdir, "")
 
-        print(filepaths, file=sys.stderr)
         for path in filepaths:
             abs_path = path
             is_new_tag = not bool(abs_path)

@@ -6,6 +6,7 @@ import platform
 import re
 import sys
 import threadsafe_tkinter as tk
+import webbrowser
 
 # make the ui more responsive by lowering the time between processing events
 tk.TkWrapper.idle_time = 2
@@ -132,6 +133,8 @@ class Binilla(tk.Tk, BinillaWidget):
     max_undos = 1000
     icon_filepath = ""
     app_bitmap_filepath = ""
+
+    issue_tracker_url = "https://github.com/MosesofEgypt/binilla/issues"
 
     '''Config properties'''
     style_def = None
@@ -320,6 +323,7 @@ class Binilla(tk.Tk, BinillaWidget):
         self.main_menu.add_cascade(label="Tag Windows", menu=self.windows_menu)
         #self.main_menu.add_command(label="Help")
         self.main_menu.add_command(label="About", command=self.show_about_window)
+        self.main_menu.add_command(label="Report Bug", command=self.open_issue_tracker)
         try:
             self.debug_mode = bool(self.config_file.data.app_window.flags.debug_mode)
         except Exception:
@@ -1825,6 +1829,9 @@ class Binilla(tk.Tk, BinillaWidget):
             app_name=self.app_name, messages=self.about_messages)
         self.place_window_relative(self.about_window, 30, 50)
 
+    def open_issue_tracker(self):
+        webbrowser.open_new_tab(self.issue_tracker_url)
+          
     def upgrade_config_version(self, filepath):
         old_version = self.config_version_def.build(filepath=filepath).data.version
         if old_version == 1:

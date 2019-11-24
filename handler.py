@@ -32,7 +32,7 @@ from binilla.constants import PATHDIV, BPI
 from binilla.util import is_main_frozen
 from supyr_struct.util import is_in_dir
 
-from reclaimer.util.path import path_normalize
+from supyr_struct.util.path import path_normalize
 
 
 ######################################################
@@ -769,7 +769,7 @@ class Handler():
         get_def_id = self.get_def_id
         tags_get = self.tags.get
         check = self.check_extension
-        
+
         for root, directories, files in os.walk(searchdir):
             for filename in files:
                 filepath = path_normalize(join(root, filename))

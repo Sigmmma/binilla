@@ -32,7 +32,7 @@ from binilla.constants import PATHDIV, BPI
 from binilla.util import is_main_frozen
 from supyr_struct.util import is_in_dir
 
-from supyr_struct.util.path import path_normalize
+from supyr_struct.util import path_normalize
 
 
 ######################################################

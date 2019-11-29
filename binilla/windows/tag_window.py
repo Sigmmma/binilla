@@ -440,7 +440,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             scroll_func(int(scroll_inc), "units")
             self.root_canvas.update()
             self._scrolling = False
-        except:
+        except Exception:
             self._scrolling = False
             raise
 

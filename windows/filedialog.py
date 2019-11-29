@@ -7,6 +7,6 @@ try:
 except Exception:
     from sys import platform
     if 'linux' in platform:
-        print("Couldn't find tkfilebrowser_nonabs module! "
-              "All your file picker dialogs will suck now.")
+        print("Couldn't find tkfilebrowser_nonabs module!\n"
+              "All your file picker dialogs will suck.")
     from tkinter.filedialog import askopenfilename, askopenfilenames, askdirectory, asksaveasfilename

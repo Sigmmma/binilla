@@ -13,8 +13,6 @@ tk.TkWrapper.idle_time = 2
 
 from datetime import datetime
 from time import time, sleep
-from tkinter.filedialog import askopenfilenames, askopenfilename,\
-     askdirectory, asksaveasfilename
 from traceback import format_exc
 
 import binilla
@@ -32,6 +30,8 @@ from binilla.handler import Handler
 from binilla.util import sanitize_path, get_cwd, IORedirecter
 from binilla.windows.about_window import AboutWindow
 from binilla.windows.def_selector_window import DefSelectorWindow
+from binilla.windows.filedialog import askopenfilenames, askopenfilename,\
+     askdirectory, asksaveasfilename
 from binilla.windows.tag_window import TagWindow, ConfigWindow,\
      make_hotkey_string, read_hotkey_string
 from binilla.windows.tag_window_manager import TagWindowManager
@@ -614,7 +614,7 @@ class Binilla(tk.Tk, BinillaWidget):
                     if destroy_window and t_window.destroy():
                         # couldn't destroy window, it's saving or something
                         return
-                    
+
                     tid_to_wid.pop(tid, None)
                     self.tag_windows.pop(wid, None)
 
@@ -1681,7 +1681,7 @@ class Binilla(tk.Tk, BinillaWidget):
         for path in self.recent_tagpaths:
             recent_tags.append()
             recent_tags[-1].path = str(path)
-    
+
         app_window.recent_tag_max = self.recent_tag_max
         tag_windows.max_undos = self.max_undos
 
@@ -1746,7 +1746,7 @@ class Binilla(tk.Tk, BinillaWidget):
                     color_block = colors[i]
                 except IndexError:
                     continue
-            
+
             try:
                 color = getattr(BinillaWidget, self.color_names[i] + '_color')[1:]
                 color_block[0] = int(color[0:2], 16)
@@ -1825,13 +1825,13 @@ class Binilla(tk.Tk, BinillaWidget):
 
         self.about_window = AboutWindow(
             self, module_names=self.about_module_names,
-            iconbitmap=self.icon_filepath, appbitmap=self.app_bitmap_filepath, 
+            iconbitmap=self.icon_filepath, appbitmap=self.app_bitmap_filepath,
             app_name=self.app_name, messages=self.about_messages)
         self.place_window_relative(self.about_window, 30, 50)
 
     def open_issue_tracker(self):
         webbrowser.open_new_tab(self.issue_tracker_url)
-          
+
     def upgrade_config_version(self, filepath):
         old_version = self.config_version_def.build(filepath=filepath).data.version
         if old_version == 1:

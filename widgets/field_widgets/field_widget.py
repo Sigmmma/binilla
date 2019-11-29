@@ -3,13 +3,13 @@ import threadsafe_tkinter as tk
 import tkinter.ttk as ttk
 
 from tkinter import messagebox
-from tkinter.filedialog import asksaveasfilename, askopenfilename
 from traceback import format_exc
 
 from binilla.edit_manager import EditState
 from binilla import constants
 from binilla import editor_constants as e_c
 from binilla.widgets.binilla_widget import BinillaWidget
+from binilla.windows.filedialog import asksaveasfilename, askopenfilename
 
 
 # These classes are used for laying out the visual structure
@@ -660,7 +660,7 @@ class FieldWidget(BinillaWidget):
                     desc = parent_desc['SUB_STRUCT']
                 else:
                     desc = parent_desc.get(self.attr_index)
-                
+
         self._desc = desc
         return self._desc != prev_desc
 

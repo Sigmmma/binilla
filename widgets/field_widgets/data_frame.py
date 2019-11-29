@@ -1,13 +1,13 @@
 import threadsafe_tkinter as tk
 import tkinter.ttk as ttk
 
-from tkinter.filedialog import askopenfilename
 from traceback import format_exc
 
 from supyr_struct.buffer import get_rawdata_context
 
 from binilla import editor_constants as e_c
 from binilla.widgets.field_widgets import field_widget
+from binilla.windows.filedialog import askopenfilename
 
 
 class DataFrame(field_widget.FieldWidget, tk.Frame):

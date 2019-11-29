@@ -2,12 +2,11 @@ import math
 import struct
 import threadsafe_tkinter as tk
 
-from tkinter.filedialog import askopenfilename
 from traceback import format_exc
 
 from binilla.util import float_to_str, FLOAT_PREC, DOUBLE_PREC
-
 from binilla.widgets.field_widgets import field_widget, data_frame
+from binilla.windows.filedialog import askopenfilename
 
 
 def float_from_bytes(val, end='<'):
@@ -274,7 +273,7 @@ class EntryFrame(data_frame.DataFrame):
             self.needs_flushing = True
             self.data_entry.config(width=self.entry_width)
             self.data_entry.config(state=tk.NORMAL)
-            
+
             self.data_entry.delete(0, tk.END)
             if isinstance(node, float):
                 # find the precision of the float
@@ -301,7 +300,7 @@ class EntryFrame(data_frame.DataFrame):
             self.data_entry.insert(0, self.last_flushed_val)
             self.needs_flushing = False
             if highlight:
-                self.data_entry.selection_range(0, tk.END) 
+                self.data_entry.selection_range(0, tk.END)
         except Exception:
             print(format_exc())
         finally:
@@ -458,7 +457,7 @@ class TimestampFrame(EntryFrame):
             entry_width = self.def_string_entry_width
         return entry_width
 
-    
+
 class HexEntryFrame(EntryFrame):
 
     def flush(self, *args):

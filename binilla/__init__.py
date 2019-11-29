@@ -13,3 +13,9 @@ __all__ = (
 from binilla import constants
 
 constants.inject()
+
+# Hack: Temp import filedialog before anything else to avoid import order
+# conflict to do with FieldWidget.
+# TODO: Moses, please fix the root of this issue.
+from binilla.windows import filedialog
+del filedialog

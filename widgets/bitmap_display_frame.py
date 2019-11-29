@@ -131,7 +131,7 @@ class PhotoImageHandler():
             print("Could not load texture.")
             # no texture loaded(probably)
             return {}
-        except:
+        except Exception:
             print(format_exc())
             return {}
 

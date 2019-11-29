@@ -473,7 +473,7 @@ class Binilla(tk.Tk, BinillaWidget):
         if tagsdir_rel:
             try:
                 tag.rel_filepath = new_filepath.relative_to(Path(tags_dir))
-            except:
+            except Exception:
                 tag.rel_filepath = new_filepath
 
         # index the tag under its new filepath
@@ -1315,7 +1315,7 @@ class Binilla(tk.Tk, BinillaWidget):
             for line in tag_str.split('\n'):
                 try:
                     print(line)
-                except:
+                except Exception:
                     print(' '*(len(line)-len(line.lstrip(' ')))+s_c.UNPRINTABLE)
                 self.io_text.update()
         except Exception:

@@ -387,8 +387,9 @@ class Handler():
                               '\n' + ' '*BPI + self.current_tag)
 
         tag_coll = self.tags.get(def_id, {})
-        if not self.case_sensitive:
-            filepath = filepath.lower()
+        # TODO: Make a proper way to handle non-case sensitive tag systems
+        #if not self.case_sensitive:
+        #    filepath = filepath.lower()
 
         if tag_coll.get(filepath) is not None:
             return tag_coll[filepath]

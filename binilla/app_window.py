@@ -1,7 +1,6 @@
 import collections
 import gc
 import os
-from pathlib import Path
 import platform
 import re
 import sys
@@ -12,6 +11,7 @@ import webbrowser
 tk.TkWrapper.idle_time = 2
 
 from datetime import datetime
+from pathlib import Path, PurePath
 from time import time, sleep
 from traceback import format_exc
 
@@ -27,7 +27,7 @@ from binilla.widgets.field_widget_picker import WidgetPicker
 from binilla.widgets.binilla_widget import BinillaWidget
 from binilla.widgets.tooltip_handler import ToolTipHandler
 from binilla.handler import Handler
-from binilla.util import sanitize_path, get_cwd, IORedirecter
+from binilla.util import get_cwd, IORedirecter, is_path_empty
 from binilla.windows.about_window import AboutWindow
 from binilla.windows.def_selector_window import DefSelectorWindow
 from binilla.windows.filedialog import askopenfilenames, askopenfilename,\
@@ -37,8 +37,8 @@ from binilla.windows.tag_window import TagWindow, ConfigWindow,\
 from binilla.windows.tag_window_manager import TagWindowManager
 
 
-this_curr_dir = get_cwd(__file__)
-default_config_path = this_curr_dir + '%sbinilla.cfg' % s_c.PATHDIV
+this_curr_dir = Path(get_cwd(__file__))
+default_config_path = this_curr_dir.joinpath('binilla.cfg')
 
 default_hotkeys = collections.OrderedDict()
 for k, v in (
@@ -101,7 +101,7 @@ class Binilla(tk.Tk, BinillaWidget):
 
     '''Directories'''
     curr_dir = this_curr_dir
-    styles_dir = os.path.join(curr_dir, "styles")
+    styles_dir = curr_dir.joinpath("styles")
     last_load_dir = curr_dir
     last_defs_dir = curr_dir
     last_imp_dir  = curr_dir
@@ -131,8 +131,8 @@ class Binilla(tk.Tk, BinillaWidget):
     untitled_num = 0  # when creating a new, untitled tag, this integer is used
     #                   in its name like so: 'untitled%s' % self.untitled_num
     max_undos = 1000
-    icon_filepath = ""
-    app_bitmap_filepath = ""
+    icon_filepath = Path("")
+    app_bitmap_filepath = Path("")
 
     issue_tracker_url = "https://github.com/MosesofEgypt/binilla/issues"
 
@@ -258,7 +258,7 @@ class Binilla(tk.Tk, BinillaWidget):
         self.config_version_def = kwargs.pop('config_version_def', config_version_def)
         if self.config_file is not None:
             pass
-        elif os.path.exists(self.config_path):
+        elif self.config_path.is_file():
             # load the config file
             try:
                 self.load_config()
@@ -271,7 +271,7 @@ class Binilla(tk.Tk, BinillaWidget):
             self.make_config()
             self.config_made_anew = True
 
-        if not os.path.exists(self.curr_dir):
+        if not self.curr_dir.exists():
             self.curr_dir = this_curr_dir
             try:
                 self.config_file.data.directory_paths.curr_dir.path = str(this_curr_dir)
@@ -414,13 +414,15 @@ class Binilla(tk.Tk, BinillaWidget):
 
     def add_to_recent(self, filepath):
         recent = self.recent_tagpaths
-        recent.append(filepath)
         for i in range(len(recent)-1, -1, -1):
             if recent[i] == filepath:
                 recent.pop(i)
-        if len(recent) > self.recent_tag_max:
-            del recent[0: len(recent) - self.recent_tag_max]
-        recent.append(filepath)
+
+        if len(recent) >= self.recent_tag_max:
+            del recent[0: len(recent) - (self.recent_tag_max - 1)]
+
+        if self.recent_tag_max > 0:
+            recent.append(filepath)
 
     def add_tag(self, tag, new_filepath=''):
         '''
@@ -430,15 +432,15 @@ class Binilla(tk.Tk, BinillaWidget):
         filepath = tag.filepath
         handler = self.handler
         tags_dir = handler.tagsdir
-        tagsdir_rel = handler.tagsdir_relative
         add_to_recent = True
         new_filepath = Path(new_filepath)
 
-        abs_filepath = tag.filepath
-        abs_new_filepath = new_filepath
-        if tagsdir_rel:
-            abs_filepath = Path(tags_dir, abs_filepath)
-            abs_new_filepath = Path(tags_dir, abs_new_filepath)
+        if handler.tagsdir_relative:
+            abs_filepath = Path(tags_dir, tag.filepath)
+            abs_new_filepath = Path(tags_dir, new_filepath)
+        else:
+            abs_filepath = Path(tag.filepath)
+            abs_new_filepath = Path(new_filepath)
 
         try:
             existing_tag = handler.get_tag(tag.rel_filepath, tag.def_id)
@@ -453,24 +455,24 @@ class Binilla(tk.Tk, BinillaWidget):
             # remove the tag from the handler under its current filepath
             self.delete_tag(tag, False, False)
         else:
-            print('%s is already loaded' % abs_filepath)
+            print('"%s" is already loaded' % abs_filepath)
             return False
 
-        if not filepath:
+        if is_path_empty(filepath):
             # the path is blank(new tag), give it a unique name
             new_filepath = Path('untitled%s%s' % (self.untitled_num, tag.ext))
             abs_new_filepath = Path(tags_dir, new_filepath)
             self.untitled_num += 1
             add_to_recent = False
 
-        if abs_new_filepath:
+        if not is_path_empty(abs_new_filepath):
             tag.filepath = abs_new_filepath
 
         if add_to_recent:
             self.add_to_recent(tag.filepath)
 
         tag.tags_dir = tags_dir
-        if tagsdir_rel:
+        if handler.tagsdir_relative:
             try:
                 tag.rel_filepath = new_filepath.relative_to(Path(tags_dir))
             except Exception:
@@ -792,8 +794,8 @@ class Binilla(tk.Tk, BinillaWidget):
         for tagpath in reversed(self.recent_tagpaths):
             try:
                 menu.add_command(
-                    label="%s  %s" % (i, tagpath),
-                    command=lambda s=tagpath: self.load_tags(s))
+                    label="%s  %s" % (i, str(tagpath)),
+                    command=lambda s=str(tagpath): self.load_tags(s))
                 i += 1
             except Exception:
                 print(format_exc())
@@ -824,10 +826,10 @@ class Binilla(tk.Tk, BinillaWidget):
                           else self.terminal_out)
         else:
             # only load the recent tagpaths when loading binilla
-            self.recent_tagpaths = paths = []
+            self.recent_tagpaths = []
 
             for tagpath in recent_tags:
-                paths.append(tagpath.path)
+                self.recent_tagpaths.append(Path(tagpath.path))
 
         try:
             for s in app_window.NAME_MAP.keys():
@@ -862,7 +864,7 @@ class Binilla(tk.Tk, BinillaWidget):
         self.handler.tagsdir = dir_paths.tags_dir.path
         self.handler.backup_dir_basename = config_data.tag_backup.folder_basename
 
-        self.log_filename = os.path.basename(dir_paths.debug_log_path.path)
+        self.log_filename = Path(dir_paths.debug_log_path.path).name
 
         try:
             self.debug_mode = bool(app_window.flags.debug_mode)
@@ -874,15 +876,16 @@ class Binilla(tk.Tk, BinillaWidget):
     def load_config(self, filepath=None):
         if filepath is None:
             filepath = self.config_path
-        assert os.path.exists(filepath)
+        filepath = Path(filepath)
+        assert filepath.is_file()
 
         # load the config file
-        version_info = self.config_version_def.build(filepath=filepath).data
+        version_info = self.config_version_def.build(filepath=str(filepath)).data
         if version_info.id.data != version_info.id.DEFAULT:
             raise ValueError("Config header signature is invalid.")
 
         if version_info.version == self.config_version:
-            self.config_file = self.config_def.build(filepath=filepath)
+            self.config_file = self.config_def.build(filepath=str(filepath))
         else:
             print("Upgrading config to version %s" % self.config_version)
             self.config_file = self.upgrade_config_version(filepath)
@@ -921,19 +924,20 @@ class Binilla(tk.Tk, BinillaWidget):
                     initialdir=self.styles_dir, parent=self,
                     title="Select style to load",
                     filetypes=(("binilla_style", "*.sty"), ('All', '*')))
+            filepath = Path(filepath)
 
-            if not filepath:
+            if is_path_empty(filepath):
                 return
 
-            assert os.path.exists(filepath)
-            self.styles_dir = os.path.dirname(filepath)
+            assert filepath.is_file()
+            self.styles_dir = filepath.parent
 
-            version_info = self.style_version_def.build(filepath=filepath).data
+            version_info = self.style_version_def.build(filepath=str(filepath)).data
             if version_info.id.data != version_info.id.DEFAULT:
                 raise ValueError("Style header signature is invalid.")
 
             if version_info.version == self.style_version:
-                style_file = self.style_def.build(filepath=filepath)
+                style_file = self.style_def.build(filepath=str(filepath))
             else:
                 print("Upgrading style to version %s" % self.style_version)
                 style_file = self.upgrade_style_version(filepath)
@@ -1010,6 +1014,7 @@ class Binilla(tk.Tk, BinillaWidget):
     def make_config(self, filepath=None):
         if filepath is None:
             filepath = self.config_path
+        filepath = Path(filepath)
 
         # create the config file from scratch
         self.config_file = self.config_def.build()
@@ -1054,7 +1059,8 @@ class Binilla(tk.Tk, BinillaWidget):
         if not filepath:
             return
 
-        self.styles_dir = os.path.dirname(filepath)
+        filepath = Path(filepath)
+        self.styles_dir = filepath.parent
         style_file = self.style_def.build()
         style_file.filepath = filepath
 
@@ -1079,7 +1085,7 @@ class Binilla(tk.Tk, BinillaWidget):
         if def_id is None:
             def_id = self.handler.get_def_id(filepath)
         try:
-            return self.handler.get_tag(sanitize_path(filepath), def_id)
+            return self.handler.get_tag(filepath, def_id)
         except Exception:
             pass
 
@@ -1110,26 +1116,28 @@ class Binilla(tk.Tk, BinillaWidget):
                                          filetypes=filetypes, parent=self,
                                          title="Select the tag to load")
             if not filepaths:
-                return
-
-        if isinstance(filepaths, str):
-            # account for a stupid bug with certain versions of windows
-            if filepaths.startswith('{'):
+                return ()
+            elif isinstance(filepaths, str) and filepaths.startswith('{'):
+                # account for a stupid bug with certain versions of windows
                 filepaths = re.split("\}\W\{", filepaths[1:-1])
-            else:
-                filepaths = (filepaths, )
 
-        self.last_load_dir = os.path.dirname(filepaths[-1])
+        if isinstance(filepaths, (str, PurePath)):
+            filepaths = (filepaths, )
+
+        if not filepaths:
+            return ()
+
+        filepaths = tuple(Path(fp) for fp in filepaths)
+        self.last_load_dir = filepaths[-1].parent
         w = None
 
         windows = []
         handler = self.handler
         handler_flags = self.config_file.data.tag_windows.file_handling_flags
-        tags_dir = os.path.join(handler.tagsdir, "")
-
+        tags_dir = handler.tagsdir
         for path in filepaths:
             abs_path = path
-            is_new_tag = not bool(abs_path)
+            is_new_tag = is_path_empty(abs_path)
 
             if self.get_is_tag_loaded(path):
                 # the tag is somehow still loaded.
@@ -1145,7 +1153,8 @@ class Binilla(tk.Tk, BinillaWidget):
                 # try to load the new tags
                 try:
                     if handler.tagsdir_relative and not is_new_tag:
-                        abs_path = os.path.join(tags_dir, abs_path)
+                        abs_path = tags_dir.joinpath(abs_path)
+
                     new_tag = handler.build_tag(
                         filepath=abs_path, def_id=def_id,
                         allow_corrupt=handler_flags.allow_corrupt)
@@ -1186,18 +1195,19 @@ class Binilla(tk.Tk, BinillaWidget):
         defs = self.handler.defs
         for def_id in sorted(defs.keys()):
             filetypes.append((def_id, defs[def_id].ext))
-        fp = askopenfilename(initialdir=self.last_load_dir,
-                             filetypes=filetypes, parent=self,
-                             title="Select the tag to load")
 
-        if not fp:
+        filepath = askopenfilename(
+            initialdir=self.last_load_dir, filetypes=filetypes,
+            parent=self, title="Select the tag to load")
+
+        if not filepath:
             return
 
-        self.last_load_dir = os.path.dirname(fp)
-        dsw = DefSelectorWindow(
+        filepath = Path(filepath)
+        self.last_load_dir = filepath.parent
+        self.def_selector_window = DefSelectorWindow(
             self, title="Select a definition to use", action=lambda def_id:
-            self.load_tags(filepaths=fp, def_id=def_id))
-        self.def_selector_window = dsw
+            self.load_tags(filepaths=filepath, def_id=def_id))
         self.update()
         self.place_window_relative(self.def_selector_window, 30, 50)
 
@@ -1354,8 +1364,8 @@ class Binilla(tk.Tk, BinillaWidget):
             # can be made if they dont already exist(dirname must not be '')
             w = self.get_tag_window_by_tag(tag)
             if ((w and w.is_new_tag) or (not(hasattr(tag, "filepath") and
-                                             tag.filepath and
-                                             os.path.dirname(tag.filepath)))):
+                                             not is_path_empty(tag.filepath) and
+                                             not is_path_empty(tag.filepath.parent)))):
                 return self.save_tag_as(tag)
 
             exception = None
@@ -1368,8 +1378,7 @@ class Binilla(tk.Tk, BinillaWidget):
             if exception:
                 raise IOError("Could not save tag.")
 
-            path = tag.filepath
-            self.add_to_recent(path)
+            self.add_to_recent(tag.filepath)
 
         return tag
 
@@ -1388,18 +1397,19 @@ class Binilla(tk.Tk, BinillaWidget):
             filepath = asksaveasfilename(
                 initialdir=os.path.dirname(tag.filepath), defaultextension=ext,
                 title="Save tag as...", filetypes=[
-                    (ext[1:], "*" + ext), ('All', '*')] )
+                    (ext[1:], "*" + ext), ('All', '*')])
 
-        if not filepath:
+        filepath = Path(filepath)
+        if is_path_empty(filepath):
             return
 
         # make sure to flush any changes made using widgets to the tag
         w = self.get_tag_window_by_tag(tag)
 
         try:
-            self.last_load_dir = os.path.dirname(filepath)
+            self.last_load_dir = filepath.parent
             if tag.handler.tagsdir_relative:
-                filepath = os.path.relpath(filepath, tag.tags_dir)
+                filepath = Path(os.path.relpath(str(filepath), str(tag.tags_dir)))
 
             self.add_tag(tag, filepath)
             w.save(temp=False)
@@ -1471,38 +1481,36 @@ class Binilla(tk.Tk, BinillaWidget):
         Reloads the tag definitions from the folder specified.'''
         defs_dir = askdirectory(initialdir=self.last_defs_dir, parent=self,
                                 title="Select the tag definitions folder")
-        if defs_dir != "":
-            print('Loading selected definitions...')
-            self.update_idletasks()
-            if not defs_dir.endswith(s_c.PATHDIV):
-                defs_dir += s_c.PATHDIV
-            defs_dir = sanitize_path(os.path.dirname(defs_dir))
+        if defs_dir == "":
+            return
 
-            # try and find the module_root
-            mod_root = defs_dir
-            parent_dir = mod_root
-            while os.path.isfile(parent_dir + s_c.PATHDIV + "__init__.py"):
-                mod_root = parent_dir
-                parent_dir = os.path.dirname(parent_dir)
+        print('Loading selected definitions...')
+        defs_dir = Path(defs_dir)
+        self.update_idletasks()
 
-            mod_root = os.path.dirname(parent_dir)
+        # try and find the module_root
+        mod_root = defs_dir
+        while mod_root.parent.joinpath("__init__.py").is_file():
+            mod_root = mod_root.parent
+            
+        mod_root = mod_root.parent
 
-            # if the module_root isnt in sys.path, we need to add it so
-            # the importer can resolve the import path for the definitions
-            mod_root = sanitize_path(mod_root)
-            if mod_root not in sys.path:
-                sys.path.insert(0, mod_root)
+        # if the module_root isnt in sys.path, we need to add it so
+        # the importer can resolve the import path for the definitions
+        if str(mod_root) not in sys.path:
+            sys.path.insert(0, str(mod_root))
 
-            import_path = defs_dir.split(mod_root + s_c.PATHDIV)[-1]\
-                          .replace(s_c.PATHDIV, ".")
-            print("    Module path:  %s\n    Import path:  %s" % (
-                mod_root, import_path))
-            try:
-                self.handler.reload_defs(defs_path=import_path)
-                self.last_defs_dir = defs_dir
-                print('Selected definitions loaded\n')
-            except Exception:
-                raise IOError("Could not load tag definitions\n.")
+        mod_relpath = Path(str(defs_dir).split(str(mod_root))[-1])
+        import_path = ".".join(piece for piece in mod_relpath.parts[1:-1])
+        import_path = ".".join((import_path, mod_relpath.parts[-1])).lstrip(".")
+        print("    Module path:  %s\n    Import path:  %s" % (
+            mod_root, import_path))
+        try:
+            self.handler.reload_defs(defs_path=import_path)
+            self.last_defs_dir = defs_dir
+            print('Selected definitions loaded\n')
+        except Exception:
+            raise IOError("Could not load tag definitions\n.")
 
     def show_config_file(self, e=None):
         if self.config_window is not None:
@@ -1833,10 +1841,10 @@ class Binilla(tk.Tk, BinillaWidget):
         webbrowser.open_new_tab(self.issue_tracker_url)
 
     def upgrade_config_version(self, filepath):
-        old_version = self.config_version_def.build(filepath=filepath).data.version
+        old_version = self.config_version_def.build(filepath=str(filepath)).data.version
         if old_version == 1:
             new_config = binilla.defs.upgrade_config.upgrade_v1_to_v2(
-                self.config_defs[1].build(filepath=filepath),
+                self.config_defs[1].build(filepath=str(filepath)),
                 self.config_defs[2].build())
         else:
             raise ValueError("Config header version is not valid")
@@ -1844,10 +1852,10 @@ class Binilla(tk.Tk, BinillaWidget):
         return new_config
 
     def upgrade_style_version(self, filepath):
-        old_version = self.style_version_def.build(filepath=filepath).data.version
+        old_version = self.style_version_def.build(filepath=str(filepath)).data.version
         if old_version == 1:
             new_style = binilla.defs.upgrade_style.upgrade_v1_to_v2(
-                self.style_defs[1].build(filepath=filepath),
+                self.style_defs[1].build(filepath=str(filepath)),
                 self.style_defs[2].build())
         else:
             raise ValueError("Style header version is not valid")

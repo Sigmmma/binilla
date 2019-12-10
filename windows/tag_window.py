@@ -190,7 +190,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         self.bind_hotkeys()
 
         # if this tag doesnt exist at the given filepath, it's new.
-        try: new = not exists(self.tag.filepath)
+        try: new = not self.tag.filepath.is_file()
         except Exception: new = True
 
         if new:
@@ -612,7 +612,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
                         # somehow backuppath became self.tag.filepath
                         kwargs["backup"] = False
 
-                    if (os.path.isfile(self.tag.filepath) and
+                    if (self.tag.filepath.is_file() and
                         self.backup_settings.flags.notify_when_backing_up):
                         print("Backing up to: '%s'" % kwargs["backuppath"])
 

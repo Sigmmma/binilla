@@ -99,12 +99,13 @@ class Binilla(tk.Tk, BinillaWidget):
     # map of the id of each tag to the id of the window displaying it
     tag_id_to_window_id = None
 
-    '''Directories'''
+    '''Directories/filepaths'''
     curr_dir = this_curr_dir
-    styles_dir = curr_dir.joinpath("styles")
-    last_load_dir = curr_dir
-    last_defs_dir = curr_dir
-    last_imp_dir  = curr_dir
+    _styles_dir = curr_dir.joinpath("styles")
+    _last_load_dir = curr_dir
+    _last_defs_dir = curr_dir
+    _last_imp_dir  = curr_dir
+    _config_path = default_config_path
 
     recent_tag_max = 20
     recent_tagpaths = ()
@@ -146,7 +147,6 @@ class Binilla(tk.Tk, BinillaWidget):
 
     config_version = 2
     style_version = 2
-    config_path = default_config_path
     config_window = None
     # the tag that holds all the config settings for this application
     config_file = None
@@ -190,7 +190,7 @@ class Binilla(tk.Tk, BinillaWidget):
     scroll_increment_x = 50
     scroll_increment_y = 50
 
-    terminal_out = ''
+    terminal_out = None
 
     sync_window_movement = True  # Whether or not to sync the movement of
     #                              the TagWindow instances with the app.
@@ -382,27 +382,11 @@ class Binilla(tk.Tk, BinillaWidget):
         # make the io redirector and redirect sys.stdout to it
         self.orig_stdout = sys.stdout
 
-        flags = self.config_file.data.app_window.flags
-        if flags.log_output:
-            curr_dir = str(self.curr_dir)
-            if not curr_dir.endswith(s_c.PATHDIV):
-                curr_dir += s_c.PATHDIV
-
-            try:
-                self.log_file = open(curr_dir + self.log_filename, 'a+')
-
-                # write a timestamp to the file
-                time = datetime.now().strftime("%Y-%m-%d  %H:%M:%S")
-                self.log_file.write("\n%s%s%s\n" %
-                                    ("-"*30, time, "-"*(50-len(time))))
-            except Exception:
-                pass
-
         # make the console output
         self.make_io_text()
         self.apply_style()
 
-        if flags.load_last_workspace:
+        if self.config_file.data.app_window.flags.load_last_workspace:
             try:
                 self.load_last_workspace()
             except Exception:
@@ -411,6 +395,51 @@ class Binilla(tk.Tk, BinillaWidget):
         self.sync_offset_x = self.winfo_x()
         self.sync_offset_y = self.winfo_y()
         self._initialized = True
+
+    @property
+    def styles_dir(self):
+        return self._styles_dir
+    @styles_dir.setter
+    def styles_dir(self, new_val):
+        if not isinstance(new_val, Path):
+            new_val = Path(new_val)
+        self._styles_dir = new_val
+
+    @property
+    def last_load_dir(self):
+        return self._last_load_dir
+    @last_load_dir.setter
+    def last_load_dir(self, new_val):
+        if not isinstance(new_val, Path):
+            new_val = Path(new_val)
+        self._last_load_dir = new_val
+
+    @property
+    def last_defs_dir(self):
+        return self._last_defs_dir
+    @last_defs_dir.setter
+    def last_defs_dir(self, new_val):
+        if not isinstance(new_val, Path):
+            new_val = Path(new_val)
+        self._defs_load_dir = new_val
+
+    @property
+    def last_imp_dir(self):
+        return self._last_imp_dir
+    @last_imp_dir.setter
+    def last_imp_dir(self, new_val):
+        if not isinstance(new_val, Path):
+            new_val = Path(new_val)
+        self._last_imp_dir = new_val
+
+    @property
+    def config_path(self):
+        return self._config_path
+    @config_path.setter
+    def config_path(self, new_val):
+        if not isinstance(new_val, Path):
+            new_val = Path(new_val)
+        self._config_path = new_val
 
     def add_to_recent(self, filepath):
         recent = self.recent_tagpaths
@@ -507,8 +536,8 @@ class Binilla(tk.Tk, BinillaWidget):
         except Exception:
             edit_log, disable = True, False
 
-        self.terminal_out = IORedirecter(self.io_text, log_file=self.log_file,
-                                         edit_log=edit_log)
+        self.terminal_out = IORedirecter(self.io_text, edit_log=edit_log,
+                                         log_file=self.log_file)
         sys.stdout = self.orig_stdout if disable else self.terminal_out
 
     def bind_hotkeys(self, new_hotkeys=None):
@@ -871,6 +900,25 @@ class Binilla(tk.Tk, BinillaWidget):
         except Exception:
             self.debug_mode = True
 
+        if self.log_file is None:
+            if config_data.app_window.flags.log_output:
+                try:
+                    self.log_file = self.config_path.parent.joinpath(
+                        self.log_filename).open('a+')
+
+                    # write a timestamp to the file
+                    time = datetime.now().strftime("%Y-%m-%d  %H:%M:%S")
+                    self.log_file.write("\n%s%s%s\n" %
+                                        ("-"*30, time, "-"*(50-len(time))))
+                except Exception:
+                    print(format_exc())
+
+            if self.terminal_out is not None:
+                if config_data.app_window.flags.log_output:
+                    self.terminal_out.log_file = self.log_file
+                else:
+                    self.terminal_out.log_file = None
+
         self.load_style(style_file=self.config_file)
 
     def load_config(self, filepath=None):
@@ -1112,7 +1160,7 @@ class Binilla(tk.Tk, BinillaWidget):
             defs = self.handler.defs
             for id in sorted(defs.keys()):
                 filetypes.append((id, defs[id].ext))
-            filepaths = askopenfilenames(initialdir=self.last_load_dir,
+            filepaths = askopenfilenames(initialdir=str(self.last_load_dir),
                                          filetypes=filetypes, parent=self,
                                          title="Select the tag to load")
             if not filepaths:
@@ -1197,7 +1245,7 @@ class Binilla(tk.Tk, BinillaWidget):
             filetypes.append((def_id, defs[def_id].ext))
 
         filepath = askopenfilename(
-            initialdir=self.last_load_dir, filetypes=filetypes,
+            initialdir=str(self.last_load_dir), filetypes=filetypes,
             parent=self, title="Select the tag to load")
 
         if not filepath:

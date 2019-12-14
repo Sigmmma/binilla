@@ -1137,16 +1137,18 @@ class Binilla(tk.Tk, BinillaWidget):
         except Exception:
             pass
 
-    def get_tag_window_by_tag(self, tag):
-        if hasattr(tag, "filepath"):
-            try:
-                return self.tag_windows[self.tag_id_to_window_id[id(tag)]]
-            except Exception:
-                print(format_exc())
-                print("Could not locate tag window for: %s" % tag.filepath)
-                return
+    def get_tag_window_id_by_tag(self, tag):
+        try:
+            return self.tag_id_to_window_id.get(id(tag))
+        except Exception:
+            return None
 
-        print("Invalid object supplied for tag.")
+    def get_tag_window_by_tag(self, tag):
+        try:
+            return self.tag_windows[self.get_tag_window_id_by_tag(tag)]
+        except Exception:
+            print(format_exc())
+            print("Could not locate tag window for: %s" % tag.filepath)
 
     def get_is_tag_loaded(self, filepath, def_id=None):
         if def_id is None:
@@ -1191,10 +1193,11 @@ class Binilla(tk.Tk, BinillaWidget):
                 # the tag is somehow still loaded.
                 # need to see if there is still a window
                 new_tag = self.get_tag(path, handler.get_def_id(path))
-                w = self.get_tag_window_by_tag(new_tag)
-                if w:
-                    print('%s is already loaded' % path)
-                    continue
+                if self.get_tag_window_id_by_tag(new_tag) is not None:
+                    w = self.get_tag_window_by_tag(new_tag)
+                    if w:
+                        print('%s is already loaded' % path)
+                        continue
 
                 # there isn't a window, so continue like normal
             else:

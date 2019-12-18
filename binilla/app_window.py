@@ -39,6 +39,8 @@ from binilla.windows.tag_window_manager import TagWindowManager
 
 this_curr_dir = Path(get_cwd(__file__))
 default_config_path = this_curr_dir.joinpath('binilla.cfg')
+if "linux" in sys.platform:
+    Path(Path.home(), ".local", "share", "binilla", 'binilla.cfg')
 
 default_hotkeys = collections.OrderedDict()
 for k, v in (
@@ -1543,7 +1545,7 @@ class Binilla(tk.Tk, BinillaWidget):
         mod_root = defs_dir
         while mod_root.parent.joinpath("__init__.py").is_file():
             mod_root = mod_root.parent
-            
+
         mod_root = mod_root.parent
 
         # if the module_root isnt in sys.path, we need to add it so

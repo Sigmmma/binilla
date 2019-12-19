@@ -23,6 +23,7 @@ class ComputedTextFrame(text_frame.TextFrame):
             except Exception:
                 return
 
+            self.data_text.config(state=tk.NORMAL)
             self.data_text.delete(1.0, tk.END)
             self.data_text.insert(1.0, new_text)
         except Exception:

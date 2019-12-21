@@ -98,6 +98,7 @@ class Binilla(tk.Tk, BinillaWidget):
     # the default WidgetPicker instance to use for selecting widgets
     widget_picker = WidgetPicker()
     def_tag_window_cls = TagWindow
+    config_window_class = ConfigWindow
 
     # dict of open TagWindow instances. keys are the ids of each of the windows
     tag_windows = None
@@ -1579,8 +1580,8 @@ class Binilla(tk.Tk, BinillaWidget):
             try: dir_paths[s].path = str(getattr(self, s))
             except IndexError: pass
 
-        self.config_window = self.make_tag_window(self.config_file,
-                                                  window_cls=ConfigWindow)
+        self.config_window = self.make_tag_window(
+            self.config_file, window_cls=self.config_window_class)
 
     def show_defs(self, e=None):
         if self.def_selector_window:

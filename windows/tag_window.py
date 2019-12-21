@@ -104,6 +104,8 @@ class TagWindow(tk.Toplevel, BinillaWidget):
     # from scratch, i.e. it isn't actually being read from anything.
     is_new_tag = False
 
+    iconbitmap_filepath = None
+
     # Determines whether this TagWindow is currently trying to undo or redo
     # This exists to prevent trying to apply multiple undos or redos at once
     _applying_edit_state = False
@@ -128,8 +130,19 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             self.widget_picker = kwargs.pop('widget_picker')
         elif hasattr(self.app_root, 'widget_picker'):
             self.widget_picker = self.app_root.widget_picker
+
         self.app_root = kwargs.pop('app_root', master)
         self.handler = kwargs.pop('handler', None)
+
+        kwargs.update(bg=self.default_bg_color)
+
+        BinillaWidget.__init__(self)
+        tk.Toplevel.__init__(self, master, *args, **kwargs)
+
+        # do any initialization that requires this object
+        # be initialized as a tk.Toplevel object
+        self.post_toplevel_init()
+
 
         try:
             max_undos = self.app_root.max_undos
@@ -141,17 +154,34 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         except AttributeError:
             use_def_dims = False
 
-        kwargs.update(bg=self.default_bg_color)
+        self.edit_manager = EditManager(max_undos)
 
-        BinillaWidget.__init__(self)
-        tk.Toplevel.__init__(self, master, *args, **kwargs)
+        with self.style_change_lock:
+            self.update()
+            if use_def_dims:
+                width  = self.settings.default_dimensions.w
+                height = self.settings.default_dimensions.h
+            else:
+                width  = self.root_frame.winfo_reqwidth()  + self.root_vsb.winfo_reqwidth()  + 2
+                height = self.root_frame.winfo_reqheight() + self.root_hsb.winfo_reqheight() + 2
+
+            self.resize_window(width, height)
+            self.apply_style()
+
+        self._initialized = True
+
+    def post_toplevel_init(self):
         self.update_title()
+        try:
+            if self.iconbitmap_filepath is not None:
+                self.iconbitmap(self.iconbitmap_filepath)
+        except Exception:
+            pass
+
         self.creating_label = tk.Label(
             self, text=("Creating widgets. Please wait..."))
         self.styling_label = tk.Label(
             self, text=("Styling widgets. Please wait..."))
-
-        self.edit_manager = EditManager(max_undos)
 
         # create the root_canvas and the root_frame within the canvas
         self.root_canvas = rc = tk.Canvas(self, highlightthickness=0)
@@ -190,27 +220,18 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         self.bind_hotkeys()
 
         # if this tag doesnt exist at the given filepath, it's new.
-        try: new = not self.tag.filepath.is_file()
-        except Exception: new = True
+        try:
+            new = not self.tag.filepath.is_file()
+        except Exception:
+            new = True
 
         if new:
-            try: self.field_widget.set_edited()
-            except Exception: pass
+            try:
+                self.field_widget.set_edited()
+            except Exception:
+                pass
 
         self.creating_label.pack_forget()
-        with self.style_change_lock:
-            self.update()
-            if use_def_dims:
-                width  = self.settings.default_dimensions.w
-                height = self.settings.default_dimensions.h
-            else:
-                width  = rf.winfo_reqwidth()  + self.root_vsb.winfo_reqwidth()  + 2
-                height = rf.winfo_reqheight() + self.root_hsb.winfo_reqheight() + 2
-
-            self.resize_window(width, height)
-            self.apply_style()
-
-        self._initialized = True
 
     # The config settings governing the way the window works
     @property

@@ -173,10 +173,9 @@ class TagWindow(tk.Toplevel, BinillaWidget):
     def post_toplevel_init(self):
         self.update_title()
         try:
-            if self.iconbitmap_filepath is not None:
-                self.iconbitmap(self.iconbitmap_filepath)
+            self.iconbitmap(self.iconbitmap_filepath)
         except Exception:
-            pass
+            print("Could not load window icon.")
 
         self.creating_label = tk.Label(
             self, text=("Creating widgets. Please wait..."))

@@ -43,7 +43,8 @@ from binilla.windows.tag_window_manager import TagWindowManager
 this_curr_dir = Path(get_cwd(__file__))
 default_config_path = this_curr_dir.joinpath('binilla.cfg')
 if "linux" in sys.platform:
-    Path(Path.home(), ".local", "share", "binilla", 'binilla.cfg')
+    default_config_path = Path(
+        Path.home(), ".local", "share", "binilla", 'binilla.cfg')
 
 default_hotkeys = collections.OrderedDict()
 for k, v in (

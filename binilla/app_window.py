@@ -22,11 +22,6 @@ from binilla import constants as s_c
 s_c.inject()
 from supyr_struct.field_types import FieldType
 
-# NOTE: import this BEFORE  binilla.widgets.field_widget_picker is
-#       imported, otherwise we'll get a non-resolvable dependency loop
-from binilla.windows.filedialog import askopenfilenames, askopenfilename,\
-     askdirectory, asksaveasfilename
-
 from binilla import editor_constants as e_c
 from binilla.widgets.field_widget_picker import WidgetPicker
 from binilla.widgets.binilla_widget import BinillaWidget
@@ -35,6 +30,8 @@ from binilla.handler import Handler
 from binilla.util import get_cwd, IORedirecter, is_path_empty
 from binilla.windows.about_window import AboutWindow
 from binilla.windows.def_selector_window import DefSelectorWindow
+from binilla.windows.filedialog import askopenfilenames, askopenfilename,\
+     askdirectory, asksaveasfilename
 from binilla.windows.tag_window import TagWindow, ConfigWindow,\
      make_hotkey_string, read_hotkey_string
 from binilla.windows.tag_window_manager import TagWindowManager

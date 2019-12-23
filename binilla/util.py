@@ -10,6 +10,7 @@ except ImportError:
 from io import StringIO
 
 from math import log, ceil
+from pathlib import Path
 from time import sleep
 from traceback import format_exc
 
@@ -23,14 +24,18 @@ DOUBLE_PREC = 52*log(2, 10)
 
 
 def is_main_frozen():
-   return (hasattr(sys, "frozen") or hasattr(sys, "importers")
+   return (hasattr(sys, "frozen") or
+           hasattr(sys, "importers")
            or imp.is_frozen("__main__"))
 
 
-def get_cwd(module=None):
-   if is_main_frozen():
-       return os.path.dirname(sys.executable)
-   return os.path.dirname(__file__ if module is None else module)
+def get_cwd(module_path=None):
+    if is_main_frozen():
+       return Path(sys.executable).parent
+    elif module_path is None:
+        return Path.cwd()
+    else:
+        return Path(module_path).parent
 
 
 def float_to_str(f, max_sig_figs=FLOAT_PREC):

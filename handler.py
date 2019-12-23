@@ -29,7 +29,7 @@ from supyr_struct.tag import Tag
 from supyr_struct.defs.tag_def import TagDef
 
 # make sure the new constants are injected and used
-from binilla.constants import PATHDIV, BPI
+from binilla.constants import BPI
 from binilla.util import is_main_frozen
 from supyr_struct.util import is_in_dir, is_path_empty
 
@@ -630,20 +630,26 @@ class Handler():
                     base, ext = splitext(module_path)
 
                     # do NOT use relpath here
-                    fpath = root.split(str(self.defs_filepath))[-1]
+                    fpath = Path(root.split(str(self.defs_filepath))[-1])
 
                     # make sure the file name ends with .py and isnt already loaded
                     if ext.lower() in (".py", ".pyw") and base not in imp_paths:
-                        imp_paths.append((fpath + '.' + base)\
-                                         .replace(PATHDIV, '.').lstrip('.'))
+                        parts = fpath.parts + (base, )
+                        if parts[0] == fpath.root:
+                            parts = parts[1: ]
+
+                        imp_paths.append('.'.join(parts))
 
         # load the defs that were found
         for mod_name in imp_paths:
             # try to import the definition module
             try:
-                def_module = import_module(
-                    join(self.defs_path, mod_name)\
-                    .replace(PATHDIV, '.'))
+                fpath = Path(self.defs_path, mod_name)
+                parts = fpath.parts
+                if parts[0] == fpath.root:
+                    parts = parts[1: ]
+
+                def_module = import_module('.'.join(parts))
             except Exception:
                 def_module = None
                 if self.debug >= 1:

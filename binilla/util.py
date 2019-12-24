@@ -15,7 +15,7 @@ from time import sleep
 from traceback import format_exc
 
 from binilla.editor_constants import IS_LNX
-from supyr_struct.util import sanitize_path, is_path_empty
+from supyr_struct.util import is_path_empty
 
 POS_INF = float("inf")
 NEG_INF = float("-inf")

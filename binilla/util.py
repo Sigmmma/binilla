@@ -10,11 +10,12 @@ except ImportError:
 from io import StringIO
 
 from math import log, ceil
+from pathlib import Path
 from time import sleep
 from traceback import format_exc
 
 from binilla.editor_constants import IS_LNX
-from supyr_struct.util import sanitize_path
+from supyr_struct.util import is_path_empty
 
 POS_INF = float("inf")
 NEG_INF = float("-inf")
@@ -23,14 +24,9 @@ DOUBLE_PREC = 52*log(2, 10)
 
 
 def is_main_frozen():
-   return (hasattr(sys, "frozen") or hasattr(sys, "importers")
+   return (hasattr(sys, "frozen") or
+           hasattr(sys, "importers")
            or imp.is_frozen("__main__"))
-
-
-def get_cwd(module=None):
-   if is_main_frozen():
-       return os.path.dirname(sys.executable)
-   return os.path.dirname(__file__ if module is None else module)
 
 
 def float_to_str(f, max_sig_figs=FLOAT_PREC):
@@ -38,7 +34,7 @@ def float_to_str(f, max_sig_figs=FLOAT_PREC):
         return "inf"
     elif f == NEG_INF:
         return "-inf"
-    
+
     sig_figs = -1
     if abs(f) > 0:
         sig_figs = int(round(max_sig_figs - log(abs(f), 10) - 1))

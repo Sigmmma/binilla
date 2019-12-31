@@ -29,21 +29,12 @@ def is_main_frozen():
            or imp.is_frozen("__main__"))
 
 
-def get_cwd(module_path=None):
-    if is_main_frozen():
-       return Path(sys.executable).parent
-    elif module_path is None:
-        return Path.cwd()
-    else:
-        return Path(module_path).parent
-
-
 def float_to_str(f, max_sig_figs=FLOAT_PREC):
     if f == POS_INF:
         return "inf"
     elif f == NEG_INF:
         return "-inf"
-    
+
     sig_figs = -1
     if abs(f) > 0:
         sig_figs = int(round(max_sig_figs - log(abs(f), 10) - 1))

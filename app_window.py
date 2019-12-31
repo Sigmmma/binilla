@@ -27,7 +27,7 @@ from binilla.widgets.field_widget_picker import WidgetPicker
 from binilla.widgets.binilla_widget import BinillaWidget
 from binilla.widgets.tooltip_handler import ToolTipHandler
 from binilla.handler import Handler
-from binilla.util import get_cwd, IORedirecter, is_path_empty
+from binilla.util import IORedirecter, is_path_empty
 from binilla.windows.about_window import AboutWindow
 from binilla.windows.def_selector_window import DefSelectorWindow
 from binilla.windows.filedialog import askopenfilenames, askopenfilename,\
@@ -37,7 +37,7 @@ from binilla.windows.tag_window import TagWindow, ConfigWindow,\
 from binilla.windows.tag_window_manager import TagWindowManager
 
 
-this_curr_dir = get_cwd(__file__)
+this_curr_dir = Path.cwd()
 default_config_path = this_curr_dir.joinpath('binilla.cfg')
 if "linux" in sys.platform:
     default_config_path = Path(

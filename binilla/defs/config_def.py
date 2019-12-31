@@ -108,11 +108,11 @@ field_widget_flags = Bool32("widget_flags",
     {NAME: "evaluate_entry_fields", TOOLTIP: ttip.field_widget_evaluate_entry_fields},
     {NAME: "show_structure_meta", TOOLTIP: ttip.field_widget_show_structure_meta},
     DEFAULT=(
-        # the DEFAULT value is the value of the uint32 that all these bools
-        # are packed into. To set each flags default, we OR together the
-        # shifted flags(sum works equally well) and use that as the default
-        # for the entire Bool32 field. the "i" in the sum is simply the bit
-        # of the flag we want to set. Ex: "blocks_start_hidden" is bit 9
+        # These are the indices of the flags we want on in the default config
+        # setup. By left shifting 1 by the indices and summing the results we
+        # get the integer representation of this block in default form.
+        # The two blocks_start_hidden flags are disabled on Linux because of
+        # some window managers not reacting nicely to that behavior.
         sum([1<<i for i in (2, 3, 4, 6, 7, 8)])
         if e_c.IS_LNX else
         sum([1<<i for i in (2, 3, 4, 6, 7, 8, 9, 10)]))

@@ -14,7 +14,7 @@ from pathlib import Path
 from time import sleep
 from traceback import format_exc
 
-from binilla.editor_constants import IS_LNX
+from binilla import editor_constants as e_c
 from supyr_struct.util import is_path_empty
 
 POS_INF = float("inf")
@@ -92,7 +92,7 @@ def do_subprocess(exec_path, cmd_args=(), exec_args=(), **kw):
     proc_controller = kw.pop("proc_controller", ProcController())
     try:
 
-        if IS_LNX:
+        if e_c.IS_LNX:
             args = (exec_path, ) + exec_args
         else:
             cmd_args  = ''.join((" /%s" % a.lower()) for a in cmd_args)
@@ -124,3 +124,14 @@ def do_subprocess(exec_path, cmd_args=(), exec_args=(), **kw):
 
     proc_controller.returncode = result
     return result
+
+def open_in_default_program(path):
+    try:
+        if e_c.IS_MAC:
+            subprocess.check_call(['open', str(path)])
+        elif e_c.IS_LNX:
+            subprocess.check_call(['xdg-open', str(path)])
+        else:
+            subprocess.check_call(['start', str(path)])
+    except Exception:
+        print(format_exc())

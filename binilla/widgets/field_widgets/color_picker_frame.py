@@ -1,7 +1,7 @@
 import threadsafe_tkinter as tk
 import tkinter.ttk as ttk
 
-from tkinter.colorchooser import askcolor
+from tkcolorpicker import askcolor
 
 from binilla.widgets.field_widgets import container_frame
 
@@ -37,6 +37,8 @@ class ColorPickerFrame(container_frame.ContainerFrame):
             state=tk.DISABLED if self.disabled else tk.NORMAL)
 
     def reload(self):
+        self.has_alpha = 'a' in self.desc['NAME_MAP']
+    
         container_frame.ContainerFrame.reload(self)
         self.update_selector_button()
 
@@ -51,6 +53,8 @@ class ColorPickerFrame(container_frame.ContainerFrame):
         container_frame.ContainerFrame.set_disabled(self, disable)
 
     def populate(self):
+        self.has_alpha = 'a' in self.desc['NAME_MAP']
+
         container_frame.ContainerFrame.populate(self)
         self.color_btn = tk.Button(
             self.content, width=4, command=self.select_color)
@@ -66,21 +70,37 @@ class ColorPickerFrame(container_frame.ContainerFrame):
                 self.write_trace(var, lambda *a, widget=self, **kw:
                                  widget.update_selector_button())
 
-    def get_color(self):
-        try:
-            int_color = (int(self.red   * 255.0 + 0.5),
-                         int(self.green * 255.0 + 0.5),
-                         int(self.blue  * 255.0 + 0.5))
-            return (int_color, '#%02x%02x%02x' % int_color)
-        except Exception:
-            return ((0, 0, 0), '#000000')
+    def get_color(self, alpha=False):
+        if alpha:
+            try:
+                int_color = (int(self.red   * 255.0 + 0.5),
+                             int(self.green * 255.0 + 0.5),
+                             int(self.blue  * 255.0 + 0.5),
+                             int(self.alpha * 255.0 + 0.5),
+                             )
+                return (int_color, '#%02x%02x%02x%02x' % int_color)
+            except Exception:
+                return ((0, 0, 0), '#00000000')
+        else:
+            try:
+                int_color = (int(self.red   * 255.0 + 0.5),
+                             int(self.green * 255.0 + 0.5),
+                             int(self.blue  * 255.0 + 0.5),
+                             )
+                return (int_color, '#%02x%02x%02x' % int_color)
+            except Exception:
+                return ((0, 0, 0), '#000000')
 
     def select_color(self):
         self.flush()
         if getattr(self, 'color_btn', None):
             self.color_btn.config(bg=self.get_color()[1])
 
-        color, hex_color = askcolor(self.get_color()[1], parent=self)
+        color, hex_color = askcolor(
+            self.get_color(alpha=self.has_alpha)[1],
+            alpha=self.has_alpha,
+            parent=self
+            )
 
         if None in (color, hex_color):
             return
@@ -101,8 +121,10 @@ class ColorPickerFrame(container_frame.ContainerFrame):
                            b=c_color[2], a=n_color[3]),
             undo_node=dict(r=n_color[0], g=n_color[1],
                            b=n_color[2], a=n_color[3]))
-
-        self.red, self.green, self.blue = float_c_color
+        if self.has_alpha:
+            self.red, self.green, self.blue, self.alpha = float_c_color
+        else:
+            self.red, self.green, self.blue = float_c_color
         self.reload()
 
     @property

@@ -139,7 +139,7 @@ class Binilla(tk.Tk, BinillaWidget):
     icon_filepath = Path("")
     app_bitmap_filepath = Path("")
 
-    issue_tracker_url = "https://github.com/MosesofEgypt/binilla/issues"
+    issue_tracker_url = binilla.__website__ + "/issues"
 
     '''Config properties'''
     style_def = None

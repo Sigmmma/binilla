@@ -22,7 +22,7 @@ setup(
     description='A universal binary structure editor built on supyr_struct.',
     long_description=long_desc,
     version='%s.%s.%s' % binilla.__version__,
-    url='http://bitbucket.org/moses_of_egypt/binilla',
+    url=binilla.__website__,
     author='Devin Bobadilla',
     author_email='MosesBobadilla@gmail.com',
     license='MIT',

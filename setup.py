@@ -43,10 +43,10 @@ setup(
     keywords="binilla, binary, data structure",
     # arbytmap can be removed from the dependencies if you cannot install
     # it for some reason, though it will prevent certain things from working.
-    install_requires=[
-        'supyr_struct>=1.4.0', 'arbytmap', 'threadsafe_tkinter', 'tkcolorpicker'],
-    requires=[
-        'supyr_struct>=1.4.0', 'arbytmap', 'threadsafe_tkinter', 'tkcolorpicker'],
+    install_requires=['supyr_struct>=1.4.0', 'arbytmap', 'threadsafe_tkinter',
+                      'tkcolorpicker'],
+    requires=['supyr_struct>=1.4.0', 'arbytmap', 'threadsafe_tkinter',
+              'tkcolorpicker'],
     provides=['binilla'],
     classifiers=[
         "Development Status :: 4 - Beta",

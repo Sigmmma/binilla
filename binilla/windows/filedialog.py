@@ -52,7 +52,7 @@ try:
         res = subprocess.run(
             ["kdialog",
             "--title", str(title),
-            # Get multiple items, put them on different lines.
+            # Get multiple items, put them on different lines for parsing.
             "--multiple", "--separate-output",
             "--getopenfilename",
             str(initialdir), _parse_file_filters(filetypes)],

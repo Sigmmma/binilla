@@ -4,7 +4,6 @@ import random
 import tempfile
 import weakref
 from traceback import format_exc
-from tkinter.filedialog import asksaveasfilename
 
 import threadsafe_tkinter as tk
 import tkinter.ttk as ttk
@@ -13,6 +12,7 @@ from binilla import editor_constants as e_c
 from binilla.widgets.binilla_widget import BinillaWidget
 from binilla.widgets.scroll_menu import ScrollMenu
 from binilla.widgets import get_mouse_delta
+from binilla.windows.filedialog import asksaveasfilename
 
 
 __all__ = ("PhotoImageHandler", "BitmapDisplayFrame", "BitmapDisplayButton")
@@ -131,7 +131,7 @@ class PhotoImageHandler():
             print("Could not load texture.")
             # no texture loaded(probably)
             return {}
-        except:
+        except Exception:
             print(format_exc())
             return {}
 

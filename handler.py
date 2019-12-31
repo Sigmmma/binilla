@@ -21,6 +21,7 @@ import time
 from datetime import datetime
 from importlib import import_module
 from os.path import dirname, split, splitext, join, isfile, relpath
+from pathlib import Path
 from traceback import format_exc
 from types import ModuleType
 
@@ -28,9 +29,11 @@ from supyr_struct.tag import Tag
 from supyr_struct.defs.tag_def import TagDef
 
 # make sure the new constants are injected and used
-from binilla.constants import PATHDIV, BPI
-from binilla.util import sanitize_path, is_main_frozen
-from supyr_struct.util import is_in_dir
+from binilla.constants import BPI
+from binilla.util import is_main_frozen
+from supyr_struct.util import is_in_dir, is_path_empty
+
+from supyr_struct.util import path_normalize
 
 
 ######################################################
@@ -56,8 +59,8 @@ class Handler():
     trying to os.rename these files and backup old files.
 
     Tags saved through a Handler are not saved to the Tag.filepath string,
-    but rather to self.tagsdir + filepath where filepath is the key that
-    the Tag is under in self.tags[def_id].
+    but rather to self.tagsdir.joinpath(filepath) where filepath is the
+    key that the Tag is under in self.tags[def_id].
 
     Instance properties:
         dict:
@@ -65,7 +68,6 @@ class Handler():
             id_ext_map ------ maps each def_id(key) to its extension(value)
         int:
             debug
-            tags_indexed
             tags_loaded
         bool:
             allow_corrupt
@@ -100,8 +102,7 @@ class Handler():
     default_import_rootpath = "supyr_struct"
     default_defs_path = "supyr_struct.defs"
 
-    tagsdir = "%s%stags%s" % (
-        dirname(os.path.abspath(os.curdir)), PATHDIV, PATHDIV)
+    _tagsdir = Path.cwd().joinpath("tags")
 
     def __init__(self, **kwargs):
         '''
@@ -141,8 +142,6 @@ class Handler():
         debug ------------ The level of debugging information to show. 0 to 10.
                            The higher the number, the more information shown.
                            Currently this is of very limited use.
-        tags_indexed ----- This is the number of tags that were found when
-                           self.index_tags() was run.
         tags_loaded ------ This is the number of tags that were loaded when
                            self.load_tags() was run.
 
@@ -168,7 +167,7 @@ class Handler():
 
         # this is the filepath to the tag currently being constructed
         self.current_tag = ''
-        self.tags_indexed = self.tags_loaded = 0
+        self.tags_loaded = 0
         self.tags = {}
 
         self.import_rootpath = ''
@@ -195,12 +194,8 @@ class Handler():
         self.defs_filepath = kwargs.pop("defs_filepath", self.defs_filepath)
         self.defs_path = kwargs.pop("defs_path", self.defs_path)
 
-        self.tagsdir = sanitize_path(kwargs.pop("tagsdir", self.tagsdir))
+        self.tagsdir = path_normalize(kwargs.pop("tagsdir", self.tagsdir))
         self.tags = kwargs.pop("tags", self.tags)
-
-        # make sure there is an ending folder slash on the tags directory
-        if len(self.tagsdir) and not self.tagsdir.endswith(PATHDIV):
-            self.tagsdir += PATHDIV
 
         if kwargs.get("reload_defs", True):
             self.reload_defs(**kwargs)
@@ -214,6 +209,15 @@ class Handler():
         # make slots in self.tags for the types we want to load
         if kwargs.get("reset_tags", True):
             self.reset_tags(self.defs.keys())
+
+    @property
+    def tagsdir(self):
+        return self._tagsdir
+    @tagsdir.setter
+    def tagsdir(self, new_val):
+        if not isinstance(new_val, Path):
+            new_val = Path(new_val)
+        self._tagsdir = new_val
 
     def add_def(self, tagdefs):
         '''docstring'''
@@ -265,17 +269,14 @@ class Handler():
         tag_coll = self.tags.get(def_id, {})
 
         abs_filepath = tag.filepath
-        if abs_filepath:
-            if not filepath and self.tagsdir_relative:
-                filepath = relpath(abs_filepath, self.tagsdir)
-        elif filepath:
-            abs_filepath = join(self.tagsdir, filepath)
+        filepath = Path(filepath)
+        if not is_path_empty(abs_filepath):
+            if is_path_empty(filepath) and self.tagsdir_relative:
+                filepath = Path(relpath(str(abs_filepath), str(self.tagsdir)))
+        elif not is_path_empty(filepath):
+            abs_filepath = self.tagsdir.joinpath(filepath)
         else:
             raise ValueError("No filepath provided to index tag under")
-
-        if not self.case_sensitive:
-            filepath = filepath.lower()
-            abs_filepath = abs_filepath.lower()
 
         tag.filepath = abs_filepath
         tag_coll[filepath] = tag
@@ -288,7 +289,7 @@ class Handler():
         this handlers tagsdir, but rather is an absolute filepath.
         '''
         def_id = kwargs.get("def_id", None)
-        filepath = sanitize_path(kwargs.get("filepath", ''))
+        filepath = kwargs.get("filepath", None)
         rawdata = kwargs.get("rawdata", None)
         int_test = kwargs.get("int_test", False)
         allow_corrupt = kwargs.get("allow_corrupt", self.allow_corrupt)
@@ -301,7 +302,7 @@ class Handler():
             def_id = self.get_def_id(filepath)
             if not def_id:
                 raise LookupError('Unable to determine def_id for:' +
-                                  '\n' + ' '*BPI + self.current_tag)
+                                  '\n' + ' '*BPI + filepath)
 
         tagdef = self.get_def(def_id)
 
@@ -315,7 +316,7 @@ class Handler():
 
         raise LookupError(("Unable to locate definition for " +
                            "tag type '%s' for file:\n%s'%s'") %
-                          (def_id, ' '*BPI, self.current_tag))
+                          (def_id, ' '*BPI, filepath))
 
     def clear_unloaded_tags(self):
         '''
@@ -337,25 +338,25 @@ class Handler():
         self.tally_tags()
 
     def delete_tag(self, *, tag=None, def_id=None, filepath=''):
+        filepath = Path(filepath)
         if tag is not None:
             def_id = tag.def_id
-            if filepath:
+            if not is_path_empty(filepath):
                 pass
             elif self.tagsdir_relative:
-                filepath = relpath(tag.filepath, self.tagsdir)
+                filepath = Path(relpath(str(tag.filepath), str(self.tagsdir)))
             else:
                 filepath = tag.filepath
         elif def_id is None:
             def_id = self.get_def_id(filepath)
 
-        if not self.case_sensitive:
-            filepath = filepath.lower()
-
-        filepath = sanitize_path(filepath)
+        #TODO: Danger! The path helpers should really be moved to supyr_struct
+        filepath = path_normalize(filepath)
         if filepath in self.tags.get(def_id, ()):
             del self.tags[def_id][filepath]
 
     def get_def_id(self, filepath):
+        filepath = str(filepath)
         if filepath.startswith('.') or '.' not in filepath:
             # an extension was provided rather than a filepath
             ext = filepath.lower()
@@ -380,13 +381,16 @@ class Handler():
         if not def_id:
             def_id = self.get_def_id(filepath)
 
+        self.current_tag = filepath
+
         if not def_id:
             raise LookupError('Unable to determine def_id for:' +
-                              '\n' + ' '*BPI + self.current_tag)
+                              '\n' + ' '*BPI + filepath)
 
         tag_coll = self.tags.get(def_id, {})
-        if not self.case_sensitive:
-            filepath = filepath.lower()
+        # TODO: Make a proper way to handle non-case sensitive tag systems
+        #if not self.case_sensitive:
+        #    filepath = filepath.lower()
 
         if tag_coll.get(filepath) is not None:
             return tag_coll[filepath]
@@ -414,7 +418,8 @@ class Handler():
         src and dest are iterables which contain the filepaths to
         check against to see if the generated filename is unique.
         '''
-        splitpath, ext = splitext(sanitize_path(filepath))
+        filepath = str(filepath)
+        splitpath, ext = splitext(path_normalize(filepath))
         newpath = splitpath
 
         # find the location of the last underscore
@@ -455,6 +460,7 @@ class Handler():
         return newpath + ext
 
     def get_next_backup_filepath(self, filepath, backup_count=1):
+        filepath = Path(filepath)
         backup_count = max(backup_count, 1)
         backup_dir = self.get_backup_dir(filepath)
 
@@ -462,60 +468,48 @@ class Handler():
         if existing_backup_paths and len(existing_backup_paths) >= backup_count:
             return existing_backup_paths[sorted(existing_backup_paths)[0]]
 
-        tags_dir = os.path.realpath(self.tagsdir)
-        if not self.case_sensitive:
-            tags_dir = tags_dir.lower()
-            filepath = filepath.lower()
-
-        if self.tagsdir_relative and is_in_dir(filepath, tags_dir):
-            backup_path = os.path.join(tags_dir, self.backup_dir_basename,
-                                       os.path.relpath(filepath, tags_dir))
+        if self.tagsdir_relative and is_in_dir(filepath, self.tagsdir):
+            backup_path = self.tagsdir.joinpath(
+                self.backup_dir_basename,
+                os.path.relpath(str(filepath), str(self.tagsdir)))
         else:
-            backup_path = os.path.join(backup_dir, os.path.basename(filepath))
+            backup_path = backup_dir.joinpath(filepath.stem)
 
-        backup_paths = set(existing_backup_paths.values())
-        if not self.case_sensitive:
-            backup_paths = set(s.lower() for s in backup_paths)
-
-        return self.get_unique_filename(backup_path, backup_paths, ())
+        return self.get_unique_filename(
+            backup_path, set(existing_backup_paths.values()), ())
 
     def get_backup_dir(self, filepath=None):
-        # self.tagsdir
-        filepath = os.path.realpath(filepath)
-        fallback_dir = os.path.join(os.path.dirname(filepath),
-                                    self.backup_dir_basename)
+        filepath = Path(os.path.realpath(str(filepath)))
+        fallback_dir = filepath.parent.joinpath(self.backup_dir_basename)
         if not self.tagsdir_relative:
             return fallback_dir
 
-        tags_dir = os.path.realpath(self.tagsdir)
-        if not is_in_dir(filepath, tags_dir):
+        # TODO: Test that is_in_dir works here
+        if not is_in_dir(filepath, self.tagsdir):
             return fallback_dir
 
-        return os.path.join(
-            tags_dir, self.backup_dir_basename,
-            os.path.dirname(os.path.relpath(filepath, tags_dir)))
+        return self.tagsdir.joinpath(
+            self.backup_dir_basename,
+            os.path.dirname(os.path.relpath(
+                str(filepath), str(self.tagsdir))))
 
     def get_backup_paths_by_timestamps(self, filepath,
                                        ignore_future_dates=False):
         backup_paths = {}
         backup_dir = self.get_backup_dir(filepath)
-        filepath = sanitize_path(os.path.realpath(filepath))
-        src_fname = os.path.splitext(os.path.basename(filepath))[0]
-        if self.case_sensitive:
-            src_fname = src_fname.lower()
+        filepath = Path(path_normalize(os.path.realpath(str(filepath))))
+        src_fname = filepath.stem.lower()
 
-        for root, _, files in os.walk(backup_dir):
+        for root, _, files in os.walk(str(backup_dir)):
             for fname in files:
-                fpath = sanitize_path(join(root, fname))
-                if not self.case_sensitive:
-                    fname = fname.lower()
+                fpath = path_normalize(join(root, fname))
 
                 # split the file basename by the src basename.
                 # if there is leftover on the left side, the file
                 # names don't match. if we can't convert the right
                 # side to an int, it's not a backup of this tag
                 try:
-                    fname = os.path.splitext(fname)[0]
+                    fname = os.path.splitext(fname)[0].lower()
                     remainder, num = fname.split(src_fname)
                     if remainder:
                         continue
@@ -524,7 +518,7 @@ class Handler():
 
                     timestamp = os.path.getmtime(fpath)
                     if timestamp <= time.time() or not ignore_future_dates:
-                        backup_paths[timestamp] = fpath
+                        backup_paths[timestamp] = Path(fpath)
                 except Exception:
                     pass
 
@@ -621,7 +615,7 @@ class Handler():
             # in the above code. This method must be used(which I
             # think looks kinda hacky)
             self.defs_filepath = tuple(defs_module.__path__)[0]
-        self.defs_filepath = sanitize_path(self.defs_filepath)
+        self.defs_filepath = path_normalize(self.defs_filepath)
 
         if 'imp_paths' in kwargs:
             imp_paths = kwargs['imp_paths']
@@ -631,25 +625,31 @@ class Handler():
             # Log the location of every python file in the defs root
             # search for possibly valid definitions in the defs folder
             imp_paths = []
-            for root, directories, files in os.walk(self.defs_filepath):
+            for root, _, files in os.walk(str(self.defs_filepath)):
                 for module_path in files:
                     base, ext = splitext(module_path)
 
                     # do NOT use relpath here
-                    fpath = root.split(self.defs_filepath)[-1]
+                    fpath = Path(root.split(str(self.defs_filepath))[-1])
 
                     # make sure the file name ends with .py and isnt already loaded
                     if ext.lower() in (".py", ".pyw") and base not in imp_paths:
-                        imp_paths.append((fpath + '.' + base)\
-                                         .replace(PATHDIV, '.').lstrip('.'))
+                        parts = fpath.parts + (base, )
+                        if parts[0] == fpath.root:
+                            parts = parts[1: ]
+
+                        imp_paths.append('.'.join(parts))
 
         # load the defs that were found
         for mod_name in imp_paths:
             # try to import the definition module
             try:
-                def_module = import_module(
-                    join(self.defs_path, mod_name)\
-                    .replace(PATHDIV, '.'))
+                fpath = Path(self.defs_path, mod_name)
+                parts = fpath.parts
+                if parts[0] == fpath.root:
+                    parts = parts[1: ]
+
+                def_module = import_module('.'.join(parts))
             except Exception:
                 def_module = None
                 if self.debug >= 1:
@@ -717,16 +717,15 @@ class Handler():
 
         # make these local for faster referencing
         get_unique_filename = self.get_unique_filename
-        tags = self.tags
-
         for def_id in new_tags:
-            if def_id not in tags:
-                tags[def_id] = new_tags[def_id]
+            if def_id not in self.tags:
+                self.tags[def_id] = new_tags[def_id]
                 continue
 
             for filepath in list(new_tags[def_id]):
+                filepath = Path(filepath)
                 src = new_tags[def_id]
-                dest = tags[def_id]
+                dest = self.tags[def_id]
 
                 # if this IS the same tag then just skip it
                 if dest[filepath] is src[filepath]:
@@ -745,66 +744,6 @@ class Handler():
         # recount how many tags are loaded/indexed
         self.tally_tags()
 
-    def index_tags(self, searchdir=None):
-        '''
-        Allocates empty dict entries in self.tags under
-        the proper def_id for each tag found in self.tagsdir.
-
-        The created dict keys are the paths of the tag relative to
-        self.tagsdir and the values are set to None.
-
-        Returns the number of tags that were found in the folder.
-        '''
-
-        self.tags_indexed = 0
-
-        tagsdir = self.tagsdir
-        if searchdir is None:
-            searchdir = tagsdir
-
-        # local references for faster access
-        id_ext_get = self.id_ext_map.get
-        get_def_id = self.get_def_id
-        tags_get = self.tags.get
-        check = self.check_extension
-        
-        for root, directories, files in os.walk(searchdir):
-            for filename in files:
-                filepath = sanitize_path(join(root, filename))
-                if not self.case_sensitive:
-                    filepath = filepath.lower()
-
-                def_id = get_def_id(filepath)
-                tag_coll = tags_get(def_id)
-                self.current_tag = filepath
-
-                # check that the def_id exists in self.tags and make
-                # sure we either aren't validating extensions, or that
-                # the files extension matches the one for that def_id.
-                if (tag_coll is not None and (not check or
-                    splitext(filename.lower())[-1] == id_ext_get(def_id))):
-                    if self.tagsdir_relative:
-                        filepath = relpath(filepath, tagsdir)
-
-                    # if def_id is valid, create a new mapping in tags
-                    # using its filepath (minus the tagsdir) as the key
-                    rel_filepath, ext = splitext(filepath)
-
-                    # make the extension lower case so it is always
-                    # possible to find the file in self.tags
-                    # regardless of the case of the file extension.
-                    rel_filepath += ext.lower()
-
-                    # Make sure the tag isn't already loaded
-                    if rel_filepath not in tag_coll:
-                        tag_coll[rel_filepath] = None
-                        self.tags_indexed += 1
-
-        # recount how many tags are loaded/indexed
-        self.tally_tags()
-
-        return self.tags_indexed
-
     def load_tag(self, filepath, def_id=None, **kwargs):
         '''
         Builds a tag object, adds it to the tag collection, and returns it.
@@ -813,15 +752,12 @@ class Handler():
         '''
         kwargs.setdefault('allow_corrupt', self.allow_corrupt)
 
-        abs_filepath = filepath
+        abs_filepath = Path(filepath)
         if abs_filepath and self.tagsdir_relative:
-            abs_filepath = join(self.tagsdir, abs_filepath)
+            abs_filepath = self.tagsdir.joinpath(abs_filepath)
 
-        if not self.case_sensitive:
-            filepath = filepath.lower()
-            abs_filepath = abs_filepath.lower()
-
-        new_tag = self.build_tag(filepath=abs_filepath, def_id=def_id, **kwargs)
+        new_tag = self.build_tag(filepath=abs_filepath,
+                                 def_id=def_id, **kwargs)
         if new_tag:
             self.tags[new_tag.def_id][filepath] = new_tag
             return new_tag
@@ -851,8 +787,6 @@ class Handler():
         '''
 
         # local references for faster access
-        tagsdir = self.tagsdir
-        tags = self.tags
         allow = kwargs.get('allow_corrupt', self.allow_corrupt)
         new_tag = None
         build_tag = self.build_tag
@@ -860,9 +794,8 @@ class Handler():
         # decide if we are loading a single tag, a collection
         # of tags, or all tags that have been indexed
         if paths is None:
-            paths_coll = tags
+            paths_coll = self.tags
         else:
-            get_def_id = self.get_def_id
             paths_coll = {}
 
             if isinstance(paths, str):
@@ -874,40 +807,40 @@ class Handler():
 
             # loop over each filepath and create an entry for it in paths_coll
             for filepath in paths:
-                if not self.case_sensitive:
-                    filepath = filepath.lower()
                 # make sure each supplied filepath is relative to self.tagsdir
-                filepath = relpath(filepath, tagsdir)
-                def_id = get_def_id(join(tagsdir, filepath))
+                filepath = Path(relpath(str(filepath), str(self.tagsdir)))
+                def_id = self.get_def_id(self.tagsdir.joinpath(filepath))
 
                 if def_id is None:
                     raise LookupError(
                         "Couldn't locate def_id for:\n    " + paths)
-                elif isinstance(tags.get(def_id), dict):
+                elif isinstance(self.tags.get(def_id), dict):
                     paths_coll[def_id][filepath] = None
                 else:
                     paths_coll[def_id] = {filepath: None}
 
         # Loop over each def_id in the tag paths to load in sorted order
         for def_id in sorted(paths_coll):
-            tag_coll = tags.get(def_id)
+            tag_coll = self.tags.get(def_id)
 
             if not isinstance(tag_coll, dict):
-                tag_coll = tags[def_id] = {}
+                tag_coll = self.tags[def_id] = {}
 
             # Loop through each filepath in coll in sorted order
             for filepath in sorted(paths_coll[def_id]):
+                filepath = Path(filepath)
                 # only load the tag if it isnt already loaded
                 if tag_coll.get(filepath) is not None:
                     continue
 
-                self.current_tag = filepath
+                self.current_tag = str(filepath)
 
-                # incrementing tags_loaded and decrementing tags_indexed
-                # in this loop is done for reporting the loading progress
+                # incrementing tags_loaded is done for
+                # reporting the loading progress
                 try:
-                    new_tag = build_tag(filepath=tagsdir + filepath,
-                                        allow_corrupt=allow)
+                    new_tag = build_tag(
+                        filepath=self.tagsdir.joinpath(filepath),
+                        allow_corrupt=allow)
                     tag_coll[filepath] = new_tag
                     self.tags_loaded += 1
                 except (OSError, MemoryError) as e:
@@ -925,7 +858,6 @@ class Handler():
                            'opening\\parsing:\n    %s\n    ' +
                            'Tag may be corrupt\n') % filepath)
                     del tag_coll[filepath]
-                self.tags_indexed -= 1
 
         # recount how many tags are loaded/indexed
         self.tally_tags()
@@ -972,97 +904,16 @@ class Handler():
         collections in self.tags[def_id] and counts how many
         tags are indexed and how many are loaded.
 
-        Sets self.tags_loaded to how many loaded tags were found and
-        sets self.tags_indexed to how many indexed tags were found.
+        Sets self.tags_loaded to how many loaded tags were found.
         '''
-        loaded = indexed = 0
+        loaded = 0
         tags = self.tags
 
         # Recalculate how many tags are loaded and indexed
         for def_id in tags:
             coll = tags[def_id]
             for path in coll:
-                if coll[path] is None:
-                    indexed += 1
-                else:
+                if coll[path] is not None:
                     loaded += 1
 
         self.tags_loaded = loaded
-        self.tags_indexed = indexed
-
-    def write_tags(self, **kwargs):
-        '''
-        Goes through each def_id in self.tags and attempts
-        to save each tag that is currently loaded.
-
-        Any exceptions that occur while writing the tags will be converted
-        to formatted strings and concatenated together along with the name
-        of the offending tags into a single 'exceptions' string.
-
-        Returns a 'statuses' dict and the 'exceptions' string.
-        statuses is used with self.make_tag_write_log() to
-        os.rename all temp tag files to their non-temp names, backup the
-        original tags, and make a log string to write to a log file.
-        The structure of the statuses dict is as follows:
-        statuses[def_id][filepath] = True/False/None.
-
-        True  = Tag was properly saved
-        False = Tag could not be saved
-        None  = Tag was not saved
-
-        Optional arguments:
-            print_errors(bool)
-            int_test(bool)
-            backup(bool)
-            temp(bool)
-
-        If 'print_errors' is True, exceptions will be printed as they occur.
-        If 'int_test' is True, each tag will be quick loaded after it's written
-        to test its data integrity. Quick loading means skipping rawdata.
-        If 'temp' is True, each tag written will be suffixed with '.temp'
-        If 'backup' is True, any tags that would be overwritten are instead
-        renamed with the extension '.backup'. If a backup already exists
-        then the oldest one is kept and the current file is deleted.
-
-        Passes the 'backup', 'temp', and 'int_test' kwargs over to
-        each tags serialize() method.
-        '''
-        print_errors = kwargs.pop('print_errors', True)
-        int_test = kwargs.pop('int_test', self.int_test)
-        backup = kwargs.pop('backup', self.backup)
-        temp = kwargs.pop('temp', self.write_as_temp)
-
-        statuses = {}
-        exceptions = '\n\nExceptions that occurred while writing tags:\n\n'
-
-        tagsdir = self.tagsdir
-
-        # Loop through each def_id in self.tags in order
-        for def_id in sorted(self.tags):
-            coll = self.tags[def_id]
-            statuses[def_id] = these_statuses = {}
-
-            # Loop through each filepath in coll in order
-            for filepath in sorted(coll):
-
-                # only write the tag if it is loaded
-                if coll[filepath] is None:
-                    continue
-
-                self.current_tag = filepath
-
-                try:
-                    coll[filepath].serialize(filepath=tagsdir + filepath,
-                                             temp=temp, int_test=int_test,
-                                             backup=backup)
-                    these_statuses[filepath] = True
-                except Exception:
-                    tmp = format_exc() + ('\n\nAbove error occurred ' +
-                           'while writing the tag:\n    %s\n    ' +
-                           'Tag may be corrupt.\n') % filepath
-                    exceptions += '\n%s\n' % tmp
-                    if print_errors:
-                        print(tmp)
-                    these_statuses[filepath] = False
-
-        return(statuses, exceptions)

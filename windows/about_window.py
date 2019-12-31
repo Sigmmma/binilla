@@ -24,8 +24,8 @@ try:
             self.apply_style()
             if iconbitmap:
                 try:
-                    if os.path.isfile(iconbitmap):
-                        self.iconbitmap(iconbitmap)
+                    if os.path.isfile(str(iconbitmap)):
+                        self.iconbitmap(str(iconbitmap))
                 except Exception:
                     if not e_c.IS_LNX:
                         print("Could not load window icon.")
@@ -36,7 +36,7 @@ try:
 
     def view_file(master, title, filepath, *a, **kw):
         try:
-            with open(filepath, 'r') as f:
+            with open(str(filepath), 'r') as f:
                 text = f.read()
         except Exception as e:
             messagebox.showerror('File open error', str(e), parent=master)

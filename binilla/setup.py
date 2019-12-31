@@ -23,7 +23,7 @@ setup(
     long_description=long_desc,
     version='%s.%s.%s' % binilla.__version__,
     url=binilla.__website__,
-    author='Devin Bobadilla',
+    author=binilla.__author__,
     author_email='MosesBobadilla@gmail.com',
     license='MIT',
     packages=[

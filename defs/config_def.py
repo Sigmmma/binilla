@@ -108,6 +108,11 @@ field_widget_flags = Bool32("widget_flags",
     {NAME: "evaluate_entry_fields", TOOLTIP: ttip.field_widget_evaluate_entry_fields},
     {NAME: "show_structure_meta", TOOLTIP: ttip.field_widget_show_structure_meta},
     DEFAULT=(
+        # These are the indices of the flags we want on in the default config
+        # setup. By left shifting 1 by the indices and summing the results we
+        # get the integer representation of this block in default form.
+        # The two blocks_start_hidden flags are disabled on Linux because of
+        # some window managers not reacting nicely to that behavior.
         sum([1<<i for i in (2, 3, 4, 6, 7, 8)])
         if e_c.IS_LNX else
         sum([1<<i for i in (2, 3, 4, 6, 7, 8, 9, 10)]))

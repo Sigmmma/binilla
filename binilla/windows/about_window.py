@@ -9,6 +9,7 @@ import threadsafe_tkinter as tk
 
 from tkinter import messagebox
 from binilla import editor_constants as e_c
+from binilla.util import open_in_default_program
 from binilla.widgets.binilla_widget import BinillaWidget
 
 VALID_MODULE_CHARACTERS = frozenset(string.ascii_letters + "_" + string.digits)
@@ -24,11 +25,9 @@ try:
             self.apply_style()
             if iconbitmap:
                 try:
-                    if os.path.isfile(str(iconbitmap)):
-                        self.iconbitmap(str(iconbitmap))
+                    self.iconbitmap(str(iconbitmap))
                 except Exception:
-                    if not e_c.IS_LNX:
-                        print("Could not load window icon.")
+                    print("Could not load window icon.")
 
         def wait_window(self):
             # null this method
@@ -246,12 +245,13 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
             return ""
 
     def display_module_license(self, module_name):
-        if not view_file:
-            return
-
         license_fp = self.module_infos.get(module_name, {}).get("license")
         if not(license_fp and os.path.isfile(license_fp)):
             print("'%s' does not exist" % license_fp)
+            return
+
+        if not view_file:
+            open_in_default_program(license_fp)
             return
 
         version_string = self.get_version_string(module_name)
@@ -263,12 +263,13 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
             version_string), license_fp, iconbitmap=self.iconbitmap_filepath)
 
     def display_module_readme(self, module_name):
-        if not view_file:
+        readme_fp = self.module_infos.get(module_name, {}).get("readme")
+        if not readme_fp or not os.path.isfile(readme_fp):
+            print("'%s' does not exist" % readme_fp)
             return
 
-        readme_fp = self.module_infos.get(module_name, {}).get("readme")
-        if not(readme_fp and os.path.isfile(readme_fp)):
-            print("'%s' does not exist" % readme_fp)
+        if not view_file:
+            open_in_default_program(readme_fp)
             return
 
         version_string = self.get_version_string(module_name)
@@ -286,7 +287,7 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
             return
 
         try:
-            os.startfile(module_location)
+            open_in_default_program(module_location)
         except Exception as e:
             messagebox.showerror('Browser open error', str(e), parent=self.master)
 

@@ -152,10 +152,10 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
 
             license_button = tk.Button(
                 module_frame, text='License', width=8,
-                command=lambda s=self, n=name: s.display_module_license(n))
+                command=lambda s=self, n=name: s.display_module_text(n, "license"))
             readme_button = tk.Button(
                 module_frame, text='Readme', width=8,
-                command=lambda s=self, n=name: s.display_module_readme(n))
+                command=lambda s=self, n=name: s.display_module_text(n, "readme"))
             browse_button = tk.Button(
                 module_frame, text='Browse', width=8,
                 command=lambda s=self, n=name: s.open_module_location(n))
@@ -244,13 +244,21 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
         except Exception:
             return ""
 
-    def display_module_license(self, module_name):
-        license_fp = self.module_infos.get(module_name, {}).get("license")
+    def display_module_text(self, module_name, key):
+        '''
+        Used to display the license and readme files.
+        Tries to display it in a text holding window.
+        If that doesn't exist we open in the default program.
+        '''
+        license_fp = self.module_infos.get(module_name, {}).get(key)
+
         if not(license_fp and os.path.isfile(license_fp)):
             print("'%s' does not exist" % license_fp)
             return
 
         if not view_file:
+            # If view file is not defined we cannot render a textbox with the
+            # readme. Open it in the default program instead.
             open_in_default_program(license_fp)
             return
 
@@ -261,24 +269,6 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
         view_file(self, "%s%s license" % (
             self.get_proper_module_name(module_name),
             version_string), license_fp, iconbitmap=self.iconbitmap_filepath)
-
-    def display_module_readme(self, module_name):
-        readme_fp = self.module_infos.get(module_name, {}).get("readme")
-        if not readme_fp or not os.path.isfile(readme_fp):
-            print("'%s' does not exist" % readme_fp)
-            return
-
-        if not view_file:
-            open_in_default_program(readme_fp)
-            return
-
-        version_string = self.get_version_string(module_name)
-        if version_string:
-            version_string = " v%s" % version_string
-
-        view_file(self, "%s%s readme" % (
-            self.get_proper_module_name(module_name),
-            version_string), readme_fp, iconbitmap=self.iconbitmap_filepath)
 
     def open_module_location(self, module_name):
         module_location = self.module_infos.get(module_name, {}).get("location")

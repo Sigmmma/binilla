@@ -94,6 +94,7 @@ try:
             ["kdialog",
             "--title", str(title),
             "--getsavefilename",
+            # Joining these causes the extension to appear in the name box
             join(str(initialdir), defaultextension),
             _parse_file_filters(filetypes)],
             capture_output=True, universal_newlines=True)

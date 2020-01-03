@@ -9,7 +9,7 @@ try:
     # Import all of these with a prepended underscore to avoid people thinking
     # about using these instead of importing them properly.
     import subprocess
-    from os.path import splitext
+    from os.path import splitext, join
     from tkinter import messagebox
     # capture_output to hide it from our terminal.
     if subprocess.run("kdialog", capture_output=True).returncode != 0:
@@ -89,36 +89,15 @@ try:
         Tkinter style wrapper for kdialog --getsavefilename.
         Arguments listed at the top are the only ones actually accounted for.
         The rest are discarded.
-
-        If defaultextension was supplied, but the user tried to save without
-        an extension it prompts the user asking if they want the default
-        extension appended. This is because kdialog does not have the ability
-        to add an extension by default.
         '''
         res = subprocess.run(
             ["kdialog",
             "--title", str(title),
             "--getsavefilename",
-            str(initialdir), _parse_file_filters(filetypes)],
+            join(str(initialdir), defaultextension),
+            _parse_file_filters(filetypes)],
             capture_output=True, universal_newlines=True)
-        out_path = res.stdout.strip("\n")
-
-        # Don't ask about extensions if no path was returned.
-        if not out_path:
-            return ""
-
-        _, ext = splitext(out_path)
-        # Only ask this if a default extension was supplied.
-        if not ext and defaultextension:
-            new_path = out_path + defaultextension
-            if messagebox.askyesno(
-                    title="Oopsie?",
-                    message="You saved this file without an extension.\n"
-                    "Should I append the default extension so it becomes:\n"
-                    "%r?" % (new_path)):
-                out_path = new_path
-
-        return out_path
+        return res.stdout.strip("\n")
 
 except Exception:
     from sys import platform

@@ -462,17 +462,6 @@ class BinillaWidget():
                             selectforeground=self.text_highlighted_color,
                             readonlybackground=self.entry_disabled_color,
                             highlightthickness=0,)
-                    elif isinstance(w, tk.Frame):
-                        w.config(
-                            bg=self.default_bg_color,
-                            bd=self.listbox_depth,
-                            disabledbackground=self.entry_disabled_color,
-                            disabledforeground=self.text_disabled_color,
-                            selectbackground=self.entry_highlighted_color,
-                            selectforeground=self.text_highlighted_color,
-                            readonlybackground=self.entry_disabled_color,
-                            relief='sunken',
-                            highlightthickness=0)
                 except tk.TclError:
                     pass
 

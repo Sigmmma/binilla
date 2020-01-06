@@ -13,134 +13,143 @@ from binilla.widgets import style_change_lock, font_config
 __all__ = ("BinillaWidget", )
 
 
+
 class BinillaWidget():
     '''
     This class exists solely as an easy way to change
     the config properties of the widgets in Binilla.
     '''
-    # PADDING
-    vertical_padx = e_c.VERTICAL_PADX
-    vertical_pady = e_c.VERTICAL_PADY
-    horizontal_padx = e_c.HORIZONTAL_PADX
-    horizontal_pady = e_c.HORIZONTAL_PADY
 
-    # DEPTHS
-    comment_depth = e_c.COMMENT_DEPTH
-    listbox_depth = e_c.LISTBOX_DEPTH
-    entry_depth = e_c.ENTRY_DEPTH
-    button_depth = e_c.BUTTON_DEPTH
-    frame_depth = e_c.FRAME_DEPTH
+    # Define class defaults here so they can be easily reset if needed.
+    @classmethod
+    def set_style_defaults(cls, dark=False):
+        '''
+        This sets the default widget settings for this class.
+        Useful for resetting after changing the style around.
+        '''
+        # PADDING
+        cls.vertical_padx = e_c.VERTICAL_PADX
+        cls.vertical_pady = e_c.VERTICAL_PADY
+        cls.horizontal_padx = e_c.HORIZONTAL_PADX
+        cls.horizontal_pady = e_c.HORIZONTAL_PADY
 
-    # COLORS
-    default_bg_color = e_c.DEFAULT_BG_COLOR
-    comment_bg_color = e_c.COMMENT_BG_COLOR
-    frame_bg_color = e_c.FRAME_BG_COLOR
+        # DEPTHS
+        cls.comment_depth = e_c.COMMENT_DEPTH
+        cls.listbox_depth = e_c.LISTBOX_DEPTH
+        cls.entry_depth = e_c.ENTRY_DEPTH
+        cls.button_depth = e_c.BUTTON_DEPTH
+        cls.frame_depth = e_c.FRAME_DEPTH
 
-    button_color = e_c.BUTTON_COLOR
-    button_border_light_color = e_c.BUTTON_BORDER_LIGHT_COLOR
-    button_border_dark_color = e_c.BUTTON_BORDER_DARK_COLOR
+        # COLORS
+        cls.default_bg_color = e_c.DEFAULT_BG_COLOR
+        cls.comment_bg_color = e_c.COMMENT_BG_COLOR
+        cls.frame_bg_color = e_c.FRAME_BG_COLOR
 
-    bitmap_canvas_bg_color = e_c.BITMAP_CANVAS_BG_COLOR
-    bitmap_canvas_outline_color = e_c.BITMAP_CANVAS_OUTLINE_COLOR
+        cls.button_color = e_c.BUTTON_COLOR
+        cls.button_border_light_color = e_c.BUTTON_BORDER_LIGHT_COLOR
+        cls.button_border_dark_color = e_c.BUTTON_BORDER_DARK_COLOR
 
-    text_normal_color = e_c.TEXT_NORMAL_COLOR
-    text_disabled_color = e_c.TEXT_DISABLED_COLOR
-    text_highlighted_color = e_c.TEXT_HIGHLIGHTED_COLOR
+        cls.bitmap_canvas_bg_color = e_c.BITMAP_CANVAS_BG_COLOR
+        cls.bitmap_canvas_outline_color = e_c.BITMAP_CANVAS_OUTLINE_COLOR
 
-    enum_normal_color = e_c.ENUM_NORMAL_COLOR
-    enum_disabled_color = e_c.ENUM_DISABLED_COLOR
-    enum_highlighted_color = e_c.ENUM_HIGHLIGHTED_COLOR
+        cls.text_normal_color = e_c.TEXT_NORMAL_COLOR
+        cls.text_disabled_color = e_c.TEXT_DISABLED_COLOR
+        cls.text_highlighted_color = e_c.TEXT_HIGHLIGHTED_COLOR
 
-    entry_normal_color = e_c.ENTRY_NORMAL_COLOR
-    entry_disabled_color = e_c.ENTRY_DISABLED_COLOR
-    entry_highlighted_color = e_c.ENTRY_HIGHLIGHTED_COLOR
+        cls.enum_normal_color = e_c.ENUM_NORMAL_COLOR
+        cls.enum_disabled_color = e_c.ENUM_DISABLED_COLOR
+        cls.enum_highlighted_color = e_c.ENUM_HIGHLIGHTED_COLOR
 
-    io_fg_color = e_c.IO_FG_COLOR
-    io_bg_color = e_c.IO_BG_COLOR
-    invalid_path_color = e_c.INVALID_PATH_COLOR
-    tooltip_bg_color = e_c.TOOLTIP_BG_COLOR
+        cls.entry_normal_color = e_c.ENTRY_NORMAL_COLOR
+        cls.entry_disabled_color = e_c.ENTRY_DISABLED_COLOR
+        cls.entry_highlighted_color = e_c.ENTRY_HIGHLIGHTED_COLOR
 
-    # FONTS
-    _fonts = {}
-    _ttk_style = None
+        cls.io_fg_color = e_c.IO_FG_COLOR
+        cls.io_bg_color = e_c.IO_BG_COLOR
+        cls.invalid_path_color = e_c.INVALID_PATH_COLOR
+        cls.tooltip_bg_color = e_c.TOOLTIP_BG_COLOR
 
-    font_settings = dict(
-        # "default" font is required to be here at the very least
-        default=font_config.FontConfig(
-            family=e_c.DEFAULT_FONT_FAMILY, size=e_c.DEFAULT_FONT_SIZE,
-            weight=e_c.DEFAULT_FONT_WEIGHT, slant=e_c.DEFAULT_FONT_SLANT),
+        # FONTS
+        cls._fonts = {}
+        cls._ttk_style = None
 
-        fixed=font_config.FontConfig(
-            family=e_c.FIXED_FONT_FAMILY, size=e_c.FIXED_FONT_SIZE,
-            weight=e_c.FIXED_FONT_WEIGHT, slant=e_c.FIXED_FONT_SLANT),
-        fixed_small=font_config.FontConfig(
-            family=e_c.FIXED_FONT_FAMILY, size=e_c.FIXED_FONT_SIZE - 2,
-            weight=e_c.FIXED_FONT_WEIGHT, slant=e_c.FIXED_FONT_SLANT),
+        cls.font_settings = dict(
+            # "default" font is required to be here at the very least
+            default=font_config.FontConfig(
+                family=e_c.DEFAULT_FONT_FAMILY, size=e_c.DEFAULT_FONT_SIZE,
+                weight=e_c.DEFAULT_FONT_WEIGHT, slant=e_c.DEFAULT_FONT_SLANT),
 
-        treeview=font_config.FontConfig(
-            family=e_c.DEFAULT_FONT_FAMILY, size=e_c.DEFAULT_FONT_SIZE,
-            weight=e_c.DEFAULT_FONT_WEIGHT, slant=e_c.DEFAULT_FONT_SLANT),
+            fixed=font_config.FontConfig(
+                family=e_c.FIXED_FONT_FAMILY, size=e_c.FIXED_FONT_SIZE,
+                weight=e_c.FIXED_FONT_WEIGHT, slant=e_c.FIXED_FONT_SLANT),
+            fixed_small=font_config.FontConfig(
+                family=e_c.FIXED_FONT_FAMILY, size=e_c.FIXED_FONT_SIZE - 2,
+                weight=e_c.FIXED_FONT_WEIGHT, slant=e_c.FIXED_FONT_SLANT),
 
-        console=font_config.FontConfig(
-            family=e_c.FIXED_FONT_FAMILY, size=e_c.FIXED_FONT_SIZE + 1,
-            weight=e_c.FIXED_FONT_WEIGHT, slant=e_c.FIXED_FONT_SLANT),
+            treeview=font_config.FontConfig(
+                family=e_c.DEFAULT_FONT_FAMILY, size=e_c.DEFAULT_FONT_SIZE,
+                weight=e_c.DEFAULT_FONT_WEIGHT, slant=e_c.DEFAULT_FONT_SLANT),
 
-        heading=font_config.FontConfig(
-            family=e_c.HEADING_FONT_FAMILY, size=e_c.HEADING_FONT_SIZE,
-            weight=e_c.HEADING_FONT_WEIGHT, slant=e_c.HEADING_FONT_SLANT),
-        heading_small=font_config.FontConfig(
-            family=e_c.HEADING_SMALL_FONT_FAMILY, size=e_c.HEADING_SMALL_FONT_SIZE,
-            weight=e_c.HEADING_SMALL_FONT_WEIGHT, slant=e_c.HEADING_SMALL_FONT_SLANT),
-        frame_title=font_config.FontConfig(
-            family=e_c.CONTAINER_TITLE_FONT_FAMILY, size=e_c.CONTAINER_TITLE_FONT_SIZE,
-            weight=e_c.CONTAINER_TITLE_FONT_WEIGHT, slant=e_c.CONTAINER_TITLE_FONT_SLANT),
+            console=font_config.FontConfig(
+                family=e_c.FIXED_FONT_FAMILY, size=e_c.FIXED_FONT_SIZE + 1,
+                weight=e_c.FIXED_FONT_WEIGHT, slant=e_c.FIXED_FONT_SLANT),
 
-        comment=font_config.FontConfig(
-            family=e_c.COMMENT_FONT_FAMILY, size=e_c.COMMENT_FONT_SIZE,
-            weight=e_c.COMMENT_FONT_WEIGHT, slant=e_c.COMMENT_FONT_SLANT),
-        tooltip=font_config.FontConfig(
-            family=e_c.DEFAULT_FONT_FAMILY, size=e_c.DEFAULT_FONT_SIZE,
-            weight=e_c.DEFAULT_FONT_WEIGHT, slant=e_c.DEFAULT_FONT_SLANT),
-        )
+            heading=font_config.FontConfig(
+                family=e_c.HEADING_FONT_FAMILY, size=e_c.HEADING_FONT_SIZE,
+                weight=e_c.HEADING_FONT_WEIGHT, slant=e_c.HEADING_FONT_SLANT),
+            heading_small=font_config.FontConfig(
+                family=e_c.HEADING_SMALL_FONT_FAMILY, size=e_c.HEADING_SMALL_FONT_SIZE,
+                weight=e_c.HEADING_SMALL_FONT_WEIGHT, slant=e_c.HEADING_SMALL_FONT_SLANT),
+            frame_title=font_config.FontConfig(
+                family=e_c.CONTAINER_TITLE_FONT_FAMILY, size=e_c.CONTAINER_TITLE_FONT_SIZE,
+                weight=e_c.CONTAINER_TITLE_FONT_WEIGHT, slant=e_c.CONTAINER_TITLE_FONT_SLANT),
 
-    # MISC
-    title_width = e_c.TITLE_WIDTH
-    enum_menu_width = e_c.ENUM_MENU_WIDTH
-    scroll_menu_width = e_c.SCROLL_MENU_WIDTH
-    min_entry_width = e_c.MIN_ENTRY_WIDTH
-    textbox_height = e_c.TEXTBOX_HEIGHT
-    textbox_width = e_c.TEXTBOX_WIDTH
+            comment=font_config.FontConfig(
+                family=e_c.COMMENT_FONT_FAMILY, size=e_c.COMMENT_FONT_SIZE,
+                weight=e_c.COMMENT_FONT_WEIGHT, slant=e_c.COMMENT_FONT_SLANT),
+            tooltip=font_config.FontConfig(
+                family=e_c.DEFAULT_FONT_FAMILY, size=e_c.DEFAULT_FONT_SIZE,
+                weight=e_c.DEFAULT_FONT_WEIGHT, slant=e_c.DEFAULT_FONT_SLANT),
+            )
 
-    bool_frame_min_width = e_c.BOOL_FRAME_MIN_WIDTH
-    bool_frame_min_height = e_c.BOOL_FRAME_MIN_HEIGHT
-    bool_frame_max_width = e_c.BOOL_FRAME_MAX_WIDTH
-    bool_frame_max_height = e_c.BOOL_FRAME_MAX_HEIGHT
+        # MISC
+        cls.title_width = e_c.TITLE_WIDTH
+        cls.enum_menu_width = e_c.ENUM_MENU_WIDTH
+        cls.scroll_menu_width = e_c.SCROLL_MENU_WIDTH
+        cls.min_entry_width = e_c.MIN_ENTRY_WIDTH
+        cls.textbox_height = e_c.TEXTBOX_HEIGHT
+        cls.textbox_width = e_c.TEXTBOX_WIDTH
 
-    def_int_entry_width = e_c.DEF_INT_ENTRY_WIDTH
-    def_float_entry_width = e_c.DEF_FLOAT_ENTRY_WIDTH
-    def_string_entry_width = e_c.DEF_STRING_ENTRY_WIDTH
+        cls.bool_frame_min_width = e_c.BOOL_FRAME_MIN_WIDTH
+        cls.bool_frame_min_height = e_c.BOOL_FRAME_MIN_HEIGHT
+        cls.bool_frame_max_width = e_c.BOOL_FRAME_MAX_WIDTH
+        cls.bool_frame_max_height = e_c.BOOL_FRAME_MAX_HEIGHT
 
-    max_int_entry_width = e_c.MAX_INT_ENTRY_WIDTH
-    max_float_entry_width = e_c.MAX_FLOAT_ENTRY_WIDTH
-    max_string_entry_width = e_c.MAX_STRING_ENTRY_WIDTH
+        cls.def_int_entry_width = e_c.DEF_INT_ENTRY_WIDTH
+        cls.def_float_entry_width = e_c.DEF_FLOAT_ENTRY_WIDTH
+        cls.def_string_entry_width = e_c.DEF_STRING_ENTRY_WIDTH
 
-    scroll_menu_max_width = e_c.SCROLL_MENU_MAX_WIDTH
-    scroll_menu_max_height = e_c.SCROLL_MENU_MAX_HEIGHT
+        cls.max_int_entry_width = e_c.MAX_INT_ENTRY_WIDTH
+        cls.max_float_entry_width = e_c.MAX_FLOAT_ENTRY_WIDTH
+        cls.max_string_entry_width = e_c.MAX_STRING_ENTRY_WIDTH
 
-    can_scroll = False
-    tooltip_string = None
-    f_widget_parent = None
-    disabled = False
+        cls.scroll_menu_max_width = e_c.SCROLL_MENU_MAX_WIDTH
+        cls.scroll_menu_max_height = e_c.SCROLL_MENU_MAX_HEIGHT
 
-    font_type = "default"  # the type of font to use
-    ttk_theme = "alt"
+        cls.can_scroll = False
+        cls.tooltip_string = None
+        cls.f_widget_parent = None
+        cls.disabled = False
 
-    read_traces = ()
-    write_traces = ()
-    undefine_traces = ()
+        cls.font_type = "default"  # the type of font to use
+        cls.ttk_theme = "alt"
 
-    _filedialog_style_fix = None
-    style_change_lock = None
+        cls.read_traces = ()
+        cls.write_traces = ()
+        cls.undefine_traces = ()
+
+        cls._filedialog_style_fix = None
+        cls.style_change_lock = None
 
     def __init__(self, *args, **kwargs):
         self.read_traces = {}
@@ -521,3 +530,6 @@ class BinillaWidget():
             background=[("active", self.default_bg_color)],
             foreground=[("active", self.text_normal_color)]
             )
+
+# Set widget defaults. ABSOLUTELY REQUIRED.
+BinillaWidget.set_style_defaults()

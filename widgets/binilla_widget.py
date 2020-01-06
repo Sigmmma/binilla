@@ -47,12 +47,12 @@ class BinillaWidget():
     text_disabled_color = e_c.TEXT_DISABLED_COLOR
     text_highlighted_color = e_c.TEXT_HIGHLIGHTED_COLOR
 
-    enum_normal_color = e_c.ENUM_NORMAL_COLOR 
-    enum_disabled_color = e_c.ENUM_DISABLED_COLOR 
+    enum_normal_color = e_c.ENUM_NORMAL_COLOR
+    enum_disabled_color = e_c.ENUM_DISABLED_COLOR
     enum_highlighted_color = e_c.ENUM_HIGHLIGHTED_COLOR
 
-    entry_normal_color = e_c.ENTRY_NORMAL_COLOR 
-    entry_disabled_color = e_c.ENTRY_DISABLED_COLOR 
+    entry_normal_color = e_c.ENTRY_NORMAL_COLOR
+    entry_disabled_color = e_c.ENTRY_DISABLED_COLOR
     entry_highlighted_color = e_c.ENTRY_HIGHLIGHTED_COLOR
 
     io_fg_color = e_c.IO_FG_COLOR
@@ -82,7 +82,7 @@ class BinillaWidget():
             weight=e_c.DEFAULT_FONT_WEIGHT, slant=e_c.DEFAULT_FONT_SLANT),
 
         console=font_config.FontConfig(
-            family=e_c.FIXED_FONT_FAMILY, size=e_c.FIXED_FONT_SIZE - 2,
+            family=e_c.FIXED_FONT_FAMILY, size=e_c.FIXED_FONT_SIZE + 1,
             weight=e_c.FIXED_FONT_WEIGHT, slant=e_c.FIXED_FONT_SLANT),
 
         heading=font_config.FontConfig(
@@ -371,7 +371,7 @@ class BinillaWidget():
                         w.config(
                             bg=self.enum_normal_color, fg=self.text_normal_color,
                             selectbackground=self.enum_highlighted_color,
-                            selectforeground=self.text_highlighted_color, 
+                            selectforeground=self.text_highlighted_color,
                             font=font, highlightthickness=0,)
                     elif isinstance(w, tk.Text):
                         w.config(

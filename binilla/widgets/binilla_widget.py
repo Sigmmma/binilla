@@ -20,6 +20,18 @@ class BinillaWidget():
     the config properties of the widgets in Binilla.
     '''
 
+    can_scroll = False
+    tooltip_string = None
+    f_widget_parent = None
+    disabled = False
+
+    read_traces = ()
+    write_traces = ()
+    undefine_traces = ()
+
+    _filedialog_style_fix = None
+    style_change_lock = None
+
     # Define class defaults here so they can be easily reset if needed.
     @classmethod
     def set_style_defaults(cls, dark=False):
@@ -160,30 +172,17 @@ class BinillaWidget():
         cls.scroll_menu_max_width = e_c.SCROLL_MENU_MAX_WIDTH
         cls.scroll_menu_max_height = e_c.SCROLL_MENU_MAX_HEIGHT
 
-        cls.can_scroll = False
-        cls.tooltip_string = None
-        cls.f_widget_parent = None
-        cls.disabled = False
-
         cls.font_type = "default"  # the type of font to use
         if dark:
             cls.ttk_theme = "clam"
         else:
             cls.ttk_theme = "alt"
 
-        cls.read_traces = ()
-        cls.write_traces = ()
-        cls.undefine_traces = ()
-
-        cls._filedialog_style_fix = None
-        cls.style_change_lock = None
-
     def __init__(self, *args, **kwargs):
         self.read_traces = {}
         self.write_traces = {}
         self.undefine_traces = {}
-        # This breaks with the style reset change?
-        #self.fix_filedialog_style()
+        self.fix_filedialog_style()
         self.style_change_lock = style_change_lock.StyleChangeLock(self)
 
     def fix_filedialog_style(self):
@@ -560,4 +559,4 @@ class BinillaWidget():
             )
 
 # Set widget defaults. ABSOLUTELY REQUIRED.
-BinillaWidget.set_style_defaults()
+BinillaWidget.set_style_defaults(dark=True)

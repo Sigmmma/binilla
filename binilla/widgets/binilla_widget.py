@@ -33,83 +33,83 @@ class BinillaWidget():
     style_change_lock = None
 
     # Define class defaults here so they can be easily reset if needed.
-    @classmethod
-    def set_style_defaults(cls, dark=False):
+    @staticmethod
+    def set_style_defaults(dark=False):
         '''
         This sets the default widget settings for this class.
         Useful for resetting after changing the style around.
         '''
         # PADDING
-        cls.vertical_padx = e_c.VERTICAL_PADX
-        cls.vertical_pady = e_c.VERTICAL_PADY
-        cls.horizontal_padx = e_c.HORIZONTAL_PADX
-        cls.horizontal_pady = e_c.HORIZONTAL_PADY
+        BinillaWidget.vertical_padx = e_c.VERTICAL_PADX
+        BinillaWidget.vertical_pady = e_c.VERTICAL_PADY
+        BinillaWidget.horizontal_padx = e_c.HORIZONTAL_PADX
+        BinillaWidget.horizontal_pady = e_c.HORIZONTAL_PADY
 
         # DEPTHS
-        cls.comment_depth = e_c.COMMENT_DEPTH
-        cls.listbox_depth = e_c.LISTBOX_DEPTH
-        cls.entry_depth = e_c.ENTRY_DEPTH
-        cls.button_depth = e_c.BUTTON_DEPTH
-        cls.frame_depth = e_c.FRAME_DEPTH
+        BinillaWidget.comment_depth = e_c.COMMENT_DEPTH
+        BinillaWidget.listbox_depth = e_c.LISTBOX_DEPTH
+        BinillaWidget.entry_depth = e_c.ENTRY_DEPTH
+        BinillaWidget.button_depth = e_c.BUTTON_DEPTH
+        BinillaWidget.frame_depth = e_c.FRAME_DEPTH
 
         # COLORS
         if dark:
-            cls.default_bg_color = e_c.DARK_DEFAULT_BG_COLOR
-            cls.comment_bg_color = e_c.DARK_COMMENT_BG_COLOR
-            cls.frame_bg_color = e_c.DARK_FRAME_BG_COLOR
+            BinillaWidget.default_bg_color = e_c.DARK_DEFAULT_BG_COLOR
+            BinillaWidget.comment_bg_color = e_c.DARK_COMMENT_BG_COLOR
+            BinillaWidget.frame_bg_color = e_c.DARK_FRAME_BG_COLOR
 
-            cls.button_color = e_c.DARK_BUTTON_COLOR
-            cls.button_border_light_color = e_c.DARK_BUTTON_BORDER_LIGHT_COLOR
-            cls.button_border_dark_color = e_c.DARK_BUTTON_BORDER_DARK_COLOR
+            BinillaWidget.button_color = e_c.DARK_BUTTON_COLOR
+            BinillaWidget.button_border_light_color = e_c.DARK_BUTTON_BORDER_LIGHT_COLOR
+            BinillaWidget.button_border_dark_color = e_c.DARK_BUTTON_BORDER_DARK_COLOR
 
-            cls.text_normal_color = e_c.DARK_TEXT_NORMAL_COLOR
-            cls.text_disabled_color = e_c.DARK_TEXT_DISABLED_COLOR
-            cls.text_highlighted_color = e_c.DARK_TEXT_HIGHLIGHTED_COLOR
+            BinillaWidget.text_normal_color = e_c.DARK_TEXT_NORMAL_COLOR
+            BinillaWidget.text_disabled_color = e_c.DARK_TEXT_DISABLED_COLOR
+            BinillaWidget.text_highlighted_color = e_c.DARK_TEXT_HIGHLIGHTED_COLOR
 
-            cls.entry_normal_color = e_c.DARK_ENTRY_NORMAL_COLOR
-            cls.entry_disabled_color = e_c.DARK_ENTRY_DISABLED_COLOR
-            cls.entry_highlighted_color = e_c.DARK_ENTRY_HIGHLIGHTED_COLOR
+            BinillaWidget.entry_normal_color = e_c.DARK_ENTRY_NORMAL_COLOR
+            BinillaWidget.entry_disabled_color = e_c.DARK_ENTRY_DISABLED_COLOR
+            BinillaWidget.entry_highlighted_color = e_c.DARK_ENTRY_HIGHLIGHTED_COLOR
 
-            cls.enum_normal_color = e_c.DARK_ENUM_NORMAL_COLOR
-            cls.enum_disabled_color = e_c.DARK_ENUM_DISABLED_COLOR
-            cls.enum_highlighted_color = e_c.DARK_ENUM_HIGHLIGHTED_COLOR
+            BinillaWidget.enum_normal_color = e_c.DARK_ENUM_NORMAL_COLOR
+            BinillaWidget.enum_disabled_color = e_c.DARK_ENUM_DISABLED_COLOR
+            BinillaWidget.enum_highlighted_color = e_c.DARK_ENUM_HIGHLIGHTED_COLOR
 
-            cls.tooltip_bg_color = e_c.DARK_COMMENT_BG_COLOR
+            BinillaWidget.tooltip_bg_color = e_c.DARK_COMMENT_BG_COLOR
         else:
-            cls.default_bg_color = e_c.DEFAULT_BG_COLOR
-            cls.comment_bg_color = e_c.COMMENT_BG_COLOR
-            cls.frame_bg_color = e_c.FRAME_BG_COLOR
+            BinillaWidget.default_bg_color = e_c.DEFAULT_BG_COLOR
+            BinillaWidget.comment_bg_color = e_c.COMMENT_BG_COLOR
+            BinillaWidget.frame_bg_color = e_c.FRAME_BG_COLOR
 
-            cls.button_color = e_c.BUTTON_COLOR
-            cls.button_border_light_color = e_c.BUTTON_BORDER_LIGHT_COLOR
-            cls.button_border_dark_color = e_c.BUTTON_BORDER_DARK_COLOR
+            BinillaWidget.button_color = e_c.BUTTON_COLOR
+            BinillaWidget.button_border_light_color = e_c.BUTTON_BORDER_LIGHT_COLOR
+            BinillaWidget.button_border_dark_color = e_c.BUTTON_BORDER_DARK_COLOR
 
-            cls.text_normal_color = e_c.TEXT_NORMAL_COLOR
-            cls.text_disabled_color = e_c.TEXT_DISABLED_COLOR
-            cls.text_highlighted_color = e_c.TEXT_HIGHLIGHTED_COLOR
+            BinillaWidget.text_normal_color = e_c.TEXT_NORMAL_COLOR
+            BinillaWidget.text_disabled_color = e_c.TEXT_DISABLED_COLOR
+            BinillaWidget.text_highlighted_color = e_c.TEXT_HIGHLIGHTED_COLOR
 
-            cls.entry_normal_color = e_c.ENTRY_NORMAL_COLOR
-            cls.entry_disabled_color = e_c.ENTRY_DISABLED_COLOR
-            cls.entry_highlighted_color = e_c.ENTRY_HIGHLIGHTED_COLOR
+            BinillaWidget.entry_normal_color = e_c.ENTRY_NORMAL_COLOR
+            BinillaWidget.entry_disabled_color = e_c.ENTRY_DISABLED_COLOR
+            BinillaWidget.entry_highlighted_color = e_c.ENTRY_HIGHLIGHTED_COLOR
 
-            cls.enum_normal_color = e_c.ENUM_NORMAL_COLOR
-            cls.enum_disabled_color = e_c.ENUM_DISABLED_COLOR
-            cls.enum_highlighted_color = e_c.ENUM_HIGHLIGHTED_COLOR
+            BinillaWidget.enum_normal_color = e_c.ENUM_NORMAL_COLOR
+            BinillaWidget.enum_disabled_color = e_c.ENUM_DISABLED_COLOR
+            BinillaWidget.enum_highlighted_color = e_c.ENUM_HIGHLIGHTED_COLOR
 
-            cls.tooltip_bg_color = e_c.TOOLTIP_BG_COLOR
+            BinillaWidget.tooltip_bg_color = e_c.TOOLTIP_BG_COLOR
 
-        cls.bitmap_canvas_bg_color = e_c.BITMAP_CANVAS_BG_COLOR
-        cls.bitmap_canvas_outline_color = e_c.BITMAP_CANVAS_OUTLINE_COLOR
+        BinillaWidget.bitmap_canvas_bg_color = e_c.BITMAP_CANVAS_BG_COLOR
+        BinillaWidget.bitmap_canvas_outline_color = e_c.BITMAP_CANVAS_OUTLINE_COLOR
 
-        cls.io_fg_color = e_c.IO_FG_COLOR
-        cls.io_bg_color = e_c.IO_BG_COLOR
-        cls.invalid_path_color = e_c.INVALID_PATH_COLOR
+        BinillaWidget.io_fg_color = e_c.IO_FG_COLOR
+        BinillaWidget.io_bg_color = e_c.IO_BG_COLOR
+        BinillaWidget.invalid_path_color = e_c.INVALID_PATH_COLOR
 
         # FONTS
-        cls._fonts = {}
-        cls._ttk_style = None
+        BinillaWidget._fonts = {}
+        BinillaWidget._ttk_style = None
 
-        cls.font_settings = dict(
+        BinillaWidget.font_settings = dict(
             # "default" font is required to be here at the very least
             default=font_config.FontConfig(
                 family=e_c.DEFAULT_FONT_FAMILY, size=e_c.DEFAULT_FONT_SIZE,
@@ -149,34 +149,34 @@ class BinillaWidget():
             )
 
         # MISC
-        cls.title_width = e_c.TITLE_WIDTH
-        cls.enum_menu_width = e_c.ENUM_MENU_WIDTH
-        cls.scroll_menu_width = e_c.SCROLL_MENU_WIDTH
-        cls.min_entry_width = e_c.MIN_ENTRY_WIDTH
-        cls.textbox_height = e_c.TEXTBOX_HEIGHT
-        cls.textbox_width = e_c.TEXTBOX_WIDTH
+        BinillaWidget.title_width = e_c.TITLE_WIDTH
+        BinillaWidget.enum_menu_width = e_c.ENUM_MENU_WIDTH
+        BinillaWidget.scroll_menu_width = e_c.SCROLL_MENU_WIDTH
+        BinillaWidget.min_entry_width = e_c.MIN_ENTRY_WIDTH
+        BinillaWidget.textbox_height = e_c.TEXTBOX_HEIGHT
+        BinillaWidget.textbox_width = e_c.TEXTBOX_WIDTH
 
-        cls.bool_frame_min_width = e_c.BOOL_FRAME_MIN_WIDTH
-        cls.bool_frame_min_height = e_c.BOOL_FRAME_MIN_HEIGHT
-        cls.bool_frame_max_width = e_c.BOOL_FRAME_MAX_WIDTH
-        cls.bool_frame_max_height = e_c.BOOL_FRAME_MAX_HEIGHT
+        BinillaWidget.bool_frame_min_width = e_c.BOOL_FRAME_MIN_WIDTH
+        BinillaWidget.bool_frame_min_height = e_c.BOOL_FRAME_MIN_HEIGHT
+        BinillaWidget.bool_frame_max_width = e_c.BOOL_FRAME_MAX_WIDTH
+        BinillaWidget.bool_frame_max_height = e_c.BOOL_FRAME_MAX_HEIGHT
 
-        cls.def_int_entry_width = e_c.DEF_INT_ENTRY_WIDTH
-        cls.def_float_entry_width = e_c.DEF_FLOAT_ENTRY_WIDTH
-        cls.def_string_entry_width = e_c.DEF_STRING_ENTRY_WIDTH
+        BinillaWidget.def_int_entry_width = e_c.DEF_INT_ENTRY_WIDTH
+        BinillaWidget.def_float_entry_width = e_c.DEF_FLOAT_ENTRY_WIDTH
+        BinillaWidget.def_string_entry_width = e_c.DEF_STRING_ENTRY_WIDTH
 
-        cls.max_int_entry_width = e_c.MAX_INT_ENTRY_WIDTH
-        cls.max_float_entry_width = e_c.MAX_FLOAT_ENTRY_WIDTH
-        cls.max_string_entry_width = e_c.MAX_STRING_ENTRY_WIDTH
+        BinillaWidget.max_int_entry_width = e_c.MAX_INT_ENTRY_WIDTH
+        BinillaWidget.max_float_entry_width = e_c.MAX_FLOAT_ENTRY_WIDTH
+        BinillaWidget.max_string_entry_width = e_c.MAX_STRING_ENTRY_WIDTH
 
-        cls.scroll_menu_max_width = e_c.SCROLL_MENU_MAX_WIDTH
-        cls.scroll_menu_max_height = e_c.SCROLL_MENU_MAX_HEIGHT
+        BinillaWidget.scroll_menu_max_width = e_c.SCROLL_MENU_MAX_WIDTH
+        BinillaWidget.scroll_menu_max_height = e_c.SCROLL_MENU_MAX_HEIGHT
 
-        cls.font_type = "default"  # the type of font to use
+        BinillaWidget.font_type = "default"  # the type of font to use
         if dark:
-            cls.ttk_theme = "clam"
+            BinillaWidget.ttk_theme = "clam"
         else:
-            cls.ttk_theme = "alt"
+            BinillaWidget.ttk_theme = "alt"
 
     def __init__(self, *args, **kwargs):
         self.read_traces = {}
@@ -462,6 +462,17 @@ class BinillaWidget():
                             selectforeground=self.text_highlighted_color,
                             readonlybackground=self.entry_disabled_color,
                             highlightthickness=0,)
+                    elif isinstance(w, tk.Frame):
+                        w.config(
+                            bg=self.default_bg_color,
+                            bd=self.listbox_depth,
+                            disabledbackground=self.entry_disabled_color,
+                            disabledforeground=self.text_disabled_color,
+                            selectbackground=self.entry_highlighted_color,
+                            selectforeground=self.text_highlighted_color,
+                            readonlybackground=self.entry_disabled_color,
+                            relief='sunken',
+                            highlightthickness=0)
                 except tk.TclError:
                     pass
 

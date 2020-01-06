@@ -1131,9 +1131,11 @@ class Binilla(tk.Tk, BinillaWidget):
 
     def reset_style(self):
         '''Resets style to the constants found in editor constants.'''
-        #answer = messagebox.askyesnocancel("Style reset",
-        #    "Do you want to use te default dark style?")
-        BinillaWidget.set_style_defaults()
+        answer = messagebox.askyesnocancel("Style reset",
+            "You're resetting the style.\nDo you want to use the dark style?")
+        if answer is None:
+            return
+        BinillaWidget.set_style_defaults(dark=answer)
         style_file = self.style_def.build()
         self.update_style(style_file)
         self.load_style(style_file=style_file)

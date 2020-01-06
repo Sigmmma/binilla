@@ -41,33 +41,57 @@ class BinillaWidget():
         cls.frame_depth = e_c.FRAME_DEPTH
 
         # COLORS
-        cls.default_bg_color = e_c.DEFAULT_BG_COLOR
-        cls.comment_bg_color = e_c.COMMENT_BG_COLOR
-        cls.frame_bg_color = e_c.FRAME_BG_COLOR
+        if dark:
+            cls.default_bg_color = e_c.DARK_DEFAULT_BG_COLOR
+            cls.comment_bg_color = e_c.DARK_COMMENT_BG_COLOR
+            cls.frame_bg_color = e_c.DARK_FRAME_BG_COLOR
 
-        cls.button_color = e_c.BUTTON_COLOR
-        cls.button_border_light_color = e_c.BUTTON_BORDER_LIGHT_COLOR
-        cls.button_border_dark_color = e_c.BUTTON_BORDER_DARK_COLOR
+            cls.button_color = e_c.DARK_BUTTON_COLOR
+            cls.button_border_light_color = e_c.DARK_BUTTON_BORDER_LIGHT_COLOR
+            cls.button_border_dark_color = e_c.DARK_BUTTON_BORDER_DARK_COLOR
+
+            cls.text_normal_color = e_c.DARK_TEXT_NORMAL_COLOR
+            cls.text_disabled_color = e_c.DARK_TEXT_DISABLED_COLOR
+            cls.text_highlighted_color = e_c.DARK_TEXT_HIGHLIGHTED_COLOR
+
+            cls.entry_normal_color = e_c.DARK_ENTRY_NORMAL_COLOR
+            cls.entry_disabled_color = e_c.DARK_ENTRY_DISABLED_COLOR
+            cls.entry_highlighted_color = e_c.DARK_ENTRY_HIGHLIGHTED_COLOR
+
+            cls.enum_normal_color = e_c.DARK_ENUM_NORMAL_COLOR
+            cls.enum_disabled_color = e_c.DARK_ENUM_DISABLED_COLOR
+            cls.enum_highlighted_color = e_c.DARK_ENUM_HIGHLIGHTED_COLOR
+
+            cls.tooltip_bg_color = e_c.DARK_COMMENT_BG_COLOR
+        else:
+            cls.default_bg_color = e_c.DEFAULT_BG_COLOR
+            cls.comment_bg_color = e_c.COMMENT_BG_COLOR
+            cls.frame_bg_color = e_c.FRAME_BG_COLOR
+
+            cls.button_color = e_c.BUTTON_COLOR
+            cls.button_border_light_color = e_c.BUTTON_BORDER_LIGHT_COLOR
+            cls.button_border_dark_color = e_c.BUTTON_BORDER_DARK_COLOR
+
+            cls.text_normal_color = e_c.TEXT_NORMAL_COLOR
+            cls.text_disabled_color = e_c.TEXT_DISABLED_COLOR
+            cls.text_highlighted_color = e_c.TEXT_HIGHLIGHTED_COLOR
+
+            cls.entry_normal_color = e_c.ENTRY_NORMAL_COLOR
+            cls.entry_disabled_color = e_c.ENTRY_DISABLED_COLOR
+            cls.entry_highlighted_color = e_c.ENTRY_HIGHLIGHTED_COLOR
+
+            cls.enum_normal_color = e_c.ENUM_NORMAL_COLOR
+            cls.enum_disabled_color = e_c.ENUM_DISABLED_COLOR
+            cls.enum_highlighted_color = e_c.ENUM_HIGHLIGHTED_COLOR
+
+            cls.tooltip_bg_color = e_c.TOOLTIP_BG_COLOR
 
         cls.bitmap_canvas_bg_color = e_c.BITMAP_CANVAS_BG_COLOR
         cls.bitmap_canvas_outline_color = e_c.BITMAP_CANVAS_OUTLINE_COLOR
 
-        cls.text_normal_color = e_c.TEXT_NORMAL_COLOR
-        cls.text_disabled_color = e_c.TEXT_DISABLED_COLOR
-        cls.text_highlighted_color = e_c.TEXT_HIGHLIGHTED_COLOR
-
-        cls.enum_normal_color = e_c.ENUM_NORMAL_COLOR
-        cls.enum_disabled_color = e_c.ENUM_DISABLED_COLOR
-        cls.enum_highlighted_color = e_c.ENUM_HIGHLIGHTED_COLOR
-
-        cls.entry_normal_color = e_c.ENTRY_NORMAL_COLOR
-        cls.entry_disabled_color = e_c.ENTRY_DISABLED_COLOR
-        cls.entry_highlighted_color = e_c.ENTRY_HIGHLIGHTED_COLOR
-
         cls.io_fg_color = e_c.IO_FG_COLOR
         cls.io_bg_color = e_c.IO_BG_COLOR
         cls.invalid_path_color = e_c.INVALID_PATH_COLOR
-        cls.tooltip_bg_color = e_c.TOOLTIP_BG_COLOR
 
         # FONTS
         cls._fonts = {}
@@ -142,7 +166,10 @@ class BinillaWidget():
         cls.disabled = False
 
         cls.font_type = "default"  # the type of font to use
-        cls.ttk_theme = "alt"
+        if dark:
+            cls.ttk_theme = "clam"
+        else:
+            cls.ttk_theme = "alt"
 
         cls.read_traces = ()
         cls.write_traces = ()
@@ -155,7 +182,8 @@ class BinillaWidget():
         self.read_traces = {}
         self.write_traces = {}
         self.undefine_traces = {}
-        self.fix_filedialog_style()
+        # This breaks with the style reset change?
+        #self.fix_filedialog_style()
         self.style_change_lock = style_change_lock.StyleChangeLock(self)
 
     def fix_filedialog_style(self):

@@ -113,7 +113,7 @@ field_widget_flags = Bool32("widget_flags",
         # get the integer representation of this block in default form.
         # The two blocks_start_hidden flags are disabled on Linux because of
         # some window managers not reacting nicely to that behavior.
-        sum([1<<i for i in (2, 3, 4, 6, 7, 8)])
+        sum([1<<i for i in (2, 3, 4, 6, 7, 8, 9)])
         if e_c.IS_LNX else
         sum([1<<i for i in (2, 3, 4, 6, 7, 8, 9, 10)]))
     )

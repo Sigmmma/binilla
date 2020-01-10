@@ -14,6 +14,7 @@ from datetime import datetime
 from pathlib import Path, PurePath
 from time import time, sleep
 from traceback import format_exc
+from tkinter import messagebox
 
 import binilla
 
@@ -364,6 +365,8 @@ class Binilla(tk.Tk, BinillaWidget):
             label="Load style", command=self.load_style)
         self.settings_menu.add_command(
             label="Save current style", command=self.make_style)
+        self.settings_menu.add_command(
+            label="Reset style", command=self.reset_style)
 
         self.debug_menu.add_command(label="Print tag", command=self.print_tag)
         self.debug_menu.add_command(label="Clear console",
@@ -976,10 +979,11 @@ class Binilla(tk.Tk, BinillaWidget):
                     initialdir=self.styles_dir, parent=self,
                     title="Select style to load",
                     filetypes=(("binilla_style", "*.sty"), ('All', '*')))
-            filepath = Path(filepath)
 
             if is_path_empty(filepath):
                 return
+            else:
+                filepath = Path(filepath)
 
             assert filepath.is_file()
             self.styles_dir = filepath.parent
@@ -1124,6 +1128,18 @@ class Binilla(tk.Tk, BinillaWidget):
 
         self.update_style(style_file)
         style_file.serialize(temp=0, backup=0, calc_pointers=0)
+
+    def reset_style(self):
+        '''Resets style to the constants found in editor constants.'''
+        answer = messagebox.askyesnocancel("Style reset",
+            "You're resetting the style.\nDo you want to use the dark style?")
+        if answer is None:
+            return
+        BinillaWidget.set_style_defaults(dark=answer)
+        style_file = self.style_def.build()
+        self.update_style(style_file)
+        self.load_style(style_file=style_file)
+
 
     def toggle_sync(self):
         self.config_file.data.tag_windows.window_flags.sync_window_movement = (

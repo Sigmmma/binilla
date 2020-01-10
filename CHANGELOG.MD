@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+ - A button to reset the style, which allows you to reset to both a light or dark theme.
+ - A default dark theme.
  - A report bug button.
  - filedialog wrapper that uses kdialog when available to fix it being unusable on Linux.
  - Michelle as an author.
@@ -15,11 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
  - About window now opens licenses and readmes in default program if the requirements for the about window cannot be imported.
+ - Better default fonts for Linux.
  - Binilla window path properties always return pathlib.Path objects and convert to them.
  - Disabled blocks start hidden and auto-rescale on Linux by default (Fixes some issues with some window managers on Linux).
  - Fix loads of filesystem path things breaking on case sensitive file systems.
  - Fix scroll menu widths.
  - Improve reliability of DynamicEnumFrame when options are volatile.
+ - Make default spacing on widgets a little nicer.
  - Requirements. Now has a minimum version for supyr_struct. And a tkinter extensions.
  - Several places where try-except blocks could catch control+c.
  - Switch to tkcolorpicker that supports alphas (Fixes linux having a terrible colorpicker).

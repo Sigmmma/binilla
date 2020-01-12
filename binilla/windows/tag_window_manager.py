@@ -80,6 +80,8 @@ class TagWindowManager(tk.Toplevel, BinillaWidget):
         self.apply_style()
         self.transient(self.app_root)
         self.ok_button.focus_set()
+        self.wait_visibility()
+        self.lift()
         self.grab_set()
 
     def destroy(self, e=None):

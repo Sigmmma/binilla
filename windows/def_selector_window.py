@@ -64,6 +64,8 @@ class DefSelectorWindow(tk.Toplevel, BinillaWidget):
         self.bind('<Escape>', self.destroy)
 
         self.transient(self.app_root)
+        self.wait_visibility()
+        self.lift()
         self.grab_set()
 
         self.apply_style()

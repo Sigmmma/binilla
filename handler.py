@@ -302,7 +302,7 @@ class Handler():
             def_id = self.get_def_id(filepath)
             if not def_id:
                 raise LookupError('Unable to determine def_id for:' +
-                                  '\n' + ' '*BPI + filepath)
+                                  '\n' + ' '*BPI + str(filepath))
 
         tagdef = self.get_def(def_id)
 
@@ -316,7 +316,7 @@ class Handler():
 
         raise LookupError(("Unable to locate definition for " +
                            "tag type '%s' for file:\n%s'%s'") %
-                          (def_id, ' '*BPI, filepath))
+                          (def_id, ' '*BPI, str(filepath)))
 
     def clear_unloaded_tags(self):
         '''
@@ -385,7 +385,7 @@ class Handler():
 
         if not def_id:
             raise LookupError('Unable to determine def_id for:' +
-                              '\n' + ' '*BPI + filepath)
+                              '\n' + ' '*BPI + str(filepath))
 
         tag_coll = self.tags.get(def_id, {})
         # TODO: Make a proper way to handle non-case sensitive tag systems

@@ -125,13 +125,23 @@ def do_subprocess(exec_path, cmd_args=(), exec_args=(), **kw):
     proc_controller.returncode = result
     return result
 
+
 def open_in_default_program(path):
+    '''
+    Opens file in default program while not locking execution of the rest
+    of the program.
+    '''
     try:
         if e_c.IS_MAC:
-            subprocess.check_call(['open', str(path)])
+            subprocess.Popen(['open', str(path)])
         elif e_c.IS_LNX:
-            subprocess.check_call(['xdg-open', str(path)])
+            subprocess.Popen(['xdg-open', str(path)])
         else:
-            subprocess.check_call(['start', str(path)])
+            if Path(path).is_dir():
+                # windows does not properly open directories using "start".
+                # we have to directly call explorer in this case
+                subprocess.Popen(['explorer', str(path)])
+            else:
+                subprocess.Popen(['start', str(path)])
     except Exception:
         print(format_exc())

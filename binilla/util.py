@@ -127,24 +127,21 @@ def do_subprocess(exec_path, cmd_args=(), exec_args=(), **kw):
 
 
 def open_in_default_program(path):
+    '''
+    Opens file in default program while not locking execution of the rest
+    of the program.
+    '''
     try:
         if e_c.IS_MAC:
-            subprocess.check_call(['open', str(path)])
+            subprocess.Popen(['open', str(path)])
         elif e_c.IS_LNX:
-            subprocess.check_call(['xdg-open', str(path)])
+            subprocess.Popen(['xdg-open', str(path)])
         else:
             if Path(path).is_dir():
                 # windows does not properly open directories using "start".
                 # we must directly call explorer in this case
-                try:
-                    subprocess.check_call(['explorer', str(path)])
-                except subprocess.CalledProcessError as e:
-                    # if the path has a space in it, windows will successfully
-                    # open the directory, but will return the error code 1.
-                    # this isn't actually an error, so let it pass.
-                    if e.returncode != 1:
-                        raise
+                subprocess.Popen(['explorer', str(path)])
             else:
-                subprocess.check_call(['start', str(path)])
+                subprocess.Popen(['start', str(path)])
     except Exception:
         print(format_exc())

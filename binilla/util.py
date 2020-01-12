@@ -139,7 +139,7 @@ def open_in_default_program(path):
         else:
             if Path(path).is_dir():
                 # windows does not properly open directories using "start".
-                # we must directly call explorer in this case
+                # we have to directly call explorer in this case
                 subprocess.Popen(['explorer', str(path)])
             else:
                 subprocess.Popen(['start', str(path)])

@@ -10,11 +10,12 @@ except ImportError:
 from io import StringIO
 
 from math import log, ceil
+from pathlib import Path
 from time import sleep
 from traceback import format_exc
 
-from binilla.editor_constants import IS_LNX
-from supyr_struct.util import sanitize_path
+from binilla import editor_constants as e_c
+from supyr_struct.util import is_path_empty
 
 POS_INF = float("inf")
 NEG_INF = float("-inf")
@@ -23,14 +24,9 @@ DOUBLE_PREC = 52*log(2, 10)
 
 
 def is_main_frozen():
-   return (hasattr(sys, "frozen") or hasattr(sys, "importers")
+   return (hasattr(sys, "frozen") or
+           hasattr(sys, "importers")
            or imp.is_frozen("__main__"))
-
-
-def get_cwd(module=None):
-   if is_main_frozen():
-       return os.path.dirname(sys.executable)
-   return os.path.dirname(__file__ if module is None else module)
 
 
 def float_to_str(f, max_sig_figs=FLOAT_PREC):
@@ -38,7 +34,7 @@ def float_to_str(f, max_sig_figs=FLOAT_PREC):
         return "inf"
     elif f == NEG_INF:
         return "-inf"
-    
+
     sig_figs = -1
     if abs(f) > 0:
         sig_figs = int(round(max_sig_figs - log(abs(f), 10) - 1))
@@ -96,7 +92,7 @@ def do_subprocess(exec_path, cmd_args=(), exec_args=(), **kw):
     proc_controller = kw.pop("proc_controller", ProcController())
     try:
 
-        if IS_LNX:
+        if e_c.IS_LNX:
             args = (exec_path, ) + exec_args
         else:
             cmd_args  = ''.join((" /%s" % a.lower()) for a in cmd_args)
@@ -128,3 +124,14 @@ def do_subprocess(exec_path, cmd_args=(), exec_args=(), **kw):
 
     proc_controller.returncode = result
     return result
+
+def open_in_default_program(path):
+    try:
+        if e_c.IS_MAC:
+            subprocess.check_call(['open', str(path)])
+        elif e_c.IS_LNX:
+            subprocess.check_call(['xdg-open', str(path)])
+        else:
+            subprocess.check_call(['start', str(path)])
+    except Exception:
+        print(format_exc())

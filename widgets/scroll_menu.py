@@ -36,7 +36,7 @@ class ScrollMenu(tk.Frame, BinillaWidget):
 
     default_text = None
 
-    menu_width = BinillaWidget.scroll_menu_width
+    menu_width = None
 
     def __init__(self, *args, **kwargs):
         BinillaWidget.__init__(self)
@@ -53,7 +53,7 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         self.max_index = kwargs.pop('max_index', self.max_index)
         self.max_height = kwargs.pop('max_height', self.max_height)
         self.f_widget_parent = kwargs.pop('f_widget_parent', None)
-        self.menu_width = kwargs.pop('menu_width', self.menu_width)
+        self.menu_width = kwargs.pop('menu_width', 0)
         self.options_volatile = kwargs.pop('options_volatile', False)
         self.default_text = kwargs.pop('default_text', e_c.INVALID_OPTION)
 
@@ -69,10 +69,11 @@ class ScrollMenu(tk.Frame, BinillaWidget):
 
         self.write_trace(self.variable, lambda *a: self.update_label())
 
+        menu_width = self.menu_width if self.menu_width else self.scroll_menu_width
         self.sel_label = tk.Label(
             self, bg=self.enum_normal_color, fg=self.text_normal_color,
             bd=2, relief='groove',
-            width=self.menu_width if self.menu_width else self.enum_menu_width)
+            width=max(min(menu_width, self.scroll_menu_max_width), 1))
         # the button_frame is to force the button to be a certain size
         self.button_frame = tk.Frame(self, relief='flat', height=18, width=18, bd=0)
         self.button_frame.pack_propagate(0)
@@ -99,7 +100,7 @@ class ScrollMenu(tk.Frame, BinillaWidget):
             bg=self.enum_normal_color, fg=self.text_normal_color,
             selectbackground=self.enum_highlighted_color,
             selectforeground=self.text_highlighted_color,
-            yscrollcommand=self.option_bar.set, width=self.menu_width)
+            yscrollcommand=self.option_bar.set, width=menu_width)
         self.option_bar.config(command=self.option_box.yview)
 
         # make sure the TagWindow knows these widgets are scrollable
@@ -153,7 +154,11 @@ class ScrollMenu(tk.Frame, BinillaWidget):
         else:
             bg = self.enum_normal_color
             fg = self.text_normal_color
-        self.sel_label.config(bg=bg, fg=fg)
+
+        menu_width = self.menu_width if self.menu_width else self.scroll_menu_width
+        self.sel_label.config(
+            bg=bg, fg=fg, width=max(min(menu_width, self.scroll_menu_max_width), 1))
+        self.option_box.config(width=menu_width)
 
     @property
     def sel_index(self):
@@ -391,7 +396,7 @@ class ScrollMenu(tk.Frame, BinillaWidget):
             insert = self.option_box.insert
             def_str = '%s' + ('. %s' % self.default_text)
             menu_width = self.menu_width if self.menu_width else\
-                         self.enum_menu_width
+                         self.scroll_menu_width
             for i in range(option_cnt):
                 if i in options:
                     insert(END, options[i])

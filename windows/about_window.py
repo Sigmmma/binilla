@@ -9,6 +9,7 @@ import threadsafe_tkinter as tk
 
 from tkinter import messagebox
 from binilla import editor_constants as e_c
+from binilla.util import open_in_default_program
 from binilla.widgets.binilla_widget import BinillaWidget
 
 VALID_MODULE_CHARACTERS = frozenset(string.ascii_letters + "_" + string.digits)
@@ -24,11 +25,9 @@ try:
             self.apply_style()
             if iconbitmap:
                 try:
-                    if os.path.isfile(iconbitmap):
-                        self.iconbitmap(iconbitmap)
+                    self.iconbitmap(str(iconbitmap))
                 except Exception:
-                    if not e_c.IS_LNX:
-                        print("Could not load window icon.")
+                    print("Could not load window icon.")
 
         def wait_window(self):
             # null this method
@@ -36,7 +35,7 @@ try:
 
     def view_file(master, title, filepath, *a, **kw):
         try:
-            with open(filepath, 'r') as f:
+            with open(str(filepath), 'r') as f:
                 text = f.read()
         except Exception as e:
             messagebox.showerror('File open error', str(e), parent=master)
@@ -153,10 +152,10 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
 
             license_button = tk.Button(
                 module_frame, text='License', width=8,
-                command=lambda s=self, n=name: s.display_module_license(n))
+                command=lambda s=self, n=name: s.display_module_text(n, "license"))
             readme_button = tk.Button(
                 module_frame, text='Readme', width=8,
-                command=lambda s=self, n=name: s.display_module_readme(n))
+                command=lambda s=self, n=name: s.display_module_text(n, "readme"))
             browse_button = tk.Button(
                 module_frame, text='Browse', width=8,
                 command=lambda s=self, n=name: s.open_module_location(n))
@@ -245,13 +244,22 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
         except Exception:
             return ""
 
-    def display_module_license(self, module_name):
-        if not view_file:
-            return
+    def display_module_text(self, module_name, key):
+        '''
+        Used to display the license and readme files.
+        Tries to display it in a text holding window.
+        If that doesn't exist we open in the default program.
+        '''
+        license_fp = self.module_infos.get(module_name, {}).get(key)
 
-        license_fp = self.module_infos.get(module_name, {}).get("license")
         if not(license_fp and os.path.isfile(license_fp)):
             print("'%s' does not exist" % license_fp)
+            return
+
+        if not view_file:
+            # If view file is not defined we cannot render a textbox with the
+            # readme. Open it in the default program instead.
+            open_in_default_program(license_fp)
             return
 
         version_string = self.get_version_string(module_name)
@@ -262,23 +270,6 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
             self.get_proper_module_name(module_name),
             version_string), license_fp, iconbitmap=self.iconbitmap_filepath)
 
-    def display_module_readme(self, module_name):
-        if not view_file:
-            return
-
-        readme_fp = self.module_infos.get(module_name, {}).get("readme")
-        if not(readme_fp and os.path.isfile(readme_fp)):
-            print("'%s' does not exist" % readme_fp)
-            return
-
-        version_string = self.get_version_string(module_name)
-        if version_string:
-            version_string = " v%s" % version_string
-
-        view_file(self, "%s%s readme" % (
-            self.get_proper_module_name(module_name),
-            version_string), readme_fp, iconbitmap=self.iconbitmap_filepath)
-
     def open_module_location(self, module_name):
         module_location = self.module_infos.get(module_name, {}).get("location")
         if not(module_location and os.path.isdir(module_location)):
@@ -286,7 +277,7 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
             return
 
         try:
-            os.startfile(module_location)
+            open_in_default_program(module_location)
         except Exception as e:
             messagebox.showerror('Browser open error', str(e), parent=self.master)
 

@@ -225,6 +225,10 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
             if module_name == "arbytmap":
                 from arbytmap.arby import fast_arbytmap
                 accelerated = fast_arbytmap
+            elif module_name == "reclaimer":
+                from reclaimer.sounds.adpcm import fast_adpcm
+                accelerated = fast_adpcm
+
         except AttributeError:
             pass
 

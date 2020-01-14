@@ -45,7 +45,7 @@ setup(
     # it for some reason, though it will prevent certain things from working.
     install_requires=['supyr_struct>=1.4.0', 'arbytmap', 'threadsafe_tkinter',
                       'tkcolorpicker'],
-    requires=['supyr_struct>=1.4.0', 'arbytmap', 'threadsafe_tkinter',
+    requires=['supyr_struct', 'arbytmap', 'threadsafe_tkinter',
               'tkcolorpicker'],
     provides=['binilla'],
     classifiers=[

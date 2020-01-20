@@ -6,7 +6,7 @@ except ImportError:
 
 import binilla
 
-long_desc = open(join(curr_dir, "README.RST")).read()
+long_desc = open("README.RST").read()
 
 setup(
     name='binilla',

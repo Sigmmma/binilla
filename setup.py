@@ -14,6 +14,11 @@ setup(
     long_description=long_desc,
     version='%s.%s.%s' % binilla.__version__,
     url=binilla.__website__,
+    project_urls={
+        #"Documentation": <Need a string entry here>,
+        "Source": binilla.__website__,
+        "Funding": "https://liberapay.com/MEK/",
+    },
     author=binilla.__author__,
     author_email='MosesBobadilla@gmail.com',
     license='MIT',

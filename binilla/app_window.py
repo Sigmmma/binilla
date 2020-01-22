@@ -36,6 +36,7 @@ from binilla.windows.filedialog import askopenfilenames, askopenfilename,\
 from binilla.windows.tag_window import TagWindow, ConfigWindow,\
      make_hotkey_string, read_hotkey_string
 from binilla.windows.tag_window_manager import TagWindowManager
+from binilla import stdout_redirect
 
 
 this_curr_dir = Path.cwd()
@@ -545,7 +546,11 @@ class Binilla(tk.Tk, BinillaWidget):
 
         self.terminal_out = IORedirecter(self.io_text, edit_log=edit_log,
                                          log_file=self.log_file)
-        sys.stdout = self.orig_stdout if disable else self.terminal_out
+
+        # make it so print starts writing to both stdout and terminal_out
+        stdout_redirect.add_stdout_target("terminal_out", self.terminal_out)
+        stdout_redirect.flush_buffered_output()
+
 
     def bind_hotkeys(self, new_hotkeys=None):
         '''

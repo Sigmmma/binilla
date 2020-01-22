@@ -9,6 +9,7 @@ __website__ = "https://github.com/MosesofEgypt/binilla"
 __all__ = (
     'defs', 'widgets', 'windows',
     'app_window', 'constants', 'edit_manager', 'editor_constants', 'handler',
+    'stdout_redirect',
     )
 
 from binilla import constants

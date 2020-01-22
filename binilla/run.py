@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
-import os, sys
+import sys
 
 info = sys.version_info
 
-if info[0] < 3:
+try:
+    from binilla import stdout_redirect
+    stdout_redirect.start_storing_output()
+except ImportError:
+    # Well, I guess we're not logging anything
+    pass
+
+if info[0] < 3 or info[1] < 5:
     input(
-        "You must have python 3 or higher installed to run Binilla.\n" +
+        "You must have python 3.5 or higher installed to run Binilla.\n"
         "You currently have %s.%s.%s installed instead." % info[:3])
     raise SystemExit(0)
 
@@ -15,8 +22,13 @@ from traceback import format_exc
 try:
     from binilla.app_window import Binilla
     main_window = Binilla(debug=3)
+    try:
+        stdout_redirect.flush_buffered_output()
+    except Exception:
+        # I eat poo
+        pass
     main_window.mainloop()
-    
+
 except Exception:
     exception = format_exc()
     try:

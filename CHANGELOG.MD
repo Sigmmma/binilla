@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Changed
+ - Filter out invalid stdout from kdialog on Linux. Fixes configurations that wrongfully print other stuff to the stdout of the system while kdialog is running.
+
 ## [1.2.0]
 ### Added
  - A button to reset the style, which allows you to reset to both a light or dark theme.

@@ -24,8 +24,7 @@ if "linux" in sys.platform:
 
         def _fix_output(output):
             '''
-            Removes miscelanous stdout output that can happen in incorrectly
-            configured systems.
+            Removes miscelanous stdout output that can with Mesa drivers.
             Only accept absolute paths that start with the root separator.
             '''
             return list(filter(lambda a : a.startswith("/"), output.split("\n")))

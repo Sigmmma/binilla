@@ -117,7 +117,10 @@ if "linux" in sys.platform:
                 join(str(initialdir), defaultextension),
                 _parse_file_filters(filetypes)],
                 capture_output=True, universal_newlines=True)
-            return _fix_output(res.stdout)
+            try:
+                return _fix_output(res.stdout)[0]
+            except IndexError:
+                return ""
 
         use_tk_dialog = False
 

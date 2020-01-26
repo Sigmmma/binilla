@@ -79,5 +79,5 @@ def del_stdout_target(name):
     Makes it so we stop copying stdout to the given target name.
     '''
     global stdout_targets
-    if name in stdout_targets
+    if name in stdout_targets:
         del stdout_targets[name]

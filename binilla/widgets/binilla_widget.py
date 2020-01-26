@@ -12,7 +12,7 @@ from binilla.widgets import style_change_lock, font_config
 
 __all__ = ("BinillaWidget", )
 
-
+WIDGET_SCALING = 1.333
 
 class BinillaWidget():
     '''
@@ -179,6 +179,10 @@ class BinillaWidget():
             BinillaWidget.ttk_theme = "alt"
 
     def __init__(self, *args, **kwargs):
+        try:
+            self.tk.call("tk", "scaling", str(WIDGET_SCALING))
+        except AttributeError:
+            pass
         self.read_traces = {}
         self.write_traces = {}
         self.undefine_traces = {}

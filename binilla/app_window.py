@@ -31,6 +31,7 @@ from binilla.handler import Handler
 from binilla.util import IORedirecter, is_path_empty
 from binilla.windows.about_window import AboutWindow
 from binilla.windows.def_selector_window import DefSelectorWindow
+from binilla.windows import filedialog
 from binilla.windows.filedialog import askopenfilenames, askopenfilename,\
      askdirectory, asksaveasfilename
 from binilla.windows.tag_window import TagWindow, ConfigWindow,\
@@ -401,6 +402,10 @@ class Binilla(tk.Tk, BinillaWidget):
 
         self.sync_offset_x = self.winfo_x()
         self.sync_offset_y = self.winfo_y()
+
+        if hasattr(filedialog, "no_native_file_dialog_error"):
+            filedialog.no_native_file_dialog_error()
+
         self._initialized = True
 
     @property

@@ -297,8 +297,8 @@ if "linux" in sys.platform:
 
         USE_TK_DIALOG = False
 
-if DIALOG_NAME and not USE_TK_DIALOG:
-    print("Using native %s for filedialogs." % DIALOG_NAME)
+    if DIALOG_NAME and not USE_TK_DIALOG:
+        print("Using native %s for filedialogs." % DIALOG_NAME)
 
 
 # Fallback for Linux, default for mac and Windows.

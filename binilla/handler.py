@@ -344,16 +344,20 @@ class Handler():
             if not is_path_empty(filepath):
                 pass
             elif self.tagsdir_relative:
-                filepath = Path(relpath(str(tag.filepath), str(self.tagsdir)))
+                filepath = Path(self.tagsdir, tag.filepath)
             else:
                 filepath = tag.filepath
         elif def_id is None:
             def_id = self.get_def_id(filepath)
 
-        #TODO: Danger! The path helpers should really be moved to supyr_struct
-        filepath = path_normalize(filepath)
-        if filepath in self.tags.get(def_id, ()):
+        if filepath in self.tags.get(def_id, {}):
             del self.tags[def_id][filepath]
+        elif Path(self.tagsdir, filepath) in self.tags.get(def_id, {}):
+            del self.tags[def_id][Path(self.tagsdir, filepath)]
+        else:
+            print("Warning: Tried to delete tag %s [%s] from handler, "
+                  "but tag couldn't be found." % (filepath, def_id))
+
 
     def get_def_id(self, filepath):
         filepath = str(filepath)

@@ -382,8 +382,7 @@ class BinillaWidget():
 
                 if isinstance(w, BinillaWidget):
                     if w.style_change_lock is None:
-                        print("TELL MOSES HE FUCKED UP:", type(w))
-                        dunfuckedup
+                        raise TypeError("TELL MOSES HE FUCKED UP: " + str(type(w)))
 
                     if w is not self:
                         with w.style_change_lock as depth:

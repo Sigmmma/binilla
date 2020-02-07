@@ -3,7 +3,7 @@
 # ##############
 __author__ = "Devin Bobadilla, Michelle van der Graaf"
 #           YYYY.MM.DD
-__date__ = "2020.01.29"
+__date__ = "2020.02.07"
 __version__ = (1, 2, 3)
 __website__ = "https://github.com/Sigmmma/binilla"
 __all__ = (

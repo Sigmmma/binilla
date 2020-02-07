@@ -16,7 +16,7 @@ install:
   # Windows install prep.
   - cmd: |
         git clone %WHEELMAN_REPO% wheelman
-        %PYTHON% -m pip install wheel pyyaml twine
+        %PYTHON% -m pip install wheel pyyaml twine supyr_struct
 
 # Turn off MSBuild mode.
 build: off

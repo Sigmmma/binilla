@@ -1,1 +1,4 @@
 supyr_struct
+tkcolorpicker
+threadsafe_tkinter
+arbytmap

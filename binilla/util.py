@@ -133,15 +133,15 @@ def open_in_default_program(path):
     '''
     try:
         if e_c.IS_MAC:
-            subprocess.Popen(['open', str(path)])
+            os.system('open "%s"' % path)
         elif e_c.IS_LNX:
-            subprocess.Popen(['xdg-open', str(path)])
+            os.system('xdg-open "%s"' % path)
         else:
             if Path(path).is_dir():
                 # windows does not properly open directories using "start".
                 # we have to directly call explorer in this case
-                subprocess.Popen(['explorer', str(path)])
+                os.system('explorer "%s"' % path)
             else:
-                subprocess.Popen(['start', str(path)])
+                os.system('start "%s"' % path)
     except Exception:
         print(format_exc())

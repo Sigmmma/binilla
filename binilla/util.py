@@ -142,6 +142,6 @@ def open_in_default_program(path):
                 # we have to directly call explorer in this case
                 os.system('explorer "%s"' % path)
             else:
-                os.system('start "%s"' % path)
+                os.system('start "" "%s"' % path)
     except Exception:
         print(format_exc())

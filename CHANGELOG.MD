@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.6]
+### Changed
+ - Make Arbytmap an optional requirement under the feature name `bitmap_viewing`. This should improve Python 3.5 compatibility on Windows as Arbytmap does not have compiled Windows wheels below 3.6.
+
 ## [1.2.5]
 ### Changed
  - Fix improper use of start command for windows in util.open_in_default_program.

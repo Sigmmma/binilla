@@ -6,7 +6,11 @@ except ImportError:
 
 import binilla
 
-long_desc = open("README.RST").read()
+long_desc = ""
+try:
+    long_desc = open("README.RST").read()
+except Exception:
+    print("Couldn't read readme.")
 
 setup(
     name='binilla',

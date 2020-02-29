@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [1.3.0]
-### Changed
+### Added
  - Added \_\_main\_\_ so Binilla can be executed using `python -m binilla` or just `binilla` on some systems.
 
 ## [1.2.6]

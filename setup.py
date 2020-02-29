@@ -24,7 +24,7 @@ setup(
         "Funding": "https://liberapay.com/MEK/",
     },
     author=binilla.__author__,
-    author_email='MosesBobadilla@gmail.com',
+    author_email='MoeMakesStuff@gmail.com',
     license='MIT',
     packages=[
         'binilla',

@@ -30,7 +30,7 @@ def main():
                     cfile.write(time + exception)
             except Exception:
                 pass
-        print(exception)
+        print(exception, file=sys.stderr)
         return 1;
 
 if __name__ == "__main__":

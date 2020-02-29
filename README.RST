@@ -33,4 +33,4 @@ Once the install finishes, binilla should be able to be run by opening a python 
 Who do I talk to?
 -----------------
 
-- Devin Bobadilla (Author of binilla) mosesbobadilla@gmail.com
+- Devin Bobadilla (Original author of binilla) MoeMakesStuff@gmail.com

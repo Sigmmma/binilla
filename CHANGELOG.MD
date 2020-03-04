@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0]
+### Added
+ - Added \_\_main\_\_ so Binilla can be executed using `python -m binilla` or just `binilla` on some systems.
+
 ## [1.2.6]
 ### Changed
  - Make Arbytmap an optional requirement under the feature name `bitmap_viewing`. This should improve Python 3.5 compatibility on Windows as Arbytmap does not have compiled Windows wheels below 3.6.

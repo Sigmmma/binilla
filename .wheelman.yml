@@ -5,7 +5,7 @@ name: binilla
 
 #These get copied into the distribution
 include_files:
-    - "README.RST"
+    - "README.MD"
     - "LICENSE.TXT"
     - "CHANGELOG.MD"
 

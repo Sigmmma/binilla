@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1]
+### Added
+ - Fix import error when no system wide file dialogs are found. (Should fall back to tkinter and give an error dialog instead.)
+
 ## [1.3.0]
 ### Added
  - Added \_\_main\_\_ so Binilla can be executed using `python -m binilla` or just `binilla` on some systems.

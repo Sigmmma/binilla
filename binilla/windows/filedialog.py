@@ -68,10 +68,6 @@ if "linux" in sys.platform:
             if subprocess.run("zenity", capture_output=True).returncode == 255:
                 DIALOG_NAME = "zenity"
 
-    if not DIALOG_NAME:
-        # Can't "import" any good dialogs.
-        raise ImportError
-
 
 
     # These are the functions to wrap zenity and yad.

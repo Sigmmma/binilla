@@ -26,3 +26,8 @@ git clone git@github.com:Sigmmma/binilla.git
 cd supyr_struct
 python3 -m pip install .
 ```
+## Who do I talk to?
+
+If you're having any issues with the library you can report them on our [GitHub Issues page](https://github.com/Sigmmma/binilla/issues).
+
+If the issue requires some more direct attention we'll drop a contact link.

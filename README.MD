@@ -1,6 +1,6 @@
 # Binilla
-[![](https://img.shields.io/pypi/dm/supyr_struct)](https://pypistats.org/packages/binilla)
-![](https://ci.appveyor.com/api/projects/status/github/Sigmmma/supyr_struct?svg=true)
+[![](https://img.shields.io/pypi/dm/binilla)](https://pypistats.org/packages/binilla)
+![](https://ci.appveyor.com/api/projects/status/github/Sigmmma/binilla?svg=true)
 [![PyPI version](https://badge.fury.io/py/binilla.svg)](https://pypi.org/project/binilla/)
 [![GitHub version](https://badge.fury.io/gh/Sigmmma%2Fbinilla.svg)](https://github.com/Sigmmma/binilla)
 

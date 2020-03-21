@@ -8,7 +8,7 @@ import binilla
 
 long_desc = ""
 try:
-    long_desc = open("README.RST").read()
+    long_desc = open("README.MD").read()
 except Exception:
     print("Couldn't read readme.")
 
@@ -16,12 +16,13 @@ setup(
     name='binilla',
     description='A universal binary structure editor built on supyr_struct.',
     long_description=long_desc,
+    long_description_content_type='text/markdown',
     version='%s.%s.%s' % binilla.__version__,
     url=binilla.__website__,
     project_urls={
         #"Documentation": <Need a string entry here>,
         "Source": binilla.__website__,
-        "Funding": "https://liberapay.com/MEK/",
+        #"Funding": "",
     },
     author=binilla.__author__,
     author_email='MoeMakesStuff@gmail.com',

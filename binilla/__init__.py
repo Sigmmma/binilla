@@ -3,8 +3,8 @@
 # ##############
 __author__ = "Devin Bobadilla, Michelle van der Graaf"
 #           YYYY.MM.DD
-__date__ = "2020.03.20"
-__version__ = (1, 3, 1)
+__date__ = "2020.05.11"
+__version__ = (1, 3, 2)
 __website__ = "https://github.com/Sigmmma/binilla"
 __all__ = (
     'defs', 'widgets', 'windows',

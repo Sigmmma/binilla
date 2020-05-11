@@ -1471,7 +1471,7 @@ class Binilla(tk.Tk, BinillaWidget):
         if filepath is None:
             ext = tag.ext
             filepath = asksaveasfilename(
-                initialdir=os.path.dirname(tag.filepath), defaultextension=ext,
+                initialdir=os.path.dirname(str(tag.filepath)), defaultextension=ext,
                 title="Save tag as...", filetypes=[
                     (ext[1:], "*" + ext), ('All', '*')])
 

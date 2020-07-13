@@ -1243,8 +1243,7 @@ class Binilla(tk.Tk, BinillaWidget):
                           "Could not load: %s" % path)
                     continue
                 except Exception:
-                    if handler.debug:
-                        print(format_exc())
+                    print(format_exc())
                     print("Could not load: %s" % path)
                     continue
 

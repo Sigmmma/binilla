@@ -63,10 +63,13 @@ if "linux" in sys.platform:
             if subprocess.run("kdialog", capture_output=True).returncode == 0:
                 DIALOG_NAME = "kdialog"
         except Exception:
-            # This one is nice. But it has a tendency to keep opening the
-            # recent files folder. And I don't like that >:P
-            if subprocess.run("zenity", capture_output=True).returncode == 255:
-                DIALOG_NAME = "zenity"
+            try:
+                # This one is nice. But it has a tendency to keep opening the
+                # recent files folder. And I don't like that >:P
+                if subprocess.run("zenity", capture_output=True).returncode == 255:
+                    DIALOG_NAME = "zenity"
+            except Exception:
+                pass
 
 
 

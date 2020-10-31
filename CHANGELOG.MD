@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.3.5]
 ### Changed
- - (Linux) Fix crash when user does not have either yad, kdialog, or zenity installed.
+ - Update build config for Python 3.9.
 
 ## [1.3.4]
 ### Changed

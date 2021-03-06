@@ -1207,9 +1207,8 @@ class Binilla(tk.Tk, BinillaWidget):
         w = None
 
         windows = []
-        handler = self.handler
         handler_flags = self.config_file.data.tag_windows.file_handling_flags
-        tags_dir = handler.tagsdir
+        tags_dir = self.handler.tagsdir
         for path in filepaths:
             abs_path = path
             is_new_tag = is_path_empty(abs_path)
@@ -1228,10 +1227,10 @@ class Binilla(tk.Tk, BinillaWidget):
             else:
                 # try to load the new tags
                 try:
-                    if handler.tagsdir_relative and not is_new_tag:
+                    if self.handler.tagsdir_relative and not is_new_tag:
                         abs_path = tags_dir.joinpath(abs_path)
 
-                    new_tag = handler.build_tag(
+                    new_tag = self.handler.build_tag(
                         filepath=abs_path, def_id=def_id,
                         allow_corrupt=handler_flags.allow_corrupt)
                 except FileNotFoundError:

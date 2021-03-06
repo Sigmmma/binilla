@@ -300,7 +300,7 @@ class Handler():
 
         if not def_id:
             def_id = self.get_def_id(filepath)
-            if not def_id:
+            if def_id is None:
                 raise LookupError('Unable to determine def_id for:' +
                                   '\n' + ' '*BPI + str(filepath))
 

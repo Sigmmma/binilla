@@ -644,8 +644,8 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             while True:
                 save_thread.join(0.05)
                 self.update()
-                # NOTE TO SELF: isAlive is a method, NOT a decorated property...
-                if not save_thread.isAlive():
+                # NOTE TO SELF: is_alive is a method, NOT a decorated property...
+                if not save_thread.is_alive():
                     break
 
             self.field_widget.set_edited(False)

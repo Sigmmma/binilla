@@ -41,7 +41,7 @@ setup(
         },
     platforms=["POSIX", "Windows"],
     keywords="binilla, binary, data structure",
-    install_requires=['supyr_struct', 'threadsafe_tkinter', 'tkcolorpicker'],
+    install_requires=['supyr_struct', 'threadsafe_tkinter>=1.0.4', 'tkcolorpicker'],
     requires=['supyr_struct', 'threadsafe_tkinter', 'tkcolorpicker'],
     extras_require={
         'bitmap_viewing': ['arbytmap']

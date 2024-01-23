@@ -95,7 +95,10 @@ class ContainerFrame(tk.Frame, field_widget.FieldWidget):
             if attr_index is None:
                 return True
             elif self.node:
-                sub_node = self.node[attr_index]
+                try:
+                    sub_node = self.node[attr_index]
+                except Exception:
+                    pass
 
             if w.load_node_data(self.node, sub_node, attr_index):
                 # descriptor is different. gotta repopulate self

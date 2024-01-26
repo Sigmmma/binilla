@@ -1216,7 +1216,7 @@ class Binilla(tk.Tk, BinillaWidget):
             if self.get_is_tag_loaded(path):
                 # the tag is somehow still loaded.
                 # need to see if there is still a window
-                new_tag = self.get_tag(path, handler.get_def_id(path))
+                new_tag = self.get_tag(path, self.handler.get_def_id(path))
                 if self.get_tag_window_id_by_tag(new_tag) is not None:
                     w = self.get_tag_window_by_tag(new_tag)
                     if w:

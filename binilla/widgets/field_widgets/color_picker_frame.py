@@ -36,9 +36,7 @@ class ColorPickerFrame(container_frame.ContainerFrame):
             highlightbackground=self.get_color()[1], highlightthickness=1,
             state=tk.DISABLED if self.disabled else tk.NORMAL)
 
-    def reload(self):
-        self.has_alpha = 'a' in self.desc['NAME_MAP']
-    
+    def reload(self):    
         container_frame.ContainerFrame.reload(self)
         self.update_selector_button()
 
@@ -53,8 +51,6 @@ class ColorPickerFrame(container_frame.ContainerFrame):
         container_frame.ContainerFrame.set_disabled(self, disable)
 
     def populate(self):
-        self.has_alpha = 'a' in self.desc['NAME_MAP']
-
         container_frame.ContainerFrame.populate(self)
         self.color_btn = tk.Button(
             self.content, width=4, command=self.select_color)
@@ -126,6 +122,10 @@ class ColorPickerFrame(container_frame.ContainerFrame):
         else:
             self.red, self.green, self.blue = float_c_color
         self.reload()
+
+    @property
+    def has_alpha(self):
+        return 'a' in self.desc.get('NAME_MAP', '')
 
     @property
     def alpha(self):

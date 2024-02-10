@@ -3,8 +3,8 @@
 # ##############
 __author__ = "Sigmmma"
 #           YYYY.MM.DD
-__date__ = "2024.01.26"
-__version__ = (1, 3, 10)
+__date__ = "2024.02.10"
+__version__ = (1, 3, 11)
 __website__ = "https://github.com/Sigmmma/binilla"
 __all__ = (
     'defs', 'widgets', 'windows',

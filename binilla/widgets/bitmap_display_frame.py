@@ -52,6 +52,9 @@ class PhotoImageHandler():
             self.load_texture(tex_block, tex_info)
 
     def load_texture(self, tex_block, tex_info):
+        self.arby.set_deep_color_mode(
+            max(arbytmap.CHANNEL_DEPTHS[tex_info.get("format", 0)]) > 8
+            )
         self.arby.load_new_texture(texture_block=tex_block,
                                    texture_info=tex_info)
 

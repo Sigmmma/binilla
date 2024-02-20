@@ -1,4 +1,4 @@
-import imp
+import importlib
 import os
 import platform
 import sys
@@ -24,9 +24,10 @@ DOUBLE_PREC = 52*log(2, 10)
 
 
 def is_main_frozen():
-   return (hasattr(sys, "frozen") or
-           hasattr(sys, "importers")
-           or imp.is_frozen("__main__"))
+    return (
+        hasattr(sys, "frozen") or hasattr(sys, "importers") or
+        not importlib.util.find_spec("mozzarilla").has_location
+        )
 
 
 def float_to_str(f, max_sig_figs=FLOAT_PREC):

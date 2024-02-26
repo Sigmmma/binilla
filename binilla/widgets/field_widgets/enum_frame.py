@@ -174,9 +174,13 @@ class EnumFrame(data_frame.DataFrame):
             except Exception:
                 curr_index = -1
 
+            label_str = None
             self.sel_menu.sel_index = curr_index
             self.sel_menu.max_index = option_count - 1
-            self.sel_menu.update_label()
+            if self.sel_menu.get_option() is None and self.node is not None:
+                label_str = "<INVALID OPTION '%s'>" % getattr(self.node, "data", "")
+
+            self.sel_menu.update_label(label_str)
         except Exception:
             print(format_exc())
 

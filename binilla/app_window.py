@@ -661,18 +661,20 @@ class Binilla(tk.Tk, BinillaWidget):
                     tid_to_wid.pop(tid, None)
                     self.tag_windows.pop(wid, None)
 
-            if tag is self.config_file:
-                pass
-            elif hasattr(tag, "rel_filepath"):
+            if tag is not self.config_file:
                 # remove the tag from the handlers tag library.
                 # We need to delete it by the relative filepath
                 # rather than having it detect it using the tag
                 # because the handlers tagsdir may have changed
                 # from what it was when the tag was created, so
                 # it wont be able to determine the rel_filepath
-                tag.handler.delete_tag(filepath=tag.rel_filepath)
-            else:
-                tag.handler.delete_tag(filepath=tag.filepath)
+                tag.handler.delete_tag(
+                    def_id=tag.def_id, filepath=(
+                        tag.rel_filepath
+                        if hasattr(tag, "rel_filepath") else
+                        tag.filepath
+                        )
+                    )
 
             if self.selected_tag is tag:
                 self.selected_tag = None

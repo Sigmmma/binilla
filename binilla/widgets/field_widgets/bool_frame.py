@@ -74,17 +74,7 @@ class BoolFrame(data_frame.DataFrame):
                 self.checkbtns[bit].config(state=new_state)
 
         data_frame.DataFrame.set_disabled(self, disable)
-
-    def apply_style(self, seen=None):
-        field_widget.FieldWidget.apply_style(self, seen)
-        self.check_frame.config(bg=self.entry_normal_color,
-                                bd=self.listbox_depth)
-
-        for w in self.check_frame.children.values():
-            if isinstance(w, tk.Checkbutton):
-                w.config(bg=self.entry_normal_color, selectcolor="",
-                         activebackground=self.entry_highlighted_color,
-                         activeforeground=self.text_highlighted_color)
+        self.apply_style()
 
     def flush(self): pass
 
@@ -217,11 +207,14 @@ class BoolFrame(data_frame.DataFrame):
         self.node.data = data - (data & mask) + mask*new_val
 
     def apply_style(self, seen=None):
-        super(BoolFrame, self).apply_style(seen)
+        super().apply_style(seen)
+
+        bg = self.entry_disabled_color if self.disabled else self.enum_normal_color
+        fg = self.text_disabled_color  if self.disabled else self.text_normal_color
 
         for k in self.checkbtns:
             self.checkbtns[k].config(
-                bg=self.entry_normal_color, fg=self.text_normal_color, 
+                bg=bg, fg=fg, 
                 activebackground=self.entry_highlighted_color,
                 activeforeground=self.text_highlighted_color,)
         self.pose_fields()
@@ -310,10 +303,15 @@ class BoolSingleFrame(data_frame.DataFrame):
             self.checkbutton.config(state=tk.DISABLED if disable else tk.NORMAL)
 
         data_frame.DataFrame.set_disabled(self, disable)
+        self.apply_style()
 
     def apply_style(self, seen=None):
         field_widget.FieldWidget.apply_style(self, seen)
+        bg = self.entry_disabled_color if self.disabled else self.enum_normal_color
+        fg = self.text_disabled_color  if self.disabled else self.text_normal_color
+
         self.checkbutton.config(
+            bg=bg, fg=fg,
             selectcolor=self.entry_normal_color,
             activebackground=self.default_bg_color,
             activeforeground=self.text_highlighted_color)

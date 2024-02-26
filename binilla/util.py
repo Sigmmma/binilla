@@ -1,4 +1,4 @@
-import importlib
+import importlib.util
 import os
 import platform
 import sys
@@ -26,7 +26,7 @@ DOUBLE_PREC = 52*log(2, 10)
 def is_main_frozen():
     return (
         hasattr(sys, "frozen") or hasattr(sys, "importers") or
-        not importlib.util.find_spec("mozzarilla").has_location
+        not importlib.util.find_spec("binilla").has_location
         )
 
 

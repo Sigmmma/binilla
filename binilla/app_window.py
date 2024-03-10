@@ -1196,7 +1196,7 @@ class Binilla(tk.Tk, BinillaWidget):
                 return ()
             elif isinstance(filepaths, str) and filepaths.startswith('{'):
                 # account for a stupid bug with certain versions of windows
-                filepaths = re.split("\}\W\{", filepaths[1:-1])
+                filepaths = re.split(r"\}\W\{", filepaths[1:-1])
 
         if isinstance(filepaths, (str, PurePath)):
             filepaths = (filepaths, )

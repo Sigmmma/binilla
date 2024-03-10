@@ -74,7 +74,7 @@ class BoolFrame(data_frame.DataFrame):
                 self.checkbtns[bit].config(state=new_state)
 
         data_frame.DataFrame.set_disabled(self, disable)
-        self.apply_style()
+        self.apply_colors()
 
     def flush(self): pass
 
@@ -206,9 +206,7 @@ class BoolFrame(data_frame.DataFrame):
         self.edit_create(bit=bit, mask=mask, redo_node=new_val)
         self.node.data = data - (data & mask) + mask*new_val
 
-    def apply_style(self, seen=None):
-        super().apply_style(seen)
-
+    def apply_colors(self):
         bg = self.entry_disabled_color if self.disabled else self.enum_normal_color
         fg = self.text_disabled_color  if self.disabled else self.text_normal_color
 
@@ -217,6 +215,10 @@ class BoolFrame(data_frame.DataFrame):
                 bg=bg, fg=fg, 
                 activebackground=self.entry_highlighted_color,
                 activeforeground=self.text_highlighted_color,)
+
+    def apply_style(self, seen=None):
+        super().apply_style(seen)
+        self.apply_colors()
         self.pose_fields()
 
     def pose_fields(self):
@@ -303,10 +305,9 @@ class BoolSingleFrame(data_frame.DataFrame):
             self.checkbutton.config(state=tk.DISABLED if disable else tk.NORMAL)
 
         data_frame.DataFrame.set_disabled(self, disable)
-        self.apply_style()
+        self.apply_colors()
 
-    def apply_style(self, seen=None):
-        field_widget.FieldWidget.apply_style(self, seen)
+    def apply_colors(self):
         bg = self.entry_disabled_color if self.disabled else self.enum_normal_color
         fg = self.text_disabled_color  if self.disabled else self.text_normal_color
 
@@ -315,6 +316,10 @@ class BoolSingleFrame(data_frame.DataFrame):
             selectcolor=self.entry_normal_color,
             activebackground=self.default_bg_color,
             activeforeground=self.text_highlighted_color)
+
+    def apply_style(self, seen=None):
+        field_widget.FieldWidget.apply_style(self, seen)
+        self.apply_colors()
 
     def flush(self): pass
 

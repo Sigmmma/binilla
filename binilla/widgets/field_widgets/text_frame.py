@@ -52,6 +52,7 @@ class TextFrame(data_frame.DataFrame):
         self.data_text.bind('<FocusOut>', self.flush)
         self.data_text.bind('<Return>', self.set_modified)
         self.data_text.bind('<Any-KeyPress>', self.set_modified)
+        self.data_text.bind('<Control-a>', self.select_all)
         self.data_text.text_undo = self._text_undo
         self.data_text.text_redo = self._text_redo
         self.data_text.bind('<Control-z>', self.disable_undo_redo)
@@ -175,6 +176,15 @@ class TextFrame(data_frame.DataFrame):
 
             byte_str = i.to_bytes(c_size, endian).decode(encoding=enc)
             self.replace_map[byte_str] = hex_head + hex(i)[2:] + hex_foot
+
+    def select_all(self, *args):
+        # NOTE: explicitly adding this, as it may not work on
+        #       linux, but seems fine on windows. See here:
+        #   https://stackoverflow.com/questions/45301245/cmd-a-not-working-in-tkinter-entry
+        if self.data_text is not None and not self.disabled:
+            self.data_text.tag_add('sel', '1.0', 'end')
+
+        return "break"
 
     def flush(self, *args):
         if None in (self.parent, self.node):

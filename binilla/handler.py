@@ -354,10 +354,6 @@ class Handler():
             del self.tags[def_id][filepath]
         elif Path(self.tagsdir, filepath) in self.tags.get(def_id, {}):
             del self.tags[def_id][Path(self.tagsdir, filepath)]
-        else:
-            print("Warning: Tried to delete tag %s [%s] from handler, "
-                  "but tag couldn't be found." % (filepath, def_id))
-
 
     def get_def_id(self, filepath):
         filepath = str(filepath)

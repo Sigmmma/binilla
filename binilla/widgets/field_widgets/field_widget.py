@@ -623,6 +623,10 @@ class FieldWidget(BinillaWidget):
             print(format_exc())
             print("Could not import '%s' node." % self.name)
 
+    def select_all(self, *args):
+        '''Selects everything in the widget(if the concept applies to it.)'''
+        pass
+
     def populate(self):
         '''Destroys and rebuilds this widgets children.'''
         raise NotImplementedError("This method must be overloaded")

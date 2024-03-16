@@ -661,18 +661,20 @@ class Binilla(tk.Tk, BinillaWidget):
                     tid_to_wid.pop(tid, None)
                     self.tag_windows.pop(wid, None)
 
-            if tag is self.config_file:
-                pass
-            elif hasattr(tag, "rel_filepath"):
+            if tag is not self.config_file:
                 # remove the tag from the handlers tag library.
                 # We need to delete it by the relative filepath
                 # rather than having it detect it using the tag
                 # because the handlers tagsdir may have changed
                 # from what it was when the tag was created, so
                 # it wont be able to determine the rel_filepath
-                tag.handler.delete_tag(filepath=tag.rel_filepath)
-            else:
-                tag.handler.delete_tag(filepath=tag.filepath)
+                tag.handler.delete_tag(
+                    def_id=tag.def_id, filepath=(
+                        tag.rel_filepath
+                        if hasattr(tag, "rel_filepath") else
+                        tag.filepath
+                        )
+                    )
 
             if self.selected_tag is tag:
                 self.selected_tag = None
@@ -1194,7 +1196,7 @@ class Binilla(tk.Tk, BinillaWidget):
                 return ()
             elif isinstance(filepaths, str) and filepaths.startswith('{'):
                 # account for a stupid bug with certain versions of windows
-                filepaths = re.split("\}\W\{", filepaths[1:-1])
+                filepaths = re.split(r"\}\W\{", filepaths[1:-1])
 
         if isinstance(filepaths, (str, PurePath)):
             filepaths = (filepaths, )
@@ -1216,7 +1218,7 @@ class Binilla(tk.Tk, BinillaWidget):
             if self.get_is_tag_loaded(path):
                 # the tag is somehow still loaded.
                 # need to see if there is still a window
-                new_tag = self.get_tag(path, handler.get_def_id(path))
+                new_tag = self.get_tag(path, self.handler.get_def_id(path))
                 if self.get_tag_window_id_by_tag(new_tag) is not None:
                     w = self.get_tag_window_by_tag(new_tag)
                     if w:

@@ -11,6 +11,13 @@ __all__ = (
     'app_window', 'constants', 'edit_manager', 'editor_constants', 'handler',
     )
 
-from binilla import constants
+try:
+    from binilla import constants
 
-constants.inject()
+    constants.inject()
+except ModuleNotFoundError as e:
+    # this is a bit of a hack to account for instances where 
+    # binilla is being imported from its setup.py. at this
+    # time supyr_struct may not be installed/accessible yet.
+    if e.msg != "No module named 'supyr_struct'":
+        raise

@@ -57,6 +57,7 @@ class EntryFrame(data_frame.DataFrame):
 
         self.data_entry.bind('<Return>', self.flush)
         self.data_entry.bind('<FocusOut>', self.flush)
+        self.data_entry.bind('<Control-a>', self.select_all)
 
         self.write_trace(self.entry_string, self.set_modified)
 
@@ -113,6 +114,15 @@ class EntryFrame(data_frame.DataFrame):
         elif self.entry_string.get() != self.last_flushed_val:
             self.set_needs_flushing()
             self.set_edited()
+
+    def select_all(self, *args):
+        # NOTE: explicitly adding this, as it may not work on
+        #       linux, but seems fine on windows. See here:
+        #   https://stackoverflow.com/questions/45301245/cmd-a-not-working-in-tkinter-entry
+        if self.data_entry is not None and not self.disabled:
+            self.data_entry.select_range(0, 'end')
+
+        return "break"
 
     def flush(self, *args):
         if None in (self.parent, self.node):

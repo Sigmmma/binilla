@@ -218,6 +218,13 @@ class FieldWidget(BinillaWidget):
             return True
 
     @property
+    def use_unit_scales(self):
+        try:
+            return bool(self.tag_window.use_unit_scales)
+        except Exception:
+            return True
+
+    @property
     def editable(self):
         try:
             return self.desc.get('EDITABLE', True) or self.all_editable
@@ -321,6 +328,9 @@ class FieldWidget(BinillaWidget):
 
     @property
     def unit_scale(self):
+        if not self.use_unit_scales:
+            return None
+
         desc = self.desc
         unit_scale = desc.get('UNIT_SCALE')
         if hasattr(unit_scale, '__call__'):
@@ -622,6 +632,10 @@ class FieldWidget(BinillaWidget):
         except Exception:
             print(format_exc())
             print("Could not import '%s' node." % self.name)
+
+    def select_all(self, *args):
+        '''Selects everything in the widget(if the concept applies to it.)'''
+        pass
 
     def populate(self):
         '''Destroys and rebuilds this widgets children.'''

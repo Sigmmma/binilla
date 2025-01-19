@@ -313,6 +313,13 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             return True
 
     @property
+    def use_unit_scales(self):
+        try:
+            return bool(self.widget_flags.use_unit_scales)
+        except Exception:
+            return True
+
+    @property
     def is_config(self):
         try:
             return self.tag is self.app_root.config_file

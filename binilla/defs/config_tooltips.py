@@ -142,6 +142,8 @@ tag_backup_max_count = (
 tag_backup_interval = (
     "The amount of time in seconds that must pass between saves before\n"
     "the rolling backup system will backup a tag being overwritten.")
+tag_backup_file_suffix = (
+    "The suffix to append to any file being backed up, followed by a number.")
 tag_backup_folder_basename = (
     "The name of the folder to backup to. For files that are relative to a tags\n"
     "directory, this backup folder will be created in the root of the tags\n"

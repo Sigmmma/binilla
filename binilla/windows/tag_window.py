@@ -89,6 +89,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
     #                  should also have certain methods, like delete_tag
     field_widget = None  # The single FieldWidget held in this window
     widget_picker = def_widget_picker  # The WidgetPicker to use for selecting
+    root_frame = None
     #                                    the widget to build when populating
     # The tag handler that built the tag this window is displaying
     handler = None
@@ -113,6 +114,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
     _saving = False
     _initialized = False
     _scrolling = False
+    _closing = False
     _last_saved_edit_index = 0
     _pending_scroll_counts = ()
 
@@ -156,19 +158,23 @@ class TagWindow(tk.Toplevel, BinillaWidget):
 
         self.edit_manager = EditManager(max_undos)
 
-        with self.style_change_lock:
-            self.update()
-            if use_def_dims:
-                width  = self.settings.default_dimensions.w
-                height = self.settings.default_dimensions.h
-            else:
-                width  = self.root_frame.winfo_reqwidth()  + self.root_vsb.winfo_reqwidth()  + 2
-                height = self.root_frame.winfo_reqheight() + self.root_hsb.winfo_reqheight() + 2
+        try:
+            with self.style_change_lock:
+                self.update()
+                if use_def_dims:
+                    width  = self.settings.default_dimensions.w
+                    height = self.settings.default_dimensions.h
+                elif self.root_frame and self.root_vsb:
+                    width  = self.root_frame.winfo_reqwidth()  + self.root_vsb.winfo_reqwidth()  + 2
+                    height = self.root_frame.winfo_reqheight() + self.root_hsb.winfo_reqheight() + 2
 
-            self.resize_window(width, height)
-            self.apply_style()
+                self.resize_window(width, height)
+                self.apply_style()
 
-        self._initialized = True
+            self._initialized = True
+        except Exception:
+            if not self._closing:
+                raise
 
     def post_toplevel_init(self):
         self.update_title()
@@ -539,20 +545,30 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             except Exception:
                 print(format_exc())
 
+    @property
+    def destroy_blocked_message(self):
+        if self._saving:
+            reason = "Still saving. Please wait."
+        elif not self.field_widget:
+            reason = "Still creating window. Please wait."
+        #elif self.applying_style_change:
+        #    reason = "Still applying style change. Please wait."
+        #elif not self._initialized:
+        #    reason =  "Still initializing window. Please wait."
+        else:
+            reason = ""
+
+        return reason
+
     def destroy(self):
         '''
         Handles destroying this Toplevel and removing the tag from app_root
         '''
-        if self._saving:
-            print("Still saving. Please wait.")
-            return True
-        elif self.applying_style_change:
-            print("Still applying style change. Please wait.")
-            return True
-        elif not self._initialized:
-            print("Still initializing window. Please wait.")
+        if self.destroy_blocked_message:
+            print(self.destroy_blocked_message)
             return True
 
+        self._closing = True
         try:
             app_root = self.app_root
             tag = self.tag
@@ -593,7 +609,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
             print(format_exc())
 
         # call pack_forget so destroying doesn't keep redrawing the widgets
-        self.field_widget.pack_forget()
+        self.field_widget and self.field_widget.pack_forget()
         tk.Toplevel.destroy(self)
         self.delete_all_widget_refs()
 
@@ -612,35 +628,38 @@ class TagWindow(tk.Toplevel, BinillaWidget):
                 self.field_widget.flush()
 
             if hasattr(self.app_root, 'config_file'):
+                backup_conf = self.backup_settings
                 kwargs.setdefault('temp', self.file_handling_flags.write_as_temp)
                 kwargs.setdefault('int_test', self.file_handling_flags.integrity_test)
                 kwargs.setdefault("replace_backup", True)
 
-                kwargs.setdefault(
-                    'backup', self.backup_settings.max_count > 0)
+                kwargs.setdefault('backup', backup_conf.max_count > 0)
                 time_since_backup = float("inf")
                 if kwargs["backup"]:
-                    backup_paths = self.tag.handler.\
-                                   get_backup_paths_by_timestamps(
-                                       self.tag.filepath, True)
-                    if backup_paths:
-                        time_since_backup = time.time() - max(backup_paths)
+                    paths = self.tag.handler.get_backup_paths_by_timestamps(
+                        self.tag.filepath, True
+                        )
+                    if paths:
+                        time_since_backup = time.time() - max(paths)
 
-                if time_since_backup < max(0.0, self.backup_settings.interval):
+                if kwargs["backup"] and (max(0.0, backup_conf.interval) >=
+                                         time_since_backup):
                     # not enough time has passed to backup
                     kwargs["backup"] = False
 
                 if kwargs["backup"]:
                     if not kwargs.get("backuppath"):
                         kwargs["backuppath"] = self.tag.handler.get_next_backup_filepath(
-                            self.tag.filepath, self.backup_settings.max_count)
+                            self.tag.filepath, backup_conf.max_count,
+                            backup_conf.file_suffix,
+                            )
 
                     if kwargs["backuppath"] == self.tag.filepath:
                         # somehow backuppath became self.tag.filepath
                         kwargs["backup"] = False
 
                     if (self.tag.filepath.is_file() and
-                        self.backup_settings.flags.notify_when_backing_up):
+                        backup_conf.flags.notify_when_backing_up):
                         print("Backing up to: '%s'" % kwargs["backuppath"])
 
             self.field_widget.set_disabled(True)
@@ -718,9 +737,13 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         self.root_canvas.pack(side='left', fill='both', expand=True)
 
     def apply_style(self, seen=None):
-        BinillaWidget.apply_style(self, seen)
-        self.root_canvas.config(bg=self.default_bg_color)
-        self.root_frame.config(bg=self.default_bg_color)
+        try:
+            BinillaWidget.apply_style(self, seen)
+            self.root_canvas.config(bg=self.default_bg_color)
+            self.root_frame.config(bg=self.default_bg_color)
+        except Exception:
+            if not self._closing:
+                raise
 
     def populate(self):
         '''
@@ -922,14 +945,8 @@ class TagWindow(tk.Toplevel, BinillaWidget):
 class ConfigWindow(TagWindow):
 
     def destroy(self):
-        if self._saving:
-            print("Still saving. Please wait.")
-            return True
-        elif self.applying_style_change:
-            print("Still applying style change. Please wait.")
-            return True
-        elif not self._initialized:
-            print("Still initializing window. Please wait.")
+        if self.destroy_blocked_message:
+            print(self.destroy_blocked_message)
             return True
 
         tag = self.tag

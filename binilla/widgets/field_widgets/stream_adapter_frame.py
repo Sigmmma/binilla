@@ -91,18 +91,15 @@ class StreamAdapterFrame(container_frame.ContainerFrame):
             if hasattr(data, 'desc'):
                 data_desc = data.desc
 
-            widget_cls = self.widget_picker.get_widget(data_desc)
-            kwargs = dict(node=data, parent=node, show_title=False,
-                          tag_window=self.tag_window, attr_index='SUB_STRUCT',
-                          disabled=self.disabled, f_widget_parent=self,
-                          desc=data_desc, show_frame=self.show.get(),
-                          dont_padx_fields=True)
-            try:
-                widget = widget_cls(self.content, **kwargs)
-            except Exception:
-                print(format_exc())
-                widget = data_frame.NullFrame(self.content, **kwargs)
-
+            widget = field_widget.build_field_widget(
+                self.widget_picker.get_widget(data_desc),
+                data_frame.NullFrame, self.content,
+                node=data, parent=node, show_title=False,
+                tag_window=self.tag_window, attr_index='SUB_STRUCT',
+                disabled=self.disabled, f_widget_parent=self,
+                desc=data_desc, show_frame=self.show.get(),
+                dont_padx_fields=True
+                )
             wid = id(widget)
             f_widget_ids.append(wid)
             f_widget_ids_map['SUB_STRUCT'] = wid

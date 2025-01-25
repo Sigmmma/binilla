@@ -139,12 +139,18 @@ class TagWindow(tk.Toplevel, BinillaWidget):
         kwargs.update(bg=self.default_bg_color)
 
         BinillaWidget.__init__(self)
-        tk.Toplevel.__init__(self, master, *args, **kwargs)
+        try:
+            tk.Toplevel.__init__(self, master, *args, **kwargs)
 
-        # do any initialization that requires this object
-        # be initialized as a tk.Toplevel object
-        self.post_toplevel_init()
-
+            # do any initialization that requires this object
+            # be initialized as a tk.Toplevel object
+            self.post_toplevel_init()
+        except tk.TclError as e:
+            # if the application is shutting down, just eat the TclErrors
+            if "application has been destroyed" in e.args[0].lower():
+                self._closing = True
+                return
+            raise
 
         try:
             max_undos = self.app_root.max_undos
@@ -215,6 +221,7 @@ class TagWindow(tk.Toplevel, BinillaWidget):
 
         # populate the window
         self.creating_label.pack(fill="both", expand=True)
+
         self.populate()
 
         # pack da stuff
@@ -549,8 +556,8 @@ class TagWindow(tk.Toplevel, BinillaWidget):
     def destroy_blocked_message(self):
         if self._saving:
             reason = "Still saving. Please wait."
-        elif not self.field_widget:
-            reason = "Still creating window. Please wait."
+        #elif not self.field_widget:
+        #    reason = "Still creating window. Please wait."
         #elif self.applying_style_change:
         #    reason = "Still applying style change. Please wait."
         #elif not self._initialized:

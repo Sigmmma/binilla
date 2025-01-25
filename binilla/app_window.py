@@ -129,6 +129,7 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Miscellaneous properties'''
     _initialized = False
     _window_geometry_initialized = False
+    _shutting_down = False
     config_made_anew = False
     app_name = "Binilla"  # the name of the app(used in window title)
     version = "%s.%s.%s" % binilla.__version__
@@ -706,6 +707,7 @@ class Binilla(tk.Tk, BinillaWidget):
             except Exception:
                 pass
 
+        self._shutting_down = True
         try:
             # need to save before destroying the
             # windows or bindings wont be saved
@@ -1240,8 +1242,9 @@ class Binilla(tk.Tk, BinillaWidget):
                           "Could not load: %s" % path)
                     continue
                 except PermissionError:
-                    print("This program does not have permission to work in this folder.\n"
-                          "Could not load: %s" % path)
+                    print(("%s does not have permission to work in "
+                           "this folder.\nCould not load: %s") %
+                          (self.app_name, path))
                     continue
                 except Exception:
                     print(format_exc())
@@ -1254,12 +1257,12 @@ class Binilla(tk.Tk, BinillaWidget):
                 #build the window
                 w = self.make_tag_window(new_tag, focus=False,
                                          is_new_tag=is_new_tag)
-                windows.append(w)
+                w and windows.append(w)
             except Exception:
                 print(format_exc())
                 raise IOError("Could not display tag '%s'." % path)
 
-        self.select_tag_window(w)
+        w and self.select_tag_window(w)
         return windows
 
     def load_tag_as(self, e=None):
@@ -1541,6 +1544,11 @@ class Binilla(tk.Tk, BinillaWidget):
 
                 # focus_set wasnt working, so i had to play hard ball
                 window.focus_force()
+        except tk.TclError as e:
+            # if the application is shutting down, just eat the TclErrors
+            if "application has been destroyed" in e.args[0].lower():
+                return
+            print(format_exc())
         except Exception:
             print(format_exc())
 

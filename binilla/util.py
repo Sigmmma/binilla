@@ -137,12 +137,13 @@ def open_in_default_program(path):
             os.system('open "%s"' % path)
         elif e_c.IS_LNX:
             os.system('xdg-open "%s"' % path)
+        elif Path(path).is_dir():
+            # windows does not properly open directories using "start".
+            # we have to directly call explorer in this case
+            os.system('explorer "%s"' % path)
         else:
-            if Path(path).is_dir():
-                # windows does not properly open directories using "start".
-                # we have to directly call explorer in this case
-                os.system('explorer "%s"' % path)
-            else:
-                os.system('start /B "" "%s"' % path)
+            # why can't windows just allow you to open a file with the
+            # default application without opening a command prompt....
+            os.system('start /min cmd /c "%s"' % path)
     except Exception:
         print(format_exc())

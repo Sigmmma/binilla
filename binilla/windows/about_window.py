@@ -14,36 +14,49 @@ from binilla.widgets.binilla_widget import BinillaWidget
 
 VALID_MODULE_CHARACTERS = frozenset(string.ascii_letters + "_" + string.digits)
 
+# idlelib has gone through various updates that
+# have renamed and moved TextViewer several times
 try:
     from idlelib.textView import TextViewer
+except ImportError:
+    try:
+        from idlelib.textview import TextViewer
+    except ImportError:
+        try:
+            from idlelib.textview import ViewWindow as TextViewer
+        except ImportError:
+            print(format_exc())
 
+
+if TextViewer:
     class BinillaTextViewer(TextViewer, BinillaWidget):
         def __init__(self, *a, **kw):
             iconbitmap = kw.pop("iconbitmap", "")
             BinillaWidget.__init__(self, *a, **kw)
-            TextViewer.__init__(self, *a)
+            super().__init__(*a, **kw)
             self.apply_style()
-            if iconbitmap:
-                try:
-                    self.iconbitmap(str(iconbitmap))
-                except Exception:
-                    print("Could not load window icon.")
+            try:
+                iconbitmap and self.iconbitmap(str(iconbitmap))
+            except Exception:
+                print("Could not load window icon.")
 
-        def wait_window(self):
-            # null this method
-            pass
+        # null these methods
+        def wait_window(self): pass
+        def grab_set(self): pass
 
-    def view_file(master, title, filepath, *a, **kw):
+
+def view_file(filepath, title="", master=None, *a, **kw):
+    if TextViewer and master:
         try:
             with open(str(filepath), 'r') as f:
                 text = f.read()
-        except Exception as e:
-            messagebox.showerror('File open error', str(e), parent=master)
-            return
-        return BinillaTextViewer(master, title, text, *a, **kw)
+            return BinillaTextViewer(master, title, text, *a, **kw)
+        except Exception:
+            pass
+            # while debugging, we can enable this. it'll just annoy users
+            #messagebox.showerror('File open error', format_exc(), parent=master)
 
-except ImportError:
-    BinillaTextViewer = view_file = None
+    return open_in_default_program(filepath)
 
 
 class AboutWindow(tk.Toplevel, BinillaWidget):
@@ -86,7 +99,7 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
 
         self.generate_widgets()
 
-        self.bind('<Escape>', lambda e=None, s=self: s.destroy())
+        self.bind('<Escape>', (lambda e=None, s=self: s.destroy()))
         self.apply_style()
 
         self.update()
@@ -254,25 +267,17 @@ class AboutWindow(tk.Toplevel, BinillaWidget):
         Tries to display it in a text holding window.
         If that doesn't exist we open in the default program.
         '''
-        license_fp = self.module_infos.get(module_name, {}).get(key)
-
-        if not(license_fp and os.path.isfile(license_fp)):
-            print("'%s' does not exist" % license_fp)
+        filepath = self.module_infos.get(module_name, {}).get(key)
+        if not(filepath and os.path.isfile(filepath)):
+            print("'%s' does not exist" % filepath)
             return
 
-        if not view_file:
-            # If view file is not defined we cannot render a textbox with the
-            # readme. Open it in the default program instead.
-            open_in_default_program(license_fp)
-            return
+        mod_name    = self.get_proper_module_name(module_name)
+        mod_version = self.get_version_string(module_name)
+        title_tpl   = "%s v%s %s" if mod_version else "%s%s %s"
 
-        version_string = self.get_version_string(module_name)
-        if version_string:
-            version_string = " v%s" % version_string
-
-        view_file(self, "%s%s license" % (
-            self.get_proper_module_name(module_name),
-            version_string), license_fp, iconbitmap=self.iconbitmap_filepath)
+        title = title_tpl % (mod_name, mod_version, key)
+        view_file(filepath, title, self, iconbitmap=self.iconbitmap_filepath)
 
     def open_module_location(self, module_name):
         module_location = self.module_infos.get(module_name, {}).get("location")

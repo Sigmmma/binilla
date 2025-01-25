@@ -12,6 +12,27 @@ from binilla.widgets.binilla_widget import BinillaWidget
 from binilla.windows.filedialog import asksaveasfilename, askopenfilename
 
 
+def build_field_widget(widget_cls, fallback_cls=None, *args, **kwargs):
+    '''
+    Helper method to either build and return an instance of the given
+    FieldWidget class, or the fallback class if an exception is encountered.
+    A traceback will be printed in this case, but only if the exception
+    wasn't a TclError caused by the application shutting down.
+    '''
+    widget = None
+    try:
+        widget = widget_cls(*args, **kwargs)
+    except tk.TclError as e:
+        if "application has been destroyed" not in e.args[0].lower():
+            print(format_exc())
+    except Exception:
+        print(format_exc())
+    finally:
+        widget = widget or (fallback_cls and fallback_cls(*args, **kwargs))
+
+    return widget
+
+
 # These classes are used for laying out the visual structure
 # of many sub-widgets, and effectively the whole window.
 class FieldWidget(BinillaWidget):

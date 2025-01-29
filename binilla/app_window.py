@@ -19,11 +19,10 @@ from tkinter import messagebox
 import binilla
 
 # load the binilla constants so they are injected before any defs are loaded
-from binilla import constants as s_c
+from binilla import constants as s_c, editor_constants as e_c
 s_c.inject()
 from supyr_struct.field_types import FieldType
 
-from binilla import editor_constants as e_c
 from binilla.widgets.field_widget_picker import WidgetPicker
 from binilla.widgets.binilla_widget import BinillaWidget
 from binilla.widgets.tooltip_handler import ToolTipHandler
@@ -923,9 +922,9 @@ class Binilla(tk.Tk, BinillaWidget):
                         self.log_filename).open('a+')
 
                     # write a timestamp to the file
-                    time = datetime.now().strftime("%Y-%m-%d  %H:%M:%S")
+                    now = datetime.now().strftime("%Y-%m-%d  %H:%M:%S")
                     self.log_file.write("\n%s%s%s\n" %
-                                        ("-"*30, time, "-"*(50-len(time))))
+                                        ("-"*30, now, "-"*(50-len(now))))
                 except Exception:
                     print(format_exc())
 

@@ -403,9 +403,9 @@ class FieldWidget(BinillaWidget):
         except AttributeError:
             if "widget_picker" not in globals():
                 global widget_picker
-                from binilla import widget_picker
+                from binilla.widgets import field_widget_picker
 
-        return widget_picker.def_widget_picker
+        return field_widget_picker.def_widget_picker
 
     @property
     def pack_padx(self):

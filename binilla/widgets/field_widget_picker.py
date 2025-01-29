@@ -94,50 +94,50 @@ add_widget(Computed, EntryFrame)
 add_widget(WritableComputed, EntryFrame)
 add_widget(Bit, BoolSingleFrame)
 
-for f_type in (Array, WhileArray):
-    add_widget(f_type, ArrayFrame)
+for typ in (Array, WhileArray):
+    add_widget(typ, ArrayFrame)
 
-for f_type in (Container, Struct, QStruct, BitStruct):
-    add_widget(f_type, ContainerFrame)
+for typ in (Container, Struct, QStruct, BitStruct):
+    add_widget(typ, ContainerFrame)
 
-for f_type in (UBitInt, SBitInt, S1BitInt, UIntBig, SIntBig, S1IntBig,
-               UInt8, SInt8, Pointer32, Pointer64, UDecimal, SDecimal,
-               UInt16, UInt24, UInt32, UInt64, Float,
-               SInt16, SInt24, SInt32, SInt64, Double):
-    add_widget(f_type, NumberEntryFrame)
+for typ in (UBitInt, SBitInt, S1BitInt, UIntBig, SIntBig, S1IntBig,
+            UInt8, SInt8, Pointer32, Pointer64, UDecimal, SDecimal,
+            UInt16, UInt24, UInt32, UInt64, Float,
+            SInt16, SInt24, SInt32, SInt64, Double):
+    add_widget(typ, NumberEntryFrame)
 
-for f_type in (FloatTimestamp, DoubleTimestamp, Timestamp32, Timestamp64):
-    add_widget(f_type, TimestampFrame)
+for typ in (FloatTimestamp, DoubleTimestamp, Timestamp32, Timestamp64):
+    add_widget(typ, TimestampFrame)
 
-for f_type in (UBitEnum, SBitEnum, UEnumBig, SEnumBig,
-               UEnum8,  SEnum8, UEnum16, UEnum24, UEnum32, UEnum64,
-               SEnum16, SEnum24, SEnum32, SEnum64, BytesRawEnum):
-    add_widget(f_type, EnumFrame)
+for typ in (UBitEnum, SBitEnum, UEnumBig, SEnumBig,
+            UEnum8,  SEnum8, UEnum16, UEnum24, UEnum32, UEnum64,
+            SEnum16, SEnum24, SEnum32, SEnum64, BytesRawEnum):
+    add_widget(typ, EnumFrame)
 
-for f_type in (StrAsciiEnum, StrUtf8Enum):
+for typ in (StrAsciiEnum, StrUtf8Enum):
     # CHANGE THIS TO USE A CUSTOM WIDGET THAT DISPLAYS THE FONT
-    add_widget(f_type, EnumFrame)
+    add_widget(typ, EnumFrame)
 
-for f_type in (BitBool, BoolBig, Bool8, Bool16, Bool24, Bool32, Bool64):
-    add_widget(f_type, BoolFrame)
+for typ in (BitBool, BoolBig, Bool8, Bool16, Bool24, Bool32, Bool64):
+    add_widget(typ, BoolFrame)
 
-for f_type in (BytesRaw, BytearrayRaw):
-    add_widget(f_type, RawdataFrame)
+for typ in (BytesRaw, BytearrayRaw):
+    add_widget(typ, RawdataFrame)
 
-for f_type in (UInt8Array, SInt8Array, UInt16Array, SInt16Array, UInt32Array,
-               SInt32Array, UInt64Array, SInt64Array, FloatArray, DoubleArray):
-    add_widget(f_type, RawdataFrame)  # NEED WIDGET
+for typ in (UInt8Array, SInt8Array, UInt16Array, SInt16Array, UInt32Array,
+            SInt32Array, UInt64Array, SInt64Array, FloatArray, DoubleArray):
+    add_widget(typ, RawdataFrame)  # NEED WIDGET
 
-for f_type in (tuple(str_field_types.values()) +
-               tuple(str_nnt_field_types.values()) +
-               tuple(str_raw_field_types.values()) +
-               tuple(cstr_field_types.values()) +
-               (StrAscii, StrLatin1, StrUtf8, StrUtf16, StrUtf32,
-                StrNntAscii, StrNntLatin1, StrNntUtf8, StrNntUtf16, StrNntUtf32,
-                CStrAscii, CStrLatin1, CStrUtf8, CStrUtf16, CStrUtf32,
-                StrRawAscii, StrRawLatin1, StrRawUtf8, StrRawUtf16, StrRawUtf32)
-               ):
-    add_widget(f_type, EntryFrame)
+for typ in (tuple(str_field_types.values()) +
+            tuple(str_nnt_field_types.values()) +
+            tuple(str_raw_field_types.values()) +
+            tuple(cstr_field_types.values()) +
+            (StrAscii, StrLatin1, StrUtf8, StrUtf16, StrUtf32,
+             StrNntAscii, StrNntLatin1, StrNntUtf8, StrNntUtf16, StrNntUtf32,
+             CStrAscii, CStrLatin1, CStrUtf8, CStrUtf16, CStrUtf32,
+             StrRawAscii, StrRawLatin1, StrRawUtf8, StrRawUtf16, StrRawUtf32)
+            ):
+    add_widget(typ, EntryFrame)
 
 add_widget(StrHex, HexEntryFrame)
 

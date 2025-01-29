@@ -809,13 +809,13 @@ class DynamicArrayFrame(ArrayFrame):
                 pass
 
     def generate_options(self, opt_index=None):
+        options = {}
         node, desc = self.node, self.desc
         if node is None:
             if opt_index is None:
                 return options
             return ""
 
-        options = {}
         options_to_generate = range(len(node))
         if opt_index is not None:
             options_to_generate = (

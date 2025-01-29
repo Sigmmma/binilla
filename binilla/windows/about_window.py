@@ -41,7 +41,7 @@ if TextViewer:
                 print("Could not load window icon.")
 
         # null these methods
-        def wait_window(self): pass
+        def wait_window(self, window=None): pass
         def grab_set(self): pass
 
 

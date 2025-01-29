@@ -31,9 +31,7 @@ from supyr_struct.defs.tag_def import TagDef
 # make sure the new constants are injected and used
 from binilla.constants import BPI
 from binilla.util import is_main_frozen
-from supyr_struct.util import is_in_dir, is_path_empty
-
-from supyr_struct.util import path_normalize
+from supyr_struct.util import is_in_dir, is_path_empty, path_normalize
 
 
 ######################################################
@@ -226,7 +224,7 @@ class Handler():
             pass
         elif isinstance(tagdefs, type) and issubclass(tagdefs, TagDef):
             # a TagDef class was provided
-            tagdefs = tagdef()
+            tagdefs = tagdefs()
         elif not isinstance(tagdefs, ModuleType):
             # no idea what was provided, but we dont care. ERROR!
             raise TypeError("Incorrect type for the provided 'tagdef'.\n" +

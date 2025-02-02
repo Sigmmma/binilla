@@ -310,7 +310,7 @@ class BitmapDisplayFrame(BinillaWidget, tk.Frame):
                                             variable=self.cube_display_index,
                                             options=("cross", "linear"), can_scroll=True)
 
-        self.save_button = ttk.Button(self.controls_frame2, width=11,
+        self.save_button = tk.Button(self.controls_frame2, width=11,
                                      text="Browse", command=self.save_as)
         self.depth_menu.default_text = self.mipmap_menu.default_text =\
                                        self.bitmap_menu.default_text =\
@@ -717,7 +717,6 @@ class BitmapDisplayButton(BinillaWidget, ttk.Button):
         self.display_frame().pack(expand=True, fill="both")
         w.transient(parent)
         try:
-            #tag_name = self.bitmap_tag().filepath
             tag_name = self.bitmap_tag.filepath
         except Exception:
             tag_name = "untitled"

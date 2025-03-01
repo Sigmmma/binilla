@@ -26,7 +26,7 @@ except ImportError:
             from idlelib.textview import ViewWindow as TextViewer
         except ImportError:
             TextViewer = None
-            print(format_exc())
+            #print(format_exc())
             #messagebox.showerror('Import Error', format_exc())
 
 

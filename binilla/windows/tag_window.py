@@ -370,12 +370,14 @@ class TagWindow(tk.Toplevel, BinillaWidget):
     @property
     def max_height(self):
         # OS_PAD_Y accounts for the width of the windows border
-        return self.winfo_screenheight() - self.winfo_y() - OS_PAD_Y
+        screen_h = self.winfo_screenheight()
+        return (screen_h - (self.winfo_y() - OS_PAD_Y)) % screen_h
 
     @property
     def max_width(self):
         # OS_PAD_X accounts for the width of the windows border
-        return self.winfo_screenwidth() - self.winfo_x() - OS_PAD_X
+        screen_w = self.winfo_screenwidth()
+        return (screen_w - (self.winfo_x() + OS_PAD_X)) % screen_w
 
     def get_visible(self, visibility_level):
         if (visibility_level is None or

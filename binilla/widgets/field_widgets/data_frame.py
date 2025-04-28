@@ -48,6 +48,9 @@ class NullFrame(DataFrame):
 
     def flush(self): pass
 
+    def edit_apply(self=None, *, edit_state, undo=True):
+        pass
+
     def populate(self):
         self.title_label = tk.Label(
             self, text=self.gui_name, width=self.title_size, anchor='w',
@@ -187,7 +190,7 @@ class RawdataFrame(DataFrame):
                 root = self.f_widget_parent
                 while hasattr(root, 'f_widget_parent'):
                     if root.f_widget_parent is None:
-                       break
+                        break
                     root = root.f_widget_parent
 
                 root.reload()
@@ -252,7 +255,7 @@ class RawdataFrame(DataFrame):
                     root = self.f_widget_parent
                     while hasattr(root, 'f_widget_parent'):
                         if root.f_widget_parent is None:
-                           break
+                            break
                         root = root.f_widget_parent
 
                     root.reload()
@@ -289,6 +292,9 @@ class VoidFrame(DataFrame):
         self._initialized = True
 
     def flush(self): pass
+
+    def edit_apply(self=None, *, edit_state, undo=True):
+        pass
 
     def populate(self):
         self.title_label = tk.Label(

@@ -12,6 +12,27 @@ from binilla.widgets.binilla_widget import BinillaWidget
 from binilla.windows.filedialog import asksaveasfilename, askopenfilename
 
 
+def build_field_widget(widget_cls, fallback_cls=None, *args, **kwargs):
+    '''
+    Helper method to either build and return an instance of the given
+    FieldWidget class, or the fallback class if an exception is encountered.
+    A traceback will be printed in this case, but only if the exception
+    wasn't a TclError caused by the application shutting down.
+    '''
+    widget = None
+    try:
+        widget = widget_cls(*args, **kwargs)
+    except tk.TclError as e:
+        if "application has been destroyed" not in e.args[0].lower():
+            print(format_exc())
+    except Exception:
+        print(format_exc())
+    finally:
+        widget = widget or (fallback_cls and fallback_cls(*args, **kwargs))
+
+    return widget
+
+
 # These classes are used for laying out the visual structure
 # of many sub-widgets, and effectively the whole window.
 class FieldWidget(BinillaWidget):
@@ -218,6 +239,13 @@ class FieldWidget(BinillaWidget):
             return True
 
     @property
+    def use_unit_scales(self):
+        try:
+            return bool(self.tag_window.use_unit_scales)
+        except Exception:
+            return True
+
+    @property
     def editable(self):
         try:
             return self.desc.get('EDITABLE', True) or self.all_editable
@@ -321,6 +349,9 @@ class FieldWidget(BinillaWidget):
 
     @property
     def unit_scale(self):
+        if not self.use_unit_scales:
+            return None
+
         desc = self.desc
         unit_scale = desc.get('UNIT_SCALE')
         if hasattr(unit_scale, '__call__'):
@@ -372,9 +403,9 @@ class FieldWidget(BinillaWidget):
         except AttributeError:
             if "widget_picker" not in globals():
                 global widget_picker
-                from binilla import widget_picker
+                from binilla.widgets import field_widget_picker
 
-        return widget_picker.def_widget_picker
+        return field_widget_picker.def_widget_picker
 
     @property
     def pack_padx(self):
@@ -622,6 +653,10 @@ class FieldWidget(BinillaWidget):
         except Exception:
             print(format_exc())
             print("Could not import '%s' node." % self.name)
+
+    def select_all(self, *args):
+        '''Selects everything in the widget(if the concept applies to it.)'''
+        pass
 
     def populate(self):
         '''Destroys and rebuilds this widgets children.'''

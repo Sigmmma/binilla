@@ -256,18 +256,14 @@ class UnionFrame(container_frame.ContainerFrame):
             active_widget = self.u_node_widgets_by_u_index.get(u_index)
             if active_widget is None:
                 if u_index is not None:
-                    widget_cls = self.widget_picker.get_widget(u_desc)
-                    kwargs = dict(
+                    active_widget = field_widget.build_field_widget(
+                        self.widget_picker.get_widget(u_desc),
+                        data_frame.NullFrame, self.content,
                         show_title=False, tag_window=self.tag_window,
                         attr_index=u_index, disabled=self.disabled,
                         f_widget_parent=self, desc=u_desc,
-                        show_frame=self.show.get(), dont_padx_fields=True)
-
-                    try:
-                        active_widget = widget_cls(self.content, **kwargs)
-                    except Exception:
-                        print(format_exc())
-                        active_widget = data_frame.NullFrame(self.content, **kwargs)
+                        show_frame=self.show.get(), dont_padx_fields=True
+                        )
                 else:
                     active_widget = self.raw_frame
 
@@ -277,6 +273,7 @@ class UnionFrame(container_frame.ContainerFrame):
             self.f_widget_ids.append(wid)
             self.f_widget_ids_map[u_index] = wid
             self.f_widget_ids_map_inv[wid] = u_index
+
             if hasattr(active_widget, "load_node_data"):
                 if active_widget.load_node_data(self.node, u_node,
                                                 u_index, u_desc):

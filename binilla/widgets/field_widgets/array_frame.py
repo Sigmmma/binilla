@@ -635,25 +635,19 @@ class ArrayFrame(container_frame.ContainerFrame):
 
             self.display_comment(self.content)
 
-            widget_cls = self.widget_picker.get_widget(sub_desc)
-            try:
-                widget = widget_cls(
-                    self.content, node=sub_node, parent=node,
-                    show_title=False, dont_padx_fields=True,
-                    attr_index=self.sel_index, tag_window=self.tag_window,
-                    f_widget_parent=self, disabled=self.disabled)
-            except Exception:
-                print(format_exc())
-                widget = data_frame.NullFrame(
-                    self.content, node=sub_node, parent=node,
-                    show_title=False, dont_padx_fields=True,
-                    attr_index=self.sel_index, tag_window=self.tag_window,
-                    f_widget_parent=self, disabled=self.disabled)
-
-            wid = id(widget)
-            self.f_widget_ids.append(wid)
-            self.f_widget_ids_map[self.sel_index] = wid
-            self.f_widget_ids_map_inv[wid] = self.sel_index
+            widget = field_widget.build_field_widget(
+                self.widget_picker.get_widget(sub_desc),
+                data_frame.NullFrame,
+                self.content, node=sub_node, parent=node,
+                show_title=False, dont_padx_fields=True,
+                attr_index=self.sel_index, tag_window=self.tag_window,
+                f_widget_parent=self, disabled=self.disabled
+                )
+            if widget is not None:
+                wid = id(widget)
+                self.f_widget_ids.append(wid)
+                self.f_widget_ids_map[self.sel_index] = wid
+                self.f_widget_ids_map_inv[wid] = self.sel_index
 
             self.populated = True
             self.build_f_widget_cache()
@@ -815,13 +809,13 @@ class DynamicArrayFrame(ArrayFrame):
                 pass
 
     def generate_options(self, opt_index=None):
+        options = {}
         node, desc = self.node, self.desc
         if node is None:
             if opt_index is None:
                 return options
             return ""
 
-        options = {}
         options_to_generate = range(len(node))
         if opt_index is not None:
             options_to_generate = (

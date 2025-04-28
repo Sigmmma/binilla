@@ -52,6 +52,9 @@ class PhotoImageHandler():
             self.load_texture(tex_block, tex_info)
 
     def load_texture(self, tex_block, tex_info):
+        self.arby.set_deep_color_mode(
+            max(arbytmap.CHANNEL_DEPTHS[tex_info.get("format", 0)]) > 8
+            )
         self.arby.load_new_texture(texture_block=tex_block,
                                    texture_info=tex_info)
 
@@ -307,7 +310,7 @@ class BitmapDisplayFrame(BinillaWidget, tk.Frame):
                                             variable=self.cube_display_index,
                                             options=("cross", "linear"), can_scroll=True)
 
-        self.save_button = ttk.Button(self.controls_frame2, width=11,
+        self.save_button = tk.Button(self.controls_frame2, width=11,
                                      text="Browse", command=self.save_as)
         self.depth_menu.default_text = self.mipmap_menu.default_text =\
                                        self.bitmap_menu.default_text =\
@@ -389,7 +392,7 @@ class BitmapDisplayFrame(BinillaWidget, tk.Frame):
             pass
         try: del self.textures[:]
         except Exception: pass
-        try: del self._image_handlers[:]
+        try: self._image_handlers.clear()
         except Exception: pass
         self.image_canvas_ids = self._image_handlers = None
         self.textures = None
@@ -401,14 +404,19 @@ class BitmapDisplayFrame(BinillaWidget, tk.Frame):
     @property
     def active_image_handler(self):
         b = self.bitmap_index.get()
-        if b not in range(len(self.textures)) or not import_arbytmap():
-            return None
-        elif b not in self._image_handlers:
+        if b in range(len(self.textures)) and b not in self._image_handlers:
             # make a new PhotoImageHandler if one doesnt exist already
-            self._image_handlers[b] = PhotoImageHandler(
-                self.textures[b][0], self.textures[b][1], self.temp_dir)
+            self._image_handlers[b] = self.create_image_handler(b)
 
-        return self._image_handlers[b]
+        return self._image_handlers.get(b)
+
+    def create_image_handler(self, index):
+        if index in range(len(self.textures)) and import_arbytmap():
+            return PhotoImageHandler(
+                self.textures[index][0], 
+                self.textures[index][1], 
+                self.temp_dir
+                )
 
     @property
     def should_update(self):
@@ -478,7 +486,9 @@ class BitmapDisplayFrame(BinillaWidget, tk.Frame):
         elif not ext:
             ext = ".dds"
 
-        mip_levels = "all" if ext.lower() == ".dds" else self.mipmap_index.get()
+        mip_levels = self.mipmap_index.get()
+        if ext.lower() == ".dds":
+            mip_levels = "all" 
 
         handler.arby.save_to_file(
             output_path=fp, ext=ext, overwrite=True, mip_levels=mip_levels,
@@ -707,7 +717,6 @@ class BitmapDisplayButton(BinillaWidget, ttk.Button):
         self.display_frame().pack(expand=True, fill="both")
         w.transient(parent)
         try:
-            #tag_name = self.bitmap_tag().filepath
             tag_name = self.bitmap_tag.filepath
         except Exception:
             tag_name = "untitled"

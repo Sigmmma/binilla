@@ -95,7 +95,10 @@ class ContainerFrame(tk.Frame, field_widget.FieldWidget):
             if attr_index is None:
                 return True
             elif self.node:
-                sub_node = self.node[attr_index]
+                try:
+                    sub_node = self.node[attr_index]
+                except Exception:
+                    pass
 
             if w.load_node_data(self.node, sub_node, attr_index):
                 # descriptor is different. gotta repopulate self
@@ -283,17 +286,16 @@ class ContainerFrame(tk.Frame, field_widget.FieldWidget):
             if not self.get_visible(sub_desc.get('VISIBLE', True)):
                 continue
 
-            widget_cls = picker.get_widget(sub_desc)
             if i == field_indices[-1] and vertical:
                 kwargs.update(pack_pady=0)
 
-            try:
-                widget = widget_cls(content, node=sub_node,
-                                    attr_index=i, desc=sub_desc, **kwargs)
-            except Exception:
-                print(format_exc())
-                widget = data_frame.NullFrame(
-                    content, node=sub_node, attr_index=i, desc=sub_desc, **kwargs)
+            widget = field_widget.build_field_widget(
+                picker.get_widget(sub_desc), data_frame.NullFrame,
+                self.content, node=sub_node, attr_index=i,
+                desc=sub_desc, **kwargs
+                )
+            if widget is None:
+                continue
 
             wid = id(widget)
             self.f_widget_ids.append(wid)

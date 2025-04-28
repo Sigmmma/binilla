@@ -31,9 +31,7 @@ from supyr_struct.defs.tag_def import TagDef
 # make sure the new constants are injected and used
 from binilla.constants import BPI
 from binilla.util import is_main_frozen
-from supyr_struct.util import is_in_dir, is_path_empty
-
-from supyr_struct.util import path_normalize
+from supyr_struct.util import is_in_dir, is_path_empty, path_normalize
 
 
 ######################################################
@@ -226,7 +224,7 @@ class Handler():
             pass
         elif isinstance(tagdefs, type) and issubclass(tagdefs, TagDef):
             # a TagDef class was provided
-            tagdefs = tagdef()
+            tagdefs = tagdefs()
         elif not isinstance(tagdefs, ModuleType):
             # no idea what was provided, but we dont care. ERROR!
             raise TypeError("Incorrect type for the provided 'tagdef'.\n" +
@@ -354,10 +352,6 @@ class Handler():
             del self.tags[def_id][filepath]
         elif Path(self.tagsdir, filepath) in self.tags.get(def_id, {}):
             del self.tags[def_id][Path(self.tagsdir, filepath)]
-        else:
-            print("Warning: Tried to delete tag %s [%s] from handler, "
-                  "but tag couldn't be found." % (filepath, def_id))
-
 
     def get_def_id(self, filepath):
         filepath = str(filepath)
@@ -403,7 +397,8 @@ class Handler():
         else:
             raise KeyError("Could not locate the specified tag.")
 
-    def get_unique_filename(self, filepath, dest, src=(), rename_tries=None):
+    def get_unique_filename(self, filepath, dest, src=(),
+                            rename_tries=None, suffix=""):
         '''
         Attempts to rename the string 'filepath' to a name that
         does not already exist in 'dest' or 'src'. This is done by
@@ -423,47 +418,30 @@ class Handler():
         check against to see if the generated filename is unique.
         '''
         filepath = str(filepath)
-        splitpath, ext = splitext(path_normalize(filepath))
-        newpath = splitpath
-
-        # find the location of the last underscore
-        last_us = None
-        for i in range(len(splitpath)):
-            if splitpath[i] == '_':
-                last_us = i
+        oldpath  = path_normalize(filepath)
+        suffix   = '.' + (suffix or "bak")
 
         # sets are MUCH faster for testing membership than lists
-        src = set(src)
-        dest = set(dest)
-
-        # if the stuff after the last underscore is not an
-        # integer, treat it as if there is no last underscore
-        try:
-            i = int(splitpath[last_us+1:])
-            oldpath = splitpath[:last_us] + '_'
-        except Exception:
-            i = 0
-            oldpath = splitpath + '_'
+        src  = set(Path(pth) for pth in src)
+        dest = set(Path(pth) for pth in dest)
 
         # increase rename_tries by the number we are starting at
-        if rename_tries is None:
-            rename_tries = len(src) + len(dest)
-
-        rename_tries += i
+        rename_tries = rename_tries or (len(src) + len(dest))
 
         # make sure the name doesnt already
         # exist in both src or dest
-        while (newpath + ext) in dest or (newpath + ext) in src:
-            newpath = oldpath + str(i)
+        newpath, i = None, 0
+        while not i or Path(newpath) in dest or Path(newpath) in src:
+            newpath = oldpath + suffix + str(i)
             if i > rename_tries:
                 raise RuntimeError("Maximum attempts exceeded while " +
                                    "trying to find a unique name for " +
                                    "the tag:\n    %s" % filepath)
             i += 1
 
-        return newpath + ext
+        return newpath
 
-    def get_next_backup_filepath(self, filepath, backup_count=1):
+    def get_next_backup_filepath(self, filepath, backup_count=1, suffix=""):
         filepath = Path(filepath)
         backup_count = max(backup_count, 1)
         backup_dir = self.get_backup_dir(filepath)
@@ -480,7 +458,8 @@ class Handler():
             backup_path = backup_dir.joinpath(filepath.stem)
 
         return self.get_unique_filename(
-            backup_path, set(existing_backup_paths.values()), ())
+            backup_path, set(existing_backup_paths.values()), (), None, suffix
+            )
 
     def get_backup_dir(self, filepath=None):
         filepath = Path(os.path.realpath(str(filepath)))
@@ -502,7 +481,7 @@ class Handler():
         backup_paths = {}
         backup_dir = self.get_backup_dir(filepath)
         filepath = Path(path_normalize(os.path.realpath(str(filepath))))
-        src_fname = filepath.stem.lower()
+        src_fname = (filepath.stem + filepath.suffix).lower()
 
         for root, _, files in os.walk(str(backup_dir)):
             for fname in files:
@@ -514,11 +493,8 @@ class Handler():
                 # side to an int, it's not a backup of this tag
                 try:
                     fname = os.path.splitext(fname)[0].lower()
-                    remainder, num = fname.split(src_fname)
-                    if remainder:
+                    if not fname.startswith(src_fname):
                         continue
-                    elif num:
-                        int(num.lstrip("_ "))
 
                     timestamp = os.path.getmtime(fpath)
                     if timestamp <= time.time() or not ignore_future_dates:

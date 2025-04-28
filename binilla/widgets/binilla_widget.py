@@ -14,7 +14,7 @@ __all__ = ("BinillaWidget", )
 
 
 
-class BinillaWidget():
+class BinillaWidget(tk.Misc):
     '''
     This class exists solely as an easy way to change
     the config properties of the widgets in Binilla.
@@ -186,32 +186,40 @@ class BinillaWidget():
         self.style_change_lock = style_change_lock.StyleChangeLock(self)
 
     def fix_filedialog_style(self):
-        if (BinillaWidget._filedialog_style_fix is not None
-            or not hasattr(self, "_root") or e_c.IS_WIN):
-            return
+        try:
+            if (BinillaWidget._filedialog_style_fix is not None
+                or not hasattr(self, "_root") or e_c.IS_WIN):
+                return
 
-        # fix linux using bad colors in the filedialog
-        # at times for certain linux distros
-        root = self._root()
-        root.option_add('*foreground', 'black')
+            # fix linux using bad colors in the filedialog
+            # at times for certain linux distros
+            root = self._root()
+            root.option_add('*foreground', 'black')
 
-        BinillaWidget._filedialog_style_fix = ttk.Style(root)
-        self._filedialog_style_fix.configure('TLabel', foreground='black')
-        self._filedialog_style_fix.configure('TEntry', foreground='black')
-        self._filedialog_style_fix.configure('TMenubutton', foreground='black')
-        self._filedialog_style_fix.configure('TButton', foreground='black')
+            BinillaWidget._filedialog_style_fix = ttk.Style(root)
+            self._filedialog_style_fix.configure('TLabel', foreground='black')
+            self._filedialog_style_fix.configure('TEntry', foreground='black')
+            self._filedialog_style_fix.configure('TMenubutton', foreground='black')
+            self._filedialog_style_fix.configure('TButton', foreground='black')
+        except AttributeError:
+            # NOTE: this is a hack to prevent crashing on linux when an application
+            #       uses a BinillaWidget, without itself being a BinillaWidget.
+            pass
 
     def read_trace(self, var, function):
         cb_name = var.trace("r", function)
         self.read_traces[cb_name] = var
+        return cb_name
 
     def write_trace(self, var, function):
         cb_name = var.trace("w", function)
         self.write_traces[cb_name] = var
+        return cb_name
 
     def undefine_trace(self, var, function):
         cb_name = var.trace("u", function)
         self.undefine_traces[cb_name] = var
+        return cb_name
 
     def set_disabled(self, disable=True):
         self.disabled = bool(disable)
@@ -337,6 +345,8 @@ class BinillaWidget():
         except AttributeError:
             pass
         return True
+
+    def state(self): pass
 
     def place_window_relative(self, window, x=None, y=None):
         if self.state() in ('iconic', 'withdrawn'):

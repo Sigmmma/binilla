@@ -10,7 +10,7 @@ except Exception:
         pass
 
 
-class EditState(object):
+class EditState():
     '''
     This class holds exactly how many attributes are needed
     for what we need to describe most undo and redo states.

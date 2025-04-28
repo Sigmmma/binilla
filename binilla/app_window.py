@@ -19,11 +19,10 @@ from tkinter import messagebox
 import binilla
 
 # load the binilla constants so they are injected before any defs are loaded
-from binilla import constants as s_c
+from binilla import constants as s_c, editor_constants as e_c
 s_c.inject()
 from supyr_struct.field_types import FieldType
 
-from binilla import editor_constants as e_c
 from binilla.widgets.field_widget_picker import WidgetPicker
 from binilla.widgets.binilla_widget import BinillaWidget
 from binilla.widgets.tooltip_handler import ToolTipHandler
@@ -129,6 +128,7 @@ class Binilla(tk.Tk, BinillaWidget):
     '''Miscellaneous properties'''
     _initialized = False
     _window_geometry_initialized = False
+    _shutting_down = False
     config_made_anew = False
     app_name = "Binilla"  # the name of the app(used in window title)
     version = "%s.%s.%s" % binilla.__version__
@@ -661,18 +661,20 @@ class Binilla(tk.Tk, BinillaWidget):
                     tid_to_wid.pop(tid, None)
                     self.tag_windows.pop(wid, None)
 
-            if tag is self.config_file:
-                pass
-            elif hasattr(tag, "rel_filepath"):
+            if tag is not self.config_file:
                 # remove the tag from the handlers tag library.
                 # We need to delete it by the relative filepath
                 # rather than having it detect it using the tag
                 # because the handlers tagsdir may have changed
                 # from what it was when the tag was created, so
                 # it wont be able to determine the rel_filepath
-                tag.handler.delete_tag(filepath=tag.rel_filepath)
-            else:
-                tag.handler.delete_tag(filepath=tag.filepath)
+                tag.handler.delete_tag(
+                    def_id=tag.def_id, filepath=(
+                        tag.rel_filepath
+                        if hasattr(tag, "rel_filepath") else
+                        tag.filepath
+                        )
+                    )
 
             if self.selected_tag is tag:
                 self.selected_tag = None
@@ -704,6 +706,7 @@ class Binilla(tk.Tk, BinillaWidget):
             except Exception:
                 pass
 
+        self._shutting_down = True
         try:
             # need to save before destroying the
             # windows or bindings wont be saved
@@ -919,9 +922,9 @@ class Binilla(tk.Tk, BinillaWidget):
                         self.log_filename).open('a+')
 
                     # write a timestamp to the file
-                    time = datetime.now().strftime("%Y-%m-%d  %H:%M:%S")
+                    now = datetime.now().strftime("%Y-%m-%d  %H:%M:%S")
                     self.log_file.write("\n%s%s%s\n" %
-                                        ("-"*30, time, "-"*(50-len(time))))
+                                        ("-"*30, now, "-"*(50-len(now))))
                 except Exception:
                     print(format_exc())
 
@@ -1194,7 +1197,7 @@ class Binilla(tk.Tk, BinillaWidget):
                 return ()
             elif isinstance(filepaths, str) and filepaths.startswith('{'):
                 # account for a stupid bug with certain versions of windows
-                filepaths = re.split("\}\W\{", filepaths[1:-1])
+                filepaths = re.split(r"\}\W\{", filepaths[1:-1])
 
         if isinstance(filepaths, (str, PurePath)):
             filepaths = (filepaths, )
@@ -1216,7 +1219,7 @@ class Binilla(tk.Tk, BinillaWidget):
             if self.get_is_tag_loaded(path):
                 # the tag is somehow still loaded.
                 # need to see if there is still a window
-                new_tag = self.get_tag(path, handler.get_def_id(path))
+                new_tag = self.get_tag(path, self.handler.get_def_id(path))
                 if self.get_tag_window_id_by_tag(new_tag) is not None:
                     w = self.get_tag_window_by_tag(new_tag)
                     if w:
@@ -1238,8 +1241,9 @@ class Binilla(tk.Tk, BinillaWidget):
                           "Could not load: %s" % path)
                     continue
                 except PermissionError:
-                    print("This program does not have permission to work in this folder.\n"
-                          "Could not load: %s" % path)
+                    print(("%s does not have permission to work in "
+                           "this folder.\nCould not load: %s") %
+                          (self.app_name, path))
                     continue
                 except Exception:
                     print(format_exc())
@@ -1252,12 +1256,12 @@ class Binilla(tk.Tk, BinillaWidget):
                 #build the window
                 w = self.make_tag_window(new_tag, focus=False,
                                          is_new_tag=is_new_tag)
-                windows.append(w)
+                w and windows.append(w)
             except Exception:
                 print(format_exc())
                 raise IOError("Could not display tag '%s'." % path)
 
-        self.select_tag_window(w)
+        w and self.select_tag_window(w)
         return windows
 
     def load_tag_as(self, e=None):
@@ -1539,6 +1543,11 @@ class Binilla(tk.Tk, BinillaWidget):
 
                 # focus_set wasnt working, so i had to play hard ball
                 window.focus_force()
+        except tk.TclError as e:
+            # if the application is shutting down, just eat the TclErrors
+            if "application has been destroyed" in e.args[0].lower():
+                return
+            print(format_exc())
         except Exception:
             print(format_exc())
 

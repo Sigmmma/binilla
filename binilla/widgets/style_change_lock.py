@@ -1,28 +1,43 @@
+import threadsafe_tkinter as tk
 import weakref
 
 class StyleChangeLock:
-    __slots__ = ("_lock_depth", "_binilla_widget")
+    __slots__ = ("_lock_depth", "_binilla_widget", "_error")
 
     def __init__(self, binilla_widget):
         self._lock_depth = 0
+        self._error = False
         self._binilla_widget = weakref.ref(binilla_widget)
 
     def __enter__(self):
         curr_lock_depth = self._lock_depth
         if not curr_lock_depth and self._binilla_widget():
-            self._binilla_widget().enter_style_change()
+            try:
+                self._binilla_widget().enter_style_change()
+            except tk.TclError as e:
+                # if the application is shutting down, just eat the TclErrors
+                if "application has been destroyed" in e.args[0].lower():
+                    self._error = True
+                    return
+                raise
 
         self._lock_depth += 1
         return curr_lock_depth
 
     def __exit__(self, except_type, except_value, traceback):
-        if self._lock_depth <= 0:
+        if self._error or self._lock_depth <= 0:
             return
 
         try:
             self._lock_depth -= 1
             if not self._lock_depth and self._binilla_widget():
                 self._binilla_widget().exit_style_change()
+        except tk.TclError as e:
+            # if the application is shutting down, just eat the TclErrors
+            if "application has been destroyed" in e.args[0].lower():
+                self._error = True
+                return
+            raise
         except AttributeError:
             return
 

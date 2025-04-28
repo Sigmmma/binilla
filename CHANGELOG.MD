@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0]
+### Changed
+ - inability to run on newer python versions
+ - inability able to properly close and reopen new tags
+ - incorrect background color used for disabled boolean frames
+ - dxt bitmaps being recompressed to dxt when exporting to dds from viewer with full ARGB channels
+ - crash on linux when trying to use a BinillaWidget without a BinillaWidget tkinter.Tk root
+ - binilla won't fail to generate widgets if one of the child nodes is corrupt
+ - better visual indication of invalid enumerator values
+
+### Added
+ - ability to do Ctrl+A to select all in entry field on linux
+
 ## [1.3.8]
 ### Changed
  - Update version requirement for Threadsafe-Tkinter
